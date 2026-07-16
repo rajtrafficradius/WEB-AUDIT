@@ -241,6 +241,11 @@ WHITENOISE_USE_FINDERS = DEBUG
 WHITENOISE_MANIFEST_STRICT = IS_DEPLOYED
 WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))
 
+# Keep authenticated and CSRF session state server-side in the shared cache.
+# Production resolves the default cache to Redis; local development uses locmem.
+SESSION_ENGINE = os.getenv("SESSION_ENGINE", "django.contrib.sessions.backends.cache")
+SESSION_CACHE_ALIAS = os.getenv("SESSION_CACHE_ALIAS", "default")
+
 SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "tr_seo_session")
 SESSION_COOKIE_AGE = int(os.getenv("SESSION_COOKIE_AGE", "1800"))
 SESSION_SAVE_EVERY_REQUEST = env_bool("SESSION_SAVE_EVERY_REQUEST", True)

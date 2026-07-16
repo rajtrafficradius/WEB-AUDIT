@@ -116,6 +116,15 @@ class APISecurityTests(TestCase):
             self.client.get("/readyz/", secure=True).json()["status"], {"ready", "not_ready"}
         )
 
+    def test_login_and_csrf_endpoints_create_server_side_cache_sessions(self):
+        login_response = self.client.get("/auth/login/", secure=True)
+        csrf_response = self.client.get("/auth/csrf/", secure=True)
+
+        self.assertEqual(login_response.status_code, 200)
+        self.assertEqual(csrf_response.status_code, 200)
+        self.assertIn("tr_seo_session", csrf_response.cookies)
+        self.assertNotIn("csrftoken", csrf_response.cookies)
+
     @override_settings(
         SECURE_SSL_REDIRECT=True,
         SECURE_REDIRECT_EXEMPT=[r"^healthz/$", r"^readyz/$"],
