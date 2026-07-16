@@ -47,3 +47,39 @@ def test_bootstrap_demo_is_disabled_in_production(monkeypatch) -> None:
         call_command("bootstrap_demo", admin_id="agency.admin", stdout=StringIO())
 
     assert not User.objects.exists()
+
+@pytest.mark.django_db
+def test_deployed_admin_bootstrap_is_create_only(monkeypatch) -> None:
+    monkeypatch.setenv("SEO_STUDIO_BOOTSTRAP_ADMIN_ID", "agency.admin")
+    monkeypatch.setenv("SEO_STUDIO_BOOTSTRAP_PASSWORD", TEST_PASSWORD)
+
+    call_command("bootstrap_admin_from_env", stdout=StringIO())
+    user = User.objects.get(username="agency.admin")
+    original_password_hash = user.password
+
+    monkeypatch.setenv("SEO_STUDIO_BOOTSTRAP_PASSWORD", "Different-Quartz-River-8462!")
+    call_command("bootstrap_admin_from_env", stdout=StringIO())
+    user.refresh_from_db()
+
+    assert user.password == original_password_hash
+    assert user.role == UserRole.AGENCY_ADMIN
+    assert user.is_superuser is True
+    assert user.must_change_password is True
+
+
+@pytest.mark.django_db
+def test_deployed_admin_bootstrap_refuses_to_bypass_an_existing_account(
+    monkeypatch,
+) -> None:
+    User.objects.create_user(
+        username="existing",
+        password=TEST_PASSWORD,
+        must_change_password=False,
+    )
+    monkeypatch.setenv("SEO_STUDIO_BOOTSTRAP_ADMIN_ID", "agency.admin")
+    monkeypatch.setenv("SEO_STUDIO_BOOTSTRAP_PASSWORD", TEST_PASSWORD)
+
+    with pytest.raises(CommandError, match="first account already exists"):
+        call_command("bootstrap_admin_from_env", stdout=StringIO())
+
+    assert not User.objects.filter(username="agency.admin").exists()

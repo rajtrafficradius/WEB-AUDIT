@@ -7,6 +7,13 @@ case "${1:-web}" in
     python manage.py migrate --check
     ;;
   web)
+    # Keep a single-service Railway deployment usable even when the platform's
+    # optional pre-deploy command has not been configured in the dashboard.
+    python manage.py migrate --noinput
+    python manage.py migrate --check
+    if [ -n "${SEO_STUDIO_BOOTSTRAP_ADMIN_ID:-}" ] && [ -n "${SEO_STUDIO_BOOTSTRAP_PASSWORD:-}" ]; then
+      python manage.py bootstrap_admin_from_env
+    fi
     exec gunicorn app.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 120 --access-logfile - --error-logfile -
     ;;
   analysis-worker)
