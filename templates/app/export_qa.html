@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Export and QA{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-detail' project.pk as project_url %}
+{% url 'export-build' project.pk as build_url %}
+{% url 'export-download' project.pk latest_package.pk as download_url %}
+{% url 'audit-results-download' project.pk as audit_download_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Export &amp; QA</li></ol></nav>
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">Package control · Deterministic manifest</span>
+      <h1>Ship only what reconciles.</h1>
+      <p class="lede">Every artifact is rendered, validated and hashed against one canonical run. Critical or high failures stop packaging.</p>
+    </div>
+    <div class="page-heading__actions">
+      {% if can_build %}<form method="post" action="{{ build_url|default:'#' }}">{% csrf_token %}<button class="button" type="submit">Build verified package</button></form>{% endif %}
+      {% if latest_package.is_downloadable %}<a class="button button--secondary" href="{{ download_url|default:'#' }}">Download package</a>{% elif audit_download_available %}<a class="button button--secondary" href="{{ audit_download_url }}">Download audit results</a>{% endif %}
+    </div>
+  </header>
+
+  <section class="editorial-panel" aria-labelledby="short-summary-heading">
+    <span class="section-index">Summary</span>
+    <h2 id="short-summary-heading" class="app-title">Short summary below.</h2>
+    <p>{{ short_summary }}</p>
+  </section>
+
+  <dl class="metric-ledger" aria-label="Package quality summary">
+    <div><dt>QA passed</dt><dd>{{ qa_counts.passed|default:"0" }}</dd><small>Deterministic and render checks</small></div>
+    <div><dt>Warnings</dt><dd>{{ qa_counts.warning|default:"0" }}</dd><small>Must be explicitly accepted</small></div>
+    <div><dt>Blocking</dt><dd>{{ qa_counts.blocking|default:"0" }}</dd><small>Critical or high failures</small></div>
+    <div><dt>Artifacts</dt><dd>{{ artifact_count|default:"0" }}</dd><small>{{ total_package_size|filesizeformat|default:"Size pending" }}</small></div>
+  </dl>
+
+  <section class="section" aria-labelledby="readiness-heading">
+    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Readiness</span><h2 id="readiness-heading">Final package gate</h2></div><span class="status status--{% if package_ready %}approved{% else %}failed{% endif %}">{% if package_ready %}Ready to package{% else %}Blocked{% endif %}</span></div>
+    <div class="progress-track progress-track--quality" role="progressbar" aria-label="Quality checks passed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ qa_pass_percent|default:'0' }}" style="--progress: {{ qa_pass_percent|default:'0' }}%"><span></span></div>
+    {% if blocking_summary %}<div class="danger-zone"><h3>Resolve the blocking exceptions</h3><p>{{ blocking_summary }}</p></div>{% endif %}
+  </section>
+
+  <div class="split-layout split-layout--wide-aside">
+    <section class="section" aria-labelledby="artifact-heading">
+      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Artifacts</span><h2 id="artifact-heading">Package inventory</h2></div><span class="fine-print">No unexplained duplicate hashes</span></div>
+      {% if artifact_groups %}
+        {% for group in artifact_groups %}
+        <section class="rail-section" aria-labelledby="group-{{ forloop.counter }}"><div class="section-heading"><h3 id="group-{{ forloop.counter }}">{{ group.label|default:"Package section" }}</h3><span class="fine-print">{{ group.artifacts|length }} files</span></div><div class="table-wrap"><table class="data-table"><caption>{{ group.label|default:"Package" }} artifacts</caption><thead><tr><th scope="col">Artifact</th><th scope="col">Format</th><th scope="col">Version</th><th scope="col">Render</th><th scope="col">Size</th><th scope="col">Hash</th></tr></thead><tbody>{% for artifact in group.artifacts %}<tr><td><strong>{{ artifact.display_name|default:artifact.filename|default:"Artifact" }}</strong><br><span class="fine-print">{{ artifact.relative_path|default:"Path pending" }}</span></td><td>{{ artifact.format|default:"—"|upper }}</td><td class="data-value">{{ artifact.version|default:"—" }}</td><td><span class="status status--{{ artifact.render_status|default:'review'|slugify }}">{{ artifact.get_render_status_display|default:artifact.render_status|default:"Pending" }}</span></td><td class="data-value">{{ artifact.size_bytes|filesizeformat|default:"—" }}</td><td class="fine-print data-value">{{ artifact.sha256|default:"Pending"|truncatechars:18 }}</td></tr>{% endfor %}</tbody></table></div></section>
+        {% endfor %}
+      {% else %}<div class="empty-state"><h3>No package artifacts have been built</h3><p class="muted">Gate 2 approval and a passing final QA run are required before export.</p></div>{% endif %}
+    </section>
+
+    <aside class="rail" aria-label="QA results and package provenance">
+      <section class="editorial-panel rail-section"><span class="section-index">03 / Manifest</span><h2 class="app-title">Package provenance</h2><dl class="definition-list"><dt>Run</dt><dd class="data-value">{{ latest_package.run.reference|default:"—" }}</dd><dt>Ruleset</dt><dd class="data-value">{{ latest_package.ruleset_version|default:"—" }}</dd><dt>Template</dt><dd class="data-value">{{ latest_package.template_version|default:"—" }}</dd><dt>Built</dt><dd>{{ latest_package.created_at|date:"j M Y, H:i"|default:"Not built" }}</dd><dt>ZIP SHA-256</dt><dd class="fine-print data-value">{{ latest_package.sha256|default:"Pending" }}</dd></dl></section>
+      <section class="rail-section"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / QA</span><h2 class="app-title">Authoritative checks</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="qa-results" data-disclosure-button>Toggle</button></div><div class="qa-ledger" id="qa-results">{% for result in qa_results %}<div class="qa-row"><span class="qa-marker{% if result.status == 'failed' %} qa-marker--fail{% elif result.status == 'warning' %} qa-marker--warn{% endif %}" aria-hidden="true">{% if result.status == 'passed' %}✓{% elif result.status == 'failed' %}×{% else %}!{% endif %}</span><div class="qa-row__copy"><strong>{{ result.label|default:"Quality check" }}</strong><small>{{ result.detail|default:"No exception detail." }}</small></div><span class="fine-print">{{ result.category|default:"QA" }}</span></div>{% empty %}<p class="muted">Quality checks have not run.</p>{% endfor %}</div></section>
+    </aside>
+  </div>
+
+  {% if latest_package.is_downloadable %}<section class="editorial-panel" aria-labelledby="download-integrity"><span class="section-index">05 / Integrity</span><h2 id="download-integrity" class="app-title">Verify after download</h2><p>Compare the ZIP with <code>{{ latest_package.checksum_filename|default:"package.zip.sha256" }}</code>. The internal manifest hashes every package file except itself and the adjacent ZIP checksum.</p></section>{% endif %}
+</div>
+{% endblock %}

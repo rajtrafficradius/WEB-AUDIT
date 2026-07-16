@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio{% endblock %}
+
+{% block content %}
+{% url 'project-create' as project_create_url %}
+<div class="page-shell">
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">Agency portfolio · {{ today|date:"j F Y"|default:"Current view" }}</span>
+      <h1>All clients, one evidence ledger.</h1>
+      <p class="lede">Monitor collection coverage, approvals and package quality across every active engagement.</p>
+    </div>
+    {% if request.user.role == 'agency_admin' or request.user.is_superuser %}
+    <div class="page-heading__actions">
+      <a class="button" href="{{ project_create_url|default:'#' }}">Start a project</a>
+    </div>
+    {% endif %}
+  </header>
+
+  <dl class="metric-ledger" aria-label="Portfolio summary">
+    <div><dt>Active projects</dt><dd>{{ active_project_count|default:"0" }}</dd><small>Across {{ client_count|default:"0" }} clients</small></div>
+    <div><dt>Evidence coverage</dt><dd>{{ average_coverage|default:"—" }}{% if average_coverage != None %}%{% endif %}</dd><small>Weighted portfolio average</small></div>
+    <div><dt>Awaiting review</dt><dd>{{ pending_approval_count|default:"0" }}</dd><small>Gate decisions requiring attention</small></div>
+    <div><dt>QA exceptions</dt><dd>{{ qa_exception_count|default:"0" }}</dd><small>Critical or high items only</small></div>
+  </dl>
+
+  <div class="split-layout split-layout--wide-aside">
+    <section class="section" aria-labelledby="projects-heading">
+      <div class="section-heading">
+        <div class="section-heading__copy">
+          <span class="section-index">01 / Portfolio</span>
+          <h2 id="projects-heading">Projects in motion</h2>
+        </div>
+        <label class="field" for="project-filter">
+          <span class="sr-only">Filter projects</span>
+          <input class="filter-control" id="project-filter" type="search" placeholder="Filter projects" data-filter-input data-filter-target="#project-index">
+        </label>
+      </div>
+
+      {% if projects %}
+      <div class="project-index" id="project-index">
+        {% for project in projects %}
+          {% url 'project-detail' project.pk as project_url %}
+          <article class="project-row" data-filter-row>
+            <div class="project-row__name">
+              <a href="{{ project_url|default:'#' }}">{{ project.name|default:"Untitled project" }}</a>
+              <span class="muted">{{ project.client.name|default:"Unassigned client" }} · {{ project.primary_domain|default:"Domain pending" }}</span>
+            </div>
+            <div class="project-row__metric"><span>Current stage</span><strong>{{ project.get_status_display|default:project.status|default:"Draft" }}</strong></div>
+            <div class="project-row__metric"><span>Coverage</span><strong>{{ project.evidence_coverage|default:"—" }}{% if project.evidence_coverage != None %}%{% endif %}</strong></div>
+            <span class="status status--{{ project.status|default:'review'|slugify }}">{{ project.get_status_display|default:project.status|default:"Draft" }}</span>
+          </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <span class="empty-state__number" aria-hidden="true">01</span>
+        <h3>No projects are visible yet</h3>
+        <p class="muted">An agency administrator can create the first engagement, define its approved domains and assign the delivery team.</p>
+        {% if request.user.role == 'agency_admin' or request.user.is_superuser %}<a class="button" href="{{ project_create_url|default:'#' }}">Create the first project</a>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+
+    <aside class="rail" aria-label="Portfolio attention queue">
+      <section class="editorial-panel rail-section">
+        <span class="section-index">02 / Decisions</span>
+        <h2 class="app-title">Attention queue</h2>
+        {% if attention_items %}
+          {% for item in attention_items %}
+            {% url 'project-approvals' item.project.pk as approval_url %}
+            <div class="rail-section">
+              <span class="status status--{{ item.severity|default:'review'|slugify }}">{{ item.label|default:"Review" }}</span>
+              <h3>{{ item.project.name|default:"Project" }}</h3>
+              <p class="muted">{{ item.summary|default:"A decision is waiting for review." }}</p>
+              <a href="{{ approval_url|default:'#' }}">Open decision</a>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="muted">No gate decisions or critical QA exceptions are waiting.</p>
+        {% endif %}
+      </section>
+
+      <section class="rail-section">
+        <span class="section-index">03 / System</span>
+        <h2 class="app-title">Collection health</h2>
+        <dl class="definition-list">
+          <dt>Workers</dt><dd>{{ worker_health|default:"Status unavailable" }}</dd>
+          <dt>Last heartbeat</dt><dd>{{ last_heartbeat|date:"j M, H:i"|default:"Not recorded" }}</dd>
+          <dt>Exports</dt><dd>{{ export_queue_count|default:"0" }} queued</dd>
+        </dl>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

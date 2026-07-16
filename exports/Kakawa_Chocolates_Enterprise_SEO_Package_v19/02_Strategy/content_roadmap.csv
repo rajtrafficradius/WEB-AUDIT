@@ -1,0 +1,7 @@
+﻿content_id,title,target_url,intent,approval_state,generation_method,evidence_ids
+CONTENT-01,Corporate chocolate enquiry guide,https://kakawachocolates.com.au/pages/corporate-chocolates,commercial enquiry,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0022, EV-FACT-02"
+CONTENT-02,Wholesale enquiry guide,https://kakawachocolates.com.au/pages/wholesale,trade enquiry,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0034, EV-FACT-02"
+CONTENT-03,Chocolate delivery planning guide,https://kakawachocolates.com.au/pages/shipping,shipping support,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0031, EV-FACT-02, EV-FACT-03"
+CONTENT-04,How Kakawa presents its craft,https://kakawachocolates.com.au/pages/how-we-make-chocolate,brand education,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0024, EV-FACT-02, EV-FACT-03"
+CONTENT-05,Chocolate bar collection guide,https://kakawachocolates.com.au/collections/chocolate-bar,collection discovery,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0006, EV-FACT-02"
+CONTENT-06,Praline and bonbon collection guide,https://kakawachocolates.com.au/collections/pralines-bonbons,collection discovery,withheld_pending_human_approval,deterministic evidence-bound editorial template,"EV-0017, EV-FACT-02"

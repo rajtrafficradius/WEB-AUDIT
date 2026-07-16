@@ -1,0 +1,8 @@
+﻿id,label,kind,status,captured_at,scope,coverage,unavailable_reason
+SRC-CRAWL,Fresh approved-domain website crawl,crawl,available,2026-07-15T08:40:41.197233+00:00,357 fetched responses; 357 unique normalized pages; 366 discovered; queue_exhausted,1.0,Unavailable
+SRC-PUBLIC,Official Kakawa public business facts,human_verified,available,2026-07-15T08:40:41.197233+00:00,Official kakawachocolates.com.au pages only,1.0,Unavailable
+SRC-GSC,Google Search Console,gsc,unavailable,2026-07-15T08:40:41.197233+00:00,Not collected in public acceptance run,0.0,credential_not_configured
+SRC-GA4,Google Analytics 4,ga4,unavailable,2026-07-15T08:40:41.197233+00:00,Not collected in public acceptance run,0.0,credential_not_configured
+SRC-SEMRUSH,SEMrush,semrush,unavailable,2026-07-15T08:40:41.197233+00:00,Not collected in public acceptance run,0.0,credential_not_configured
+SRC-PAGESPEED,PageSpeed Insights,pagespeed,unavailable,2026-07-15T08:40:41.197233+00:00,Not collected in public acceptance run,0.0,credential_not_configured
+SRC-OPENAI,OpenAI generation,openai,unavailable,2026-07-15T08:40:41.197233+00:00,Not collected in public acceptance run,0.0,credential_not_configured

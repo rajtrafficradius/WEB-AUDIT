@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+pytest-cache-files-*/
+tests/verifier-*/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Runtime and secrets
+.env
+*.sqlite3
+media/
+private_media/
+.local-media/
+staticfiles/
+logs/
+celerybeat-schedule*
+*.patch
+
+# Generated package output is retained locally but not committed by default
+exports/**/*.zip
+exports/**/*.sha256
+exports/.local-runtime/
+exports/.render-previews/
+exports/.v18-compatible-previews/
+exports/.ui-smoke/
+exports/.visual-verification/
+
+# JavaScript artifact-tool scratch
+node_modules/
+.artifact-tool/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

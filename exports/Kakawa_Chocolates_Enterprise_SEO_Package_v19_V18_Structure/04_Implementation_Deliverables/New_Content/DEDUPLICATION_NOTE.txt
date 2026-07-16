@@ -1,0 +1,1 @@
+Authoritative content assets are stored once in 05_SEO_Content. V18 duplicated these documents here; v19 intentionally does not.

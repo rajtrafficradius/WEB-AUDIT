@@ -1,0 +1,59 @@
+{
+  "fixture_version": "1.0.0",
+  "fixture_kind": "public_observation",
+  "project": {
+    "name": "Kakawa Chocolates acceptance benchmark",
+    "approved_domains": [
+      "kakawachocolates.com.au"
+    ],
+    "seed_url": "https://kakawachocolates.com.au/"
+  },
+  "captured_at": "2026-07-15T00:00:00Z",
+  "as_of_date": "2026-07-15",
+  "observations": [
+    {
+      "key": "homepage_title",
+      "value": "Chocolate Shop in Sydney | Handmade Artisanal Chocolates – Kakawa Chocolates",
+      "source_url": "https://kakawachocolates.com.au/",
+      "source": "official_public_webpage",
+      "confidence": 1.0
+    },
+    {
+      "key": "public_business_name",
+      "value": "Kakawa Chocolates",
+      "source_url": "https://kakawachocolates.com.au/",
+      "source": "official_public_webpage",
+      "confidence": 1.0
+    },
+    {
+      "key": "public_store_address",
+      "value": "5/147 William St, Darlinghurst NSW 2010",
+      "source_url": "https://kakawachocolates.com.au/",
+      "source": "official_public_webpage",
+      "confidence": 1.0
+    }
+  ],
+  "sources": {
+    "gsc": {
+      "status": "unavailable",
+      "reason": "credential_not_configured_in_public_fixture"
+    },
+    "ga4": {
+      "status": "unavailable",
+      "reason": "credential_not_configured_in_public_fixture"
+    },
+    "semrush": {
+      "status": "unavailable",
+      "reason": "credential_not_configured_in_public_fixture"
+    },
+    "pagespeed": {
+      "status": "unavailable",
+      "reason": "not_collected_in_static_public_fixture"
+    },
+    "openai": {
+      "status": "unavailable",
+      "reason": "generation_not_executed_in_static_public_fixture"
+    }
+  },
+  "integrity_note": "This fixture contains only observations visible on the official public homepage on the as-of date. It contains no analytics, search, backlink, performance, ranking, traffic, or forecast metrics."
+}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Content review{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-detail' project.pk as project_url %}
+{% url 'content-list' project.pk as content_list_url %}
+{% url 'content-approve' project.pk content.pk as approve_url %}
+{% url 'content-revision' project.pk content.pk as revision_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li><a href="{{ content_list_url|default:'#' }}">Content</a></li><li aria-current="page">{{ content.title|default:"Draft review" }}</li></ol></nav>
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">Content {{ content.reference|default:"draft" }} · Version {{ content.version|default:"1" }}</span>
+      <h1>{{ content.title|default:"Untitled content draft" }}</h1>
+      <p class="lede">Target: {{ content.target_url|default:"URL pending" }} · Intent: {{ content.search_intent|default:"Not classified" }}</p>
+    </div>
+    <div class="page-heading__actions"><span class="status status--{{ content.status|default:'review'|slugify }}">{{ content.get_status_display|default:content.status|default:"Review" }}</span></div>
+  </header>
+
+  <dl class="metric-ledger" aria-label="Content quality summary">
+    <div><dt>Supported claims</dt><dd>{{ content.supported_claim_count|default:"0" }}</dd><small>Of {{ content.claim_count|default:"0" }} factual claims</small></div>
+    <div><dt>Distinct intent</dt><dd>{{ content.intent_score|default:"—" }}</dd><small>Cannibalisation threshold checked</small></div>
+    <div><dt>Internal links</dt><dd>{{ content.valid_internal_link_count|default:"0" }}</dd><small>{{ content.invalid_internal_link_count|default:"0" }} unresolved</small></div>
+    <div><dt>Editorial words</dt><dd>{{ content.word_count|default:"0" }}</dd><small>{{ content.locale|default:project.locale|default:"en-AU" }}</small></div>
+  </dl>
+
+  <div class="split-layout split-layout--wide-aside">
+    <article class="section" aria-labelledby="draft-heading">
+      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Draft</span><h2 id="draft-heading">Reader-facing copy</h2></div><span class="fine-print">Generated {{ content.generated_at|date:"j M Y, H:i"|default:"date unavailable" }}</span></div>
+      <section class="editorial-panel">
+        {% if content.meta_title %}<p class="eyebrow">Meta title</p><p>{{ content.meta_title }}</p>{% endif %}
+        {% if content.meta_description %}<p class="eyebrow">Meta description</p><p>{{ content.meta_description }}</p>{% endif %}
+        <hr>
+        {% if content.body %}{{ content.body|linebreaks }}{% else %}<div class="empty-state"><h3>Draft body is not available</h3><p class="muted">Generation may be pending, unavailable, or withheld after validation.</p></div>{% endif %}
+      </section>
+
+      <section class="section" aria-labelledby="comments-heading">
+        <div class="section-heading__copy"><span class="section-index">02 / Discussion</span><h2 id="comments-heading">Review notes</h2></div>
+        <div class="comment-thread">{% for comment in comments %}<article class="comment"><div class="comment__avatar" aria-hidden="true">{{ comment.author_initials|default:"TR" }}</div><div class="comment__body"><strong>{{ comment.author_name|default:"Reviewer" }}</strong><span class="comment__meta">{{ comment.created_at|date:"j M Y, H:i"|default:"Time unavailable" }}</span><p>{{ comment.body|default:"No comment text." }}</p></div></article>{% empty %}<p class="muted">No review notes have been added.</p>{% endfor %}</div>
+        <form class="fields" method="post" action="{{ revision_url|default:'#' }}">{% csrf_token %}<div class="field field--wide"><label for="review-note">Add a review note</label><textarea id="review-note" name="comment" rows="4" required></textarea></div><div class="form-actions field--wide"><button class="button button--secondary" type="submit">Add note and request revision</button></div></form>
+      </section>
+    </article>
+
+    <aside class="rail" aria-label="Content evidence and validation">
+      <section class="editorial-panel rail-section"><span class="section-index">03 / Brief</span><h2 class="app-title">Editorial contract</h2><dl class="definition-list"><dt>Primary topic</dt><dd>{{ content.primary_keyword|default:"Not assigned" }}</dd><dt>Audience</dt><dd>{{ content.audience|default:"Not defined" }}</dd><dt>Conversion</dt><dd>{{ content.conversion_goal|default:"Not defined" }}</dd><dt>Model</dt><dd class="data-value">{{ content.generation.model_id|default:"Not recorded" }}</dd><dt>Prompt</dt><dd class="data-value">{{ content.generation.prompt_version|default:"Not recorded" }}</dd></dl></section>
+
+      <section class="rail-section"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / Claims</span><h2 class="app-title">Claim ledger</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="claim-ledger" data-disclosure-button>Toggle</button></div><div id="claim-ledger">{% for claim in claims %}<div class="rail-section"><div class="section-heading"><strong>{{ claim.text|truncatechars:90 }}</strong><span class="status status--{% if claim.is_supported %}approved{% else %}failed{% endif %}">{% if claim.is_supported %}Supported{% else %}Blocked{% endif %}</span></div><p class="fine-print">{{ claim.source_label|default:claim.unavailable_reason|default:"No source attached" }}{% if claim.as_of_date %} · {{ claim.as_of_date|date:"j M Y" }}{% endif %}</p></div>{% empty %}<p class="muted">No factual claims have been extracted.</p>{% endfor %}</div></section>
+
+      <section class="rail-section"><span class="section-index">05 / Links</span><h2 class="app-title">Internal link validation</h2>{% for link in internal_links %}<div class="rail-section"><a href="{{ link.target_url|default:'#' }}">{{ link.anchor_text|default:"Internal link" }}</a><span class="status status--{% if link.is_valid %}approved{% else %}failed{% endif %}">{% if link.is_valid %}Valid{% else %}Blocked{% endif %}</span><span class="fine-print data-value">{{ link.target_url|default:"Target missing" }}</span></div>{% empty %}<p class="muted">No internal links are proposed.</p>{% endfor %}</section>
+
+      {% if can_approve %}<form class="sticky-actions" method="post" action="{{ approve_url|default:'#' }}" data-confirm-message="Approve this exact content version? Later edits will create a new version.">{% csrf_token %}<button class="button" type="submit">Approve version {{ content.version|default:"1" }}</button></form>{% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

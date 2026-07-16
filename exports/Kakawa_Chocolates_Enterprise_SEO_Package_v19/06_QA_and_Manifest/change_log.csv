@@ -1,0 +1,7 @@
+﻿version,change,control,evidence_as_of
+v19,.com domain contamination,Approved-domain normalization plus manifest-wide URL scan,2026-07-15
+v19,Duplicate pages/files,Canonical URL dedupe and SHA-256 duplicate rejection,2026-07-15
+v19,Unsupported schema and disavow,"Claim ledger, admin gate and disavow disabled by default",2026-07-15
+v19,Generic redirects,Page-specific source/target evidence and graph validation,2026-07-15
+v19,Stale QA,"Fresh crawl as-of date, render evidence and immutable checksums",2026-07-15
+v19,Contradictory counts,One canonical dataset and explicit reconciliation table,2026-07-15

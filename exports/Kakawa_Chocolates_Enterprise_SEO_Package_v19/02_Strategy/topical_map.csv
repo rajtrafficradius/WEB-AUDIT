@@ -1,0 +1,7 @@
+﻿cluster,intent,target_url,decision,evidence_ids
+Corporate chocolate enquiry guide,commercial enquiry,https://kakawachocolates.com.au/pages/corporate-chocolates,Refresh existing target; do not create a competing URL,EV-0022
+Wholesale enquiry guide,trade enquiry,https://kakawachocolates.com.au/pages/wholesale,Refresh existing target; do not create a competing URL,EV-0034
+Chocolate delivery planning guide,shipping support,https://kakawachocolates.com.au/pages/shipping,Refresh existing target; do not create a competing URL,EV-0031
+How Kakawa presents its craft,brand education,https://kakawachocolates.com.au/pages/how-we-make-chocolate,Refresh existing target; do not create a competing URL,EV-0024
+Chocolate bar collection guide,collection discovery,https://kakawachocolates.com.au/collections/chocolate-bar,Refresh existing target; do not create a competing URL,EV-0006
+Praline and bonbon collection guide,collection discovery,https://kakawachocolates.com.au/collections/pralines-bonbons,Refresh existing target; do not create a competing URL,EV-0017

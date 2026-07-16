@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Audit run{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-detail' run.project.pk as project_url %}
+{% url 'run-cancel' run.pk as cancel_url %}
+{% url 'run-resume' run.pk as resume_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ run.project.name|default:"Project" }}</a></li><li aria-current="page">Run {{ run.reference|default:run.pk|default:"pending" }}</li></ol></nav>
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">{{ run.get_profile_display|default:run.profile|default:"Audit" }} run · Created {{ run.created_at|date:"j M Y, H:i"|default:"not recorded" }}</span>
+      <h1>Run {{ run.reference|default:run.pk|default:"not started" }}</h1>
+      <p class="lede">{{ run.project.name|default:"Project" }} · Ruleset {{ run.ruleset_version|default:"current" }} · Snapshot {{ run.snapshot_version|default:"pending" }}</p>
+    </div>
+    <div class="page-heading__actions">
+      {% if run.can_resume %}<form method="post" action="{{ resume_url|default:'#' }}">{% csrf_token %}<button class="button" type="submit">Resume from checkpoint</button></form>{% endif %}
+      {% if run.can_cancel %}<form method="post" action="{{ cancel_url|default:'#' }}" data-confirm-message="Cancel this run? Captured evidence will be preserved.">{% csrf_token %}<button class="button button--danger" type="submit">Cancel run</button></form>{% endif %}
+    </div>
+  </header>
+
+  <section class="section" aria-labelledby="run-progress">
+    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / State machine</span><h2 id="run-progress">{{ run.get_status_display|default:run.status|default:"Draft" }}</h2></div><span class="status status--{{ run.status|default:'review'|slugify }}">{{ run.progress_percent|default:"0" }}% complete</span></div>
+    <div class="progress-track" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ run.progress_percent|default:'0' }}" style="--progress: {{ run.progress_percent|default:'0' }}%"><span></span></div>
+    {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}" {% if stage.current %}aria-current="step"{% endif %}><strong>{{ forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% endif %}
+  </section>
+
+  <dl class="metric-ledger" aria-label="Run metrics">
+    <div><dt>Pages discovered</dt><dd>{{ run.pages_discovered|default:"0" }}</dd><small>{{ run.pages_audited|default:"0" }} audited</small></div>
+    <div><dt>Evidence records</dt><dd>{{ run.evidence_count|default:"0" }}</dd><small>{{ run.source_snapshot_count|default:"0" }} source snapshots</small></div>
+    <div><dt>Findings</dt><dd>{{ run.findings_count|default:"0" }}</dd><small>{{ run.critical_high_count|default:"0" }} critical or high</small></div>
+    <div><dt>Elapsed</dt><dd>{{ run.elapsed_display|default:"—" }}</dd><small>Last heartbeat {{ run.last_heartbeat_at|timesince|default:"unknown" }} ago</small></div>
+  </dl>
+
+  <div class="split-layout">
+    <section class="section" aria-labelledby="stage-ledger">
+      <div class="section-heading__copy"><span class="section-index">02 / Execution</span><h2 id="stage-ledger">Stage ledger</h2></div>
+      <div class="table-wrap"><table class="data-table"><caption>Idempotent run stages and checkpoint state</caption><thead><tr><th scope="col">Stage</th><th scope="col">Status</th><th scope="col">Started</th><th scope="col">Duration</th><th scope="col">Records</th><th scope="col">Detail</th></tr></thead><tbody>{% for stage in run_stages %}<tr><td><strong>{{ stage.label|default:stage.name|default:"Stage" }}</strong><br><span class="fine-print data-value">{{ stage.idempotency_key|default:"Key pending"|truncatechars:20 }}</span></td><td><span class="status status--{{ stage.status|default:'review'|slugify }}">{{ stage.get_status_display|default:stage.status|default:"Pending" }}</span></td><td>{{ stage.started_at|date:"j M, H:i"|default:"—" }}</td><td class="data-value">{{ stage.duration_display|default:"—" }}</td><td class="data-value">{{ stage.output_count|default:"0" }}</td><td>{% if stage.unavailable_reason %}{{ stage.unavailable_reason }}{% elif stage.error_summary %}<span class="field-error">{{ stage.error_summary }}</span>{% else %}{{ stage.summary|default:"No exceptions" }}{% endif %}</td></tr>{% empty %}<tr><td colspan="6">No stage activity has been recorded.</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+
+    <aside class="rail">
+      <section class="editorial-panel rail-section"><span class="section-index">03 / Runtime</span><h2 class="app-title">Worker state</h2><dl class="definition-list"><dt>Queue</dt><dd>{{ run.queue_name|default:"analysis" }}</dd><dt>Worker</dt><dd>{{ run.worker_id|default:"Not assigned" }}</dd><dt>Heartbeat</dt><dd>{{ run.last_heartbeat_at|date:"j M, H:i:s"|default:"Not recorded" }}</dd><dt>Retries</dt><dd>{{ run.retry_count|default:"0" }}</dd></dl></section>
+      {% if run.failure_message %}<section class="danger-zone"><h2 class="app-title">Run needs attention</h2><p>{{ run.failure_message }}</p><p class="fine-print">Request ID: <span class="data-value">{{ request_id|default:"Unavailable" }}</span></p></section>{% endif %}
+      <section class="rail-section"><span class="section-index">04 / Events</span><h2 class="app-title">Recent events</h2>{% for event in recent_events %}<div class="rail-section"><strong>{{ event.label|default:event.event_type|default:"Event" }}</strong><span class="fine-print">{{ event.created_at|date:"j M, H:i:s"|default:"Time unavailable" }}</span><p class="muted">{{ event.summary|default:"No additional detail." }}</p></div>{% empty %}<p class="muted">No events have been recorded.</p>{% endfor %}</section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

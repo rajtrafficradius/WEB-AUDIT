@@ -1,0 +1,3 @@
+﻿asset_type,asset_reference,approval_class,approval_status,included_in_deployment,evidence_id,decision_note
+schema,page-specific JSON-LD,agency_admin,withheld_pending_agency_admin,false,Unavailable,No page-specific verified fact pack and administrator approval was available
+disavow,disavow.txt,agency_admin,disabled,false,Unavailable,"No backlink evidence, removal-attempt record, manual-action risk, or administrator approval was available."

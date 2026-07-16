@@ -1,0 +1,63 @@
+name: traffic-radius-seo-studio
+
+x-app: &app
+  build: .
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes:
+    - private_media:/app/.local-media
+    - ./exports:/app/exports
+  restart: unless-stopped
+
+services:
+  web:
+    <<: *app
+    command: web
+    ports: ["8000:8000"]
+
+  analysis-worker:
+    <<: *app
+    command: analysis-worker
+
+  render-worker:
+    <<: *app
+    command: render-worker
+
+  scheduler:
+    <<: *app
+    command: scheduler
+
+  postgres:
+    image: postgres:16.8-bookworm
+    environment:
+      POSTGRES_DB: seo_studio
+      POSTGRES_USER: seo_studio
+      POSTGRES_PASSWORD: seo_studio
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seo_studio -d seo_studio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.2-bookworm
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  private_media:
+

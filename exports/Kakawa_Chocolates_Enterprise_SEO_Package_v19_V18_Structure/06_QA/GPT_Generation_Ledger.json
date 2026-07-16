@@ -1,0 +1,22 @@
+{
+  "status": "available",
+  "model": "gpt-5.6-luna",
+  "ledger": {
+    "id": "ef4baae3-4a11-49b2-afd1-d2c93de056de",
+    "task": "Evidence-constrained package strategy synthesis",
+    "configured_model": "gpt-5.6-luna",
+    "returned_model": "gpt-5.6-luna",
+    "prompt_version": "seo-evidence-boundary-1.0.0",
+    "status": "available",
+    "request_hash": "147ad488c696b4e7a11cd1cf73965f639e30d2ce30de78c0e1b50b658c3b9607",
+    "response_hash": "2251043fa6839048072ff74a3d569fd28e6e844d5db6233a2d0d372d1da69bad",
+    "tokens": 16731,
+    "cost": null,
+    "unavailable_reason": null
+  },
+  "quality_issues": [],
+  "output": {
+    "executive_summary": "The approved evidence boundary covers kakawachocolates.com.au, but weighted evidence coverage is 35.0%, below the 70% publication threshold. The current evidence supports a gated stabilisation and measurement programme rather than performance forecasting. Private analytics sources—Google Search Console and GA4—are unavailable, and market baselines for traffic, rankings, conversions, revenue, backlinks and performance are also unavailable. Risky assets, including crawl-graph changes, schema and production deployment, must remain approval-gated. No live systems have been changed.",
+    "note": "Validated structured output incorporated into the strategy report."
+  }
+}

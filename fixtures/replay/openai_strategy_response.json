@@ -1,0 +1,27 @@
+{
+  "fixture_version": "1.0.0",
+  "fixture_kind": "synthetic_contract_test",
+  "response": {
+    "title": "Evidence-only fixture strategy",
+    "executive_summary": "This synthetic response exists only to test the strict response contract.",
+    "recommendations": [
+      {
+        "title": "Review the observed title",
+        "rationale": "The title exists in the synthetic evidence fixture.",
+        "implementation": "Submit an evidence-aligned title for human approval.",
+        "evidence_ids": ["11111111-1111-4111-8111-111111111111"],
+        "risk": "low"
+      }
+    ],
+    "claims": [
+      {
+        "text": "The synthetic homepage title is Example.",
+        "fact_keys": ["homepage_title"],
+        "evidence_ids": ["11111111-1111-4111-8111-111111111111"]
+      }
+    ],
+    "unavailable_items": [
+      {"source": "gsc", "reason": "credential_not_configured"}
+    ]
+  }
+}

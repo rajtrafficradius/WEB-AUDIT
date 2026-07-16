@@ -1,0 +1,14 @@
+{
+  "release_status": "PASS_FOR_REVIEW",
+  "state": "GATE_1_REVIEW",
+  "evidence_as_of": "2026-07-15",
+  "limitations": [
+    "GSC, GA4, SEMrush and PageSpeed were not collected because credentials were unavailable.",
+    "The overall health score is withheld because weighted evidence coverage is below 70%.",
+    "No traffic, ranking, conversion, revenue, backlink or performance forecast is present.",
+    "Content and risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+    "No live CMS, Search Console, analytics platform, robots file, redirect map, schema or disavow system was changed."
+  ],
+  "production_promoted": false,
+  "reason": "Gate 1, Gate 2, private-source baselines and deployment authorization remain outstanding."
+}

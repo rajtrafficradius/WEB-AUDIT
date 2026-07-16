@@ -1,0 +1,16 @@
+{
+  "run_id": "KAKAWA-ENT-20260715",
+  "slides": [
+    "title_slide",
+    "executive_summary",
+    "market_analysis",
+    "competitor_landscape",
+    "technical_audit",
+    "content_strategy",
+    "action_plan",
+    "deliverables_showcase",
+    "next_steps",
+    "closing_slide"
+  ],
+  "self_contained": true
+}

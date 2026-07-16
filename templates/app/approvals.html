@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Approvals{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-detail' project.pk as project_url %}
+{% url 'approval-decide' project.pk current_approval.pk as decide_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Approvals</li></ol></nav>
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">Human governance · Immutable decisions</span>
+      <h1>Nothing risky moves without a named decision.</h1>
+      <p class="lede">Review the exact evidence, strategy or asset version in scope. Approval never publishes to the client website.</p>
+    </div>
+    <div class="page-heading__actions"><span class="status status--{{ current_approval.status|default:'review'|slugify }}">{{ current_approval.get_status_display|default:current_approval.status|default:"No decision pending" }}</span></div>
+  </header>
+
+  <div class="split-layout split-layout--wide-aside">
+    <section class="section" aria-labelledby="current-decision">
+      <div class="section-heading__copy"><span class="section-index">01 / Current gate</span><h2 id="current-decision">{{ current_approval.title|default:"No approval gate is open" }}</h2></div>
+      {% if current_approval %}
+      <article class="editorial-panel section">
+        <p class="lede">{{ current_approval.summary|default:"Review the attached evidence and record a decision." }}</p>
+        <dl class="definition-list"><dt>Gate</dt><dd>{{ current_approval.get_gate_display|default:current_approval.gate|default:"Review" }}</dd><dt>Version</dt><dd>{{ current_approval.subject_version|default:"—" }}</dd><dt>Submitted</dt><dd>{{ current_approval.submitted_at|date:"j M Y, H:i"|default:"—" }}</dd><dt>Submitted by</dt><dd>{{ current_approval.submitted_by_name|default:"—" }}</dd><dt>Due</dt><dd>{{ current_approval.due_at|date:"j M Y"|default:"No due date" }}</dd></dl>
+      </article>
+
+      {% if approval_evidence %}
+      <section class="section" aria-labelledby="approval-evidence"><div class="section-heading__copy"><span class="section-index">02 / In scope</span><h3 id="approval-evidence">Material under review</h3></div><div class="table-wrap"><table class="data-table"><caption>Version-locked records included in this decision</caption><thead><tr><th scope="col">Item</th><th scope="col">Version</th><th scope="col">Evidence</th><th scope="col">Risk</th><th scope="col">Inspect</th></tr></thead><tbody>{% for item in approval_evidence %}<tr><td><strong>{{ item.label|default:"Review item" }}</strong><br><span class="fine-print">{{ item.summary|default:"" }}</span></td><td class="data-value">{{ item.version|default:"—" }}</td><td>{{ item.evidence_count|default:"0" }} records</td><td><span class="status status--{{ item.risk_class|default:'review'|slugify }}">{{ item.get_risk_class_display|default:item.risk_class|default:"Standard" }}</span></td><td><a href="{{ item.detail_url|default:'#' }}">Inspect</a></td></tr>{% endfor %}</tbody></table></div></section>
+      {% endif %}
+
+      {% if can_decide %}
+      <form class="form-layout editorial-panel" method="post" action="{{ decide_url|default:'#' }}" novalidate>
+        {% csrf_token %}
+        <fieldset class="choice-list">
+          <legend><strong>Record your decision</strong></legend>
+          <div class="approval-decision">
+            <label class="decision-option"><input type="radio" name="decision" value="approved" required><strong>Approve this version</strong><span class="muted">Allow the workflow to proceed. Later changes create a new review version.</span></label>
+            <label class="decision-option"><input type="radio" name="decision" value="revision_requested" required><strong>Request revisions</strong><span class="muted">Return the workflow with specific, traceable review notes.</span></label>
+          </div>
+        </fieldset>
+        <div class="field"><label for="decision-note">Decision note <span class="required" aria-hidden="true">*</span></label><textarea id="decision-note" name="note" required aria-describedby="decision-note-help"></textarea><span class="field-help" id="decision-note-help">State the basis for approval or the exact revision required.</span></div>
+        <label class="choice"><input type="checkbox" name="acknowledge_no_publish" value="yes" required><span><strong>I understand this approval does not publish changes.</strong><br><span class="field-help">The studio exports implementation-ready assets only.</span></span></label>
+        <div class="form-actions"><button class="button" type="submit">Record immutable decision</button></div>
+      </form>
+      {% endif %}
+      {% else %}<div class="empty-state"><span class="empty-state__number" aria-hidden="true">✓</span><h3>No decision is currently waiting</h3><p class="muted">The workflow will open a gate when its versioned review material is ready.</p></div>{% endif %}
+    </section>
+
+    <aside class="rail" aria-label="Approval context and history">
+      <section class="editorial-panel rail-section"><span class="section-index">03 / Authority</span><h2 class="app-title">Decision authority</h2><dl class="definition-list"><dt>Your role</dt><dd>{{ request.user.get_role_display|default:request.user.role|default:"Reviewer" }}</dd><dt>Allowed</dt><dd>{{ approval_capability|default:"View and comment" }}</dd><dt>High risk</dt><dd>Agency administrator only</dd></dl></section>
+      <section class="rail-section"><span class="section-index">04 / History</span><h2 class="app-title">Approval ledger</h2>{% for approval in approval_history %}<article class="rail-section"><div class="section-heading"><strong>{{ approval.title|default:"Decision" }}</strong><span class="status status--{{ approval.status|default:'review'|slugify }}">{{ approval.get_status_display|default:approval.status|default:"Recorded" }}</span></div><p class="muted">{{ approval.note|default:"No decision note." }}</p><span class="fine-print">{{ approval.decided_by_name|default:"Reviewer" }} · {{ approval.decided_at|date:"j M Y, H:i"|default:"Pending" }} · v{{ approval.subject_version|default:"—" }}</span></article>{% empty %}<p class="muted">No previous decisions have been recorded.</p>{% endfor %}</section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

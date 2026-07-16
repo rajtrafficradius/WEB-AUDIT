@@ -1,0 +1,528 @@
+{
+  "schema_version": "1.0",
+  "package_id": "Kakawa_Chocolates_Enterprise_SEO_Package_v19_V18_Structure",
+  "run_id": "KAKAWA-ENT-20260715",
+  "approved_domains": [
+    "kakawachocolates.com.au"
+  ],
+  "evidence_as_of": "2026-07-15",
+  "v18_structure_compatible": true,
+  "exact_duplicates_removed": 24,
+  "content_assets_emitted": 6,
+  "content_asset_policy": "Only distinct evidence-supported, cannibalization-cleared opportunities are emitted.",
+  "disavow_enabled": false,
+  "openai_generation": {
+    "status": "available",
+    "model": "gpt-5.6-luna",
+    "ledger": {
+      "id": "ef4baae3-4a11-49b2-afd1-d2c93de056de",
+      "task": "Evidence-constrained package strategy synthesis",
+      "configured_model": "gpt-5.6-luna",
+      "returned_model": "gpt-5.6-luna",
+      "prompt_version": "seo-evidence-boundary-1.0.0",
+      "status": "available",
+      "request_hash": "147ad488c696b4e7a11cd1cf73965f639e30d2ce30de78c0e1b50b658c3b9607",
+      "response_hash": "2251043fa6839048072ff74a3d569fd28e6e844d5db6233a2d0d372d1da69bad",
+      "tokens": 16731,
+      "cost": null,
+      "unavailable_reason": null
+    },
+    "quality_issues": [],
+    "output": {
+      "executive_summary": "The approved evidence boundary covers kakawachocolates.com.au, but weighted evidence coverage is 35.0%, below the 70% publication threshold. The current evidence supports a gated stabilisation and measurement programme rather than performance forecasting. Private analytics sources—Google Search Console and GA4—are unavailable, and market baselines for traffic, rankings, conversions, revenue, backlinks and performance are also unavailable. Risky assets, including crawl-graph changes, schema and production deployment, must remain approval-gated. No live systems have been changed.",
+      "note": "Validated structured output incorporated into the strategy report."
+    }
+  },
+  "files": [
+    {
+      "path": "01_Audit_Reports/Backlink_Audit_Report.xlsx",
+      "sha256": "2dbc205b85ba000f48450cddcb1f89d576cc6f962fe6ed208a1d88b9e6832c3b",
+      "bytes": 8186,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Baseline_Performance_Analysis.xlsx",
+      "sha256": "2feb2b41e9d53c9e3318ce930f45a8ca91d3a5eb0aab4c20727474d575c7e599",
+      "bytes": 8472,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Competitor_Landscape_Analysis.xlsx",
+      "sha256": "9340a8528963b38d25382ad7f43d6af7bded3102b7b361e7720fa9d86268621b",
+      "bytes": 8212,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Content_Audit_Workbook.xlsx",
+      "sha256": "0f2d2fa4fc75f7b9e4f388123f570ab06e0b6b23b2be9c584562437ba554bc1e",
+      "bytes": 32959,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/CRO_UX_Findings.docx",
+      "sha256": "301a532bf3f6307c2a7e72faa3f26b9c80d9919689f641b48cf811202fad873a",
+      "bytes": 40671,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/CRO_UX_Findings.xlsx",
+      "sha256": "97d536f054d5b7b8829ef52a0f5bd998125df2b3465f48b7b26d328d09229727",
+      "bytes": 8815,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Ecommerce_Audit_Report.xlsx",
+      "sha256": "9bd72620b8861def9e433f87d7fdb5030800bb1743ae84d42736aa43f1e55555",
+      "bytes": 8498,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Enterprise_SEO_Audit_Report_v19.pdf",
+      "sha256": "0cb6e78655449a59d56e0a12f1acb0c3ba3c0a8d650bb51004f70e65aaec674c",
+      "bytes": 13644,
+      "format": "pdf",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/GBP_Local_Audit.xlsx",
+      "sha256": "b68a5fb37169dfc12126a7da9aa24e3bdf38559184272a9e210fd2e329b131c3",
+      "bytes": 8187,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/GEO_AEO_Readiness_Scorecard.xlsx",
+      "sha256": "e5351bc720fd9ef71f5e661b83e22f277c82daf487f314ef91c436208a231eb2",
+      "bytes": 8334,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Technical_Audit_Report.xlsx",
+      "sha256": "b1dd6f716a61ee0a431f449d2a532c2ab16b3c89e1fa6e6df60a2b27cf649e32",
+      "bytes": 8817,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "01_Audit_Reports/Tracking_Audit_Report.xlsx",
+      "sha256": "9335903112752d630eedc4d6b4b84445b855a3bef1e641eda174cf43f3c120db",
+      "bytes": 8192,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Cannibalization_Resolution_Plan.xlsx",
+      "sha256": "bb8b9ab0472604c08e16cf621050bb78d2144ea683bc37dcd72837273711ff4d",
+      "bytes": 8511,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Content_Gap_Analysis.xlsx",
+      "sha256": "b32e08f0cbf25dedb795c6c4e5a3b6054d9bbb14c7baa6f9b6842b4dbd801c55",
+      "bytes": 8492,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Content_Strategy.docx",
+      "sha256": "5489334607ac7ca22bc66989cb9486c21c3332cd347ee930e26031992474459b",
+      "bytes": 43725,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Content_Strategy.pdf",
+      "sha256": "27d15397e9e23ff03e8a372c146db6465b543913c1ec948a2aec9d58fcb7ce2a",
+      "bytes": 10535,
+      "format": "pdf",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Content_Strategy.xlsx",
+      "sha256": "1a55f3946b7dc29f80d7d2b56f9861fa7e147963c033d9647395c7366d84e1d1",
+      "bytes": 8587,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Master_Keyword_Universe.xlsx",
+      "sha256": "149de19b450c2215de56ab788f25a36df780c843f44a11d1df4c1ff1abcd1c0e",
+      "bytes": 8623,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/Topical_Authority_Map.png",
+      "sha256": "5b9888093d14ef153111e49ab017cdc9222f2182f05af1a5d9adf5b579ca91da",
+      "bytes": 56826,
+      "format": "png",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "02_Strategy_Documents/URL_Architecture_Map.xlsx",
+      "sha256": "ae67151ce938188185224ed1be39ada7e18ed4ca04b4f8407759011ae202d927",
+      "bytes": 32961,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "03_Action_Plan/16_Week_Action_Plan.csv",
+      "sha256": "2bebb88303bf4d6a9204dc374255b040af4bd1cbb73ca19f3dd22044f9b8ad61",
+      "bytes": 4652,
+      "format": "csv",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "03_Action_Plan/16_Week_Action_Plan.pdf",
+      "sha256": "d41a42bd5366fe9f62d64191691c4a204c7f6549e1adb58d2586d9708a65fd0c",
+      "bytes": 7938,
+      "format": "pdf",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "03_Action_Plan/16_Week_Action_Plan.xlsx",
+      "sha256": "2c95dda0b030d8aed695543699356d120c91fb351429b928f64df285d87cb823",
+      "bytes": 10246,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "03_Action_Plan/16_Week_Atomic_Action_Plan.xlsx",
+      "sha256": "b0c58968ae8a9e91605f19dfa10e8b0a12d906afbed828b6c79a73e3dda4d84c",
+      "bytes": 9798,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "03_Action_Plan/Atomic_Action_Plan.xlsx",
+      "sha256": "e412989f08a95bbc62d88bac56c89ea74400e22ab85492efbe04070a252f32e4",
+      "bytes": 9360,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Link_Building/Citation_List.xlsx",
+      "sha256": "670b4131c0a1b14e3a27367e6e78fe7716a0e819c02784c870fa3234ecd094c4",
+      "bytes": 8167,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Link_Building/Internal_Link_Map.xlsx",
+      "sha256": "a0110f6f8747688a7b58be98dd2c66fd8bd1ac26e9328d23368853c2572b6c08",
+      "bytes": 8137,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Link_Building/Outreach_Target_List.xlsx",
+      "sha256": "8b99d930b5389b8f57c7c9a224764654dbd4c4aef1aebb0df560aa73505aa0b2",
+      "bytes": 8196,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/New_Content/DEDUPLICATION_NOTE.txt",
+      "sha256": "01354a73098716c192652d0f85f585846160883e28ea7276905cb926f879efc0",
+      "bytes": 129,
+      "format": "txt",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/On_Page_Optimizations/H1_Tags.xlsx",
+      "sha256": "7cb6f1ae230602e1e46779a34952d44f50db72993d38e54e06f217234633d3f8",
+      "bytes": 9581,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/On_Page_Optimizations/Meta_Description_Optimizations.xlsx",
+      "sha256": "043b0089869ffdd70378f59cd9ce4064e955400fa82f3082d39d3cd647db6e2e",
+      "bytes": 9593,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/On_Page_Optimizations/Meta_Tags.xlsx",
+      "sha256": "963349a15e0a42de7e2d7809ab2248c5ae429529fba9b9d3e28bc56d6a5d0b8a",
+      "bytes": 31409,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/On_Page_Optimizations/Title_Tag_Optimizations.xlsx",
+      "sha256": "f8b14807ec2d0f43bf643e160899eb44f7d5ca34f4dca4aecffc37640fbbe5a7",
+      "bytes": 9585,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Schema_Markup/Schema_LocalBusiness.json",
+      "sha256": "ed3756a0159d99affb2397fc2cd2d5a320c640b71b1aaca34caa0685583e4994",
+      "bytes": 232,
+      "format": "json",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Schema_Markup/Schema_Organization.json",
+      "sha256": "b7ac769e19711104d4e9d5fa8968a674369ca4bbd1918d0c5ab7837b01ba61e5",
+      "bytes": 231,
+      "format": "json",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Schema_Markup/Schema_Product.json",
+      "sha256": "9ae25f07217d0c423652fc953af2b31d96079c48b4d0a00cfdcda86136ea673f",
+      "bytes": 226,
+      "format": "json",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Technical_Fixes/Canonical_Fixes.xlsx",
+      "sha256": "c135fe0bc77255feaae0ce2368a819fbe078dfdab7b83bbfedc21c9ea7fbcb35",
+      "bytes": 8179,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Technical_Fixes/Redirect_Map.csv",
+      "sha256": "f317e13e7698fe39e1476505f249660af385986eafe99a66336a1f11e2972e6c",
+      "bytes": 89,
+      "format": "csv",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Technical_Fixes/Redirect_Map.xlsx",
+      "sha256": "7463747600f3e9756dc83c3897cfa34ee8e856aad730678a713706087d9de228",
+      "bytes": 8132,
+      "format": "xlsx",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "04_Implementation_Deliverables/Technical_Fixes/Robots_txt_Recommendations.txt",
+      "sha256": "b9c390997eececbd7507f45e823673c6233ea94297d0bdac962b5ec2b85c3167",
+      "bytes": 140,
+      "format": "txt",
+      "approval_state": "withheld_pending_approval"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-01_Corporate_chocolate_enquiry_guide.docx",
+      "sha256": "aff11d495a223eba3abba5ba7dc7435ec3386511cc35931d823837e82360ca9f",
+      "bytes": 40410,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-02_Wholesale_enquiry_guide.docx",
+      "sha256": "6d41dbae9c73df832dd82c7705029d3e6a677acec38c00065cae1f4e00af96b1",
+      "bytes": 40390,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-03_Chocolate_delivery_planning_guide.docx",
+      "sha256": "7f6e03be24565f143dcaa6d311a5c1cac414dea99207aceffc1dc71be6af794c",
+      "bytes": 40375,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-04_How_Kakawa_presents_its_craft.docx",
+      "sha256": "3a5c22f3f16e7e2711ae265a640dcc10cb57c30c6f6bcd8478d2ed67c049ec1b",
+      "bytes": 40442,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-05_Chocolate_bar_collection_guide.docx",
+      "sha256": "9b881b83d5862cd5d1ca55f006edbe732f4703ce11f1d73c05eb00c26c2c4def",
+      "bytes": 40405,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-06_Praline_and_bonbon_collection_guide.docx",
+      "sha256": "ebe5a7822e8cdad9bd3252dbe4d1f0facdbfbdcd034f74df7f44c2fc4da0eed3",
+      "bytes": 40431,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/canonical_evidence_snapshot.json",
+      "sha256": "85fad1b6661da72961b1730826d7985f57d2fe83f1fcb88a1eeda48f6feb094d",
+      "bytes": 815638,
+      "format": "json",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/Deep_QC_Audit_Report.txt",
+      "sha256": "a7b09f35396a7dfaee8e3718808802ac4a56b1895b97424a03240c8f0bbef569",
+      "bytes": 125,
+      "format": "txt",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/GPT_Generation_Ledger.json",
+      "sha256": "8aa8cd5b1da86093adaa29842761a24db6f173cb0dcc46acd7338c26e516662d",
+      "bytes": 1355,
+      "format": "json",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/QA_Validation_Report.pdf",
+      "sha256": "4ec74ba4e4edc448934e59c607d3f9740b48491ae7c7d17d21aa468c7d93c015",
+      "bytes": 5793,
+      "format": "pdf",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/QA_Validation_Report.txt",
+      "sha256": "0e8e80f49c8ee5acce9806a4bd01e75022998363e81f2b04b9af2171653c5f7d",
+      "bytes": 151,
+      "format": "txt",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/QC_Report_v12.xlsx",
+      "sha256": "e639cda38c0fd1726f6f38d147602309e7a289943e7ac0fa555dddf31dfad223",
+      "bytes": 8709,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/QC_Report_v13.xlsx",
+      "sha256": "299ae3d83e36fef4e4b4921980e3702e89f0f48b421fb9057bc6709132354808",
+      "bytes": 8334,
+      "format": "xlsx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/QC_Report_v14.csv",
+      "sha256": "495d32bbdf75d8c7e1fe660f491c1667b621fadcbacc301c42d7a8eba900ed6f",
+      "bytes": 559,
+      "format": "csv",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "06_QA/render-verification.json",
+      "sha256": "04a8b6b2de8538cc6554e089ba0b35e9a157db1b252184aa21f3b53937e52fba",
+      "bytes": 486,
+      "format": "json",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/action_plan.html",
+      "sha256": "af33bbbd85812c2aa2790418d50dec728214b6203c67682645776e7a78f572fc",
+      "bytes": 1538,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/closing_slide.html",
+      "sha256": "6bd630c16c4f004f7e1958dfa4cea47d4a3e9725ad4b1498d06a2f07cab9aab8",
+      "bytes": 1543,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/competitor_landscape.html",
+      "sha256": "0fa59d443dc480b16aa2b1cec7510cfc7b61435f9324c724b85e618bd509810d",
+      "bytes": 1595,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/content_strategy.html",
+      "sha256": "6c27123b45371b844bd7c3d75e498edfde9845457afef75d2d3bcea9b56362fa",
+      "bytes": 1317,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/deliverables_showcase.html",
+      "sha256": "d03754b42cd0d9ba05dd3bd7a590ed9faa502e8fa25e6b7ffc356cb57dc4e62c",
+      "bytes": 1359,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/Executive_SEO_Deck_Self_Contained.html",
+      "sha256": "25409f9a94addc71d09bd2cb527dbde535a626684636691c1f365971c5612169",
+      "bytes": 9151,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/Executive_SEO_Deck_v19.pdf",
+      "sha256": "771a3f804d5a1422eec3bf4099904badcd245e51a8f174605e4676da134eaf49",
+      "bytes": 11313,
+      "format": "pdf",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/Executive_SEO_Deck_v19.pptx",
+      "sha256": "5a2bccbd978352b02f4f9956cc54e032b520f3551d4968344a4d489224e2cede",
+      "bytes": 42783,
+      "format": "pptx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/executive_summary.html",
+      "sha256": "0bdde7c9f245ec18b0ad722801c1f4d78e7e9e13b15ce4dca3a89f5790ecb151",
+      "bytes": 1289,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/logo.png",
+      "sha256": "9621ad7d4fc3e763878f459463fa85271c29ec275413e5efee5739128c241093",
+      "bytes": 11662,
+      "format": "png",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/market_analysis.html",
+      "sha256": "67b920c07e237d3be3698bbd4ccd22d900349d192b6f91100ef5ef3b55fc25e0",
+      "bytes": 1538,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/next_steps.html",
+      "sha256": "b1ea569143d6b7405daf92ded88ae1bba4f084daf09d074a9880919ce1806538",
+      "bytes": 1614,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/slide_state.json",
+      "sha256": "c2214da9ddffa71395ade986ab5168c2fa00544e1e4d52026dcc53a131cdf1f0",
+      "bytes": 327,
+      "format": "json",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/technical_audit.html",
+      "sha256": "b45e6d11e13a82ad5709b21f8e61913b8df65e54f723884a594acd1c3da2be0f",
+      "bytes": 1637,
+      "format": "html",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "07_Slide_Deck/title_slide.html",
+      "sha256": "6141d7d138c70c0484b9a4812c9a15efc1616b76c8581935a62d116f336d0330",
+      "bytes": 1319,
+      "format": "html",
+      "approval_state": "review_ready"
+    }
+  ]
+}

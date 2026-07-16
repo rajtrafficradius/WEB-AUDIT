@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Action plan{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-detail' project.pk as project_url %}
+{% url 'project-approvals' project.pk as approvals_url %}
+{% url 'action-create' project.pk as action_create_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Action plan</li></ol></nav>
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">Canonical 16-week plan · Version {{ plan.version|default:"1" }}</span>
+      <h1>One plan, every dependency visible.</h1>
+      <p class="lede">Priorities are calculated from evidence and commercial value. Risk remains a separate human approval decision.</p>
+    </div>
+    <div class="page-heading__actions">{% if can_edit %}<a class="button button--quiet" href="{{ action_create_url|default:'#' }}">Add supported action</a>{% endif %}<a class="button" href="{{ approvals_url|default:'#' }}">Review Gate 2</a></div>
+  </header>
+
+  <dl class="metric-ledger" aria-label="Plan summary">
+    <div><dt>Canonical actions</dt><dd>{{ action_count|default:"0" }}</dd><small>No duplicate task registers</small></div>
+    <div><dt>P1 actions</dt><dd>{{ priority_counts.p1|default:"0" }}</dd><small>Score 75–100</small></div>
+    <div><dt>Approval required</dt><dd>{{ risky_action_count|default:"0" }}</dd><small>Redirect, canonical, robots or schema</small></div>
+    <div><dt>Plan coverage</dt><dd>{{ finding_coverage|default:"—" }}{% if finding_coverage != None %}%{% endif %}</dd><small>Findings mapped to a response</small></div>
+  </dl>
+
+  <section class="section" aria-labelledby="plan-register">
+    <div class="table-toolbar">
+      <div class="section-heading__copy"><span class="section-index">01 / Register</span><h2 id="plan-register">Prioritised actions</h2></div>
+      <form class="table-toolbar__filters" method="get" aria-label="Filter action plan"><div class="field"><label for="action-search">Search</label><input class="filter-control" id="action-search" name="q" type="search" placeholder="Action, owner or KPI" data-filter-input data-filter-target="#action-rows"></div><div class="field"><label for="priority-filter">Priority</label><select class="filter-control" id="priority-filter" name="priority"><option value="">All</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div><div class="field"><label for="week-filter">Week</label><select class="filter-control" id="week-filter" name="week"><option value="">All weeks</option>{% for week in weeks %}<option value="{{ week }}">Week {{ week }}</option>{% endfor %}</select></div><button class="button button--quiet" type="submit">Apply</button></form>
+    </div>
+    {% if actions %}
+    <div class="table-wrap"><table class="data-table"><caption>Canonical action plan, ordered by priority score and dependency</caption><thead><tr><th scope="col">Priority</th><th scope="col">Action</th><th scope="col">Evidence</th><th scope="col">Owner</th><th scope="col">Week</th><th scope="col">Effort</th><th scope="col">KPI</th><th scope="col">Risk</th><th scope="col">State</th></tr></thead><tbody id="action-rows">{% for action in actions %}{% url 'action-detail' project.pk action.pk as action_url %}<tr data-filter-row><td><a class="priority priority--{{ action.priority|default:'p3'|lower }}" href="{{ action_url|default:'#' }}">{{ action.priority|default:"—" }}</a><br><span class="fine-print data-value">{{ action.priority_score|default:"—" }}/100</span></td><td><strong>{{ action.title|default:"Untitled action" }}</strong><br><span class="fine-print">{{ action.category|default:"Uncategorised" }}{% if action.dependency_count %} · {{ action.dependency_count }} dependencies{% endif %}</span></td><td>{{ action.finding_count|default:"0" }} findings<br><span class="fine-print">Confidence {{ action.confidence|default:"—" }}</span></td><td>{{ action.owner_name|default:"Unassigned" }}</td><td class="data-value">{{ action.start_week|default:"—" }}{% if action.end_week and action.end_week != action.start_week %}–{{ action.end_week }}{% endif %}</td><td>{{ action.get_effort_display|default:action.effort|default:"—" }}</td><td>{{ action.kpi|default:"Not defined" }}</td><td><span class="status status--{{ action.risk_class|default:'review'|slugify }}">{{ action.get_risk_class_display|default:action.risk_class|default:"Standard" }}</span></td><td>{{ action.get_status_display|default:action.status|default:"Proposed" }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<div class="empty-state"><h3>No supported actions yet</h3><p class="muted">Actions are created from findings after Gate 1 approves the strategic direction.</p></div>{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="gantt-heading">
+    <div class="section-heading__copy"><span class="section-index">02 / Sequence</span><h2 id="gantt-heading">Sixteen-week dependency view</h2></div>
+    <div class="table-wrap"><table class="data-table"><caption>Implementation sequence; filled cells indicate scheduled work</caption><thead><tr><th scope="col">Workstream</th>{% for week in weeks %}<th scope="col"><abbr title="Week {{ week }}">W{{ week }}</abbr></th>{% empty %}{% for label in default_week_labels %}<th scope="col">{{ label }}</th>{% endfor %}{% endfor %}</tr></thead><tbody>{% for workstream in workstreams %}<tr><th scope="row">{{ workstream.label|default:"Workstream" }}</th>{% for cell in workstream.cells %}<td>{% if cell.active %}<span class="status status--{% if cell.approval_required %}warning{% else %}active{% endif %}"><span class="sr-only">Scheduled</span>{{ cell.action_count|default:"" }}</span>{% else %}<span aria-hidden="true">·</span><span class="sr-only">No work scheduled</span>{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td colspan="17">Schedule will appear when actions receive week assignments.</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+
+  <aside class="editorial-panel" aria-labelledby="priority-method"><span class="section-index">03 / Method</span><h2 id="priority-method" class="app-title">How priority is calculated</h2><p class="muted">Impact 30% · evidence confidence 20% · reach 15% · business criticality 15% · dependency urgency 10% · inverse effort 10%. Implementation risk is never hidden inside the score.</p></aside>
+</div>
+{% endblock %}

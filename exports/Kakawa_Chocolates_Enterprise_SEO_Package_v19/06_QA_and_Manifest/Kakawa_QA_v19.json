@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-16T07:21:40.667956+00:00",
+  "run_id": "KAKAWA-ENT-20260715",
+  "client": {
+    "name": "Kakawa Chocolates",
+    "domain": "kakawachocolates.com.au",
+    "locale": "en-AU"
+  },
+  "qa": {
+    "release_status": "PASS_FOR_REVIEW",
+    "release_statement": "Critical and High package QA failures are zero. Private-source baselines and human Gate 1/Gate 2 approvals remain explicit production blockers.",
+    "critical_failures": 0,
+    "high_failures": 0,
+    "wrong_domain_urls": 0,
+    "unsupported_claims": 0,
+    "unapproved_risky_assets": 0,
+    "duplicate_normalized_pages": 0,
+    "duplicate_observations_collapsed": 5,
+    "gates": [
+      {
+        "id": "QA-01",
+        "name": "Approved-domain boundary",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "0 wrong-domain URL records",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-02",
+        "name": "Normalized URL deduplication",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "5 duplicate observations collapsed; 0 remain",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-03",
+        "name": "Evidence lineage",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "Every finding and action resolves to evidence IDs",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-04",
+        "name": "Claim support",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "All published content claims have explicit evidence IDs",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-05",
+        "name": "Risky deployment controls",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "Unapproved risky proposals are withheld, not executable",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-06",
+        "name": "Cross-artifact reconciliation",
+        "status": "PASS",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "Canonical counts are exported from one dataset",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-07",
+        "name": "Private provider evidence",
+        "status": "UNAVAILABLE",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "Credentials were not configured",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      },
+      {
+        "id": "QA-08",
+        "name": "Gate 1 and Gate 2 approvals",
+        "status": "NOT_RUN",
+        "critical_failures": 0,
+        "high_failures": 0,
+        "evidence": "Human decisions are required before production",
+        "checked_at": "2026-07-15T08:40:41.197233+00:00"
+      }
+    ],
+    "reconciliation": [
+      {
+        "measure": "Normalized pages",
+        "canonical": 357,
+        "package": 357,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      },
+      {
+        "measure": "Aggregated findings",
+        "canonical": 5,
+        "package": 5,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      },
+      {
+        "measure": "Canonical actions",
+        "canonical": 16,
+        "package": 16,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      },
+      {
+        "measure": "Content assets",
+        "canonical": 6,
+        "package": 6,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      },
+      {
+        "measure": "Duplicate normalized pages",
+        "canonical": 0,
+        "package": 0,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      },
+      {
+        "measure": "Duplicate observations collapsed",
+        "canonical": 5,
+        "package": 5,
+        "result": "PASS",
+        "rule": "Exact integer equality",
+        "evidence": "Canonical acceptance dataset"
+      }
+    ]
+  },
+  "limitations": [
+    "GSC, GA4, SEMrush and PageSpeed were not collected because credentials were unavailable.",
+    "The overall health score is withheld because weighted evidence coverage is below 70%.",
+    "No traffic, ranking, conversion, revenue, backlink or performance forecast is present.",
+    "Content and risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+    "No live CMS, Search Console, analytics platform, robots file, redirect map, schema or disavow system was changed."
+  ]
+}

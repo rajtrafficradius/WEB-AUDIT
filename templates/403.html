@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Access not permitted{% endblock %}
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+<section class="error-page" aria-labelledby="error-heading">
+  <div class="error-code" aria-hidden="true">403</div>
+  <div class="error-copy">
+    <span class="eyebrow">Permission boundary</span>
+    <h1 id="error-heading">This evidence is outside your assignment.</h1>
+    <p class="lede">Your account is valid, but it does not have access to this client, project or artifact. The attempt has not exposed any protected data.</p>
+    {% if exception %}<p class="muted">{{ exception }}</p>{% endif %}
+    <div class="page-heading__actions"><a class="button" href="{{ dashboard_url|default:'/' }}">Return to your portfolio</a></div>
+    <p class="fine-print">If the assignment is wrong, ask an agency administrator to review your membership. Request ID: <span class="data-value">{{ request_id|default:"not available" }}</span></p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "fixture_version": "1.0.0",
+  "fixture_kind": "unavailable_state_contract_test",
+  "captured_at": "2026-07-15T00:00:00Z",
+  "sources": {
+    "gsc": {"status": "unavailable", "reason": "credential_not_configured"},
+    "ga4": {"status": "unavailable", "reason": "credential_not_configured"},
+    "semrush": {"status": "unavailable", "reason": "credential_not_configured"},
+    "pagespeed": {"status": "unavailable", "reason": "credential_not_configured"},
+    "openai": {"status": "unavailable", "reason": "credential_not_configured"}
+  }
+}

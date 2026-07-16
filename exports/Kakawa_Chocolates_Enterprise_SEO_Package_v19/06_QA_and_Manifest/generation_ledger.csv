@@ -1,0 +1,4 @@
+﻿id,task,configured_model,returned_model,prompt_version,status,request_hash,response_hash,tokens,cost,unavailable_reason
+GEN-001,Final strategy and content,gpt-5.6-sol,Unavailable,strategy-v1.0.0,unavailable,Unavailable,Unavailable,0,0.0,credential_not_configured
+GEN-002,High-volume structured extraction,gpt-5.6-luna,Unavailable,extraction-v1.0.0,unavailable,Unavailable,Unavailable,0,0.0,credential_not_configured
+ef4baae3-4a11-49b2-afd1-d2c93de056de,Evidence-constrained package strategy synthesis,gpt-5.6-luna,gpt-5.6-luna,seo-evidence-boundary-1.0.0,available,147ad488c696b4e7a11cd1cf73965f639e30d2ce30de78c0e1b50b658c3b9607,2251043fa6839048072ff74a3d569fd28e6e844d5db6233a2d0d372d1da69bad,16731,Unavailable,Unavailable

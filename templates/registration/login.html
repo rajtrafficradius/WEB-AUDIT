@@ -1,0 +1,70 @@
+{% load static %}
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f0e8">
+  <title>Sign in | Traffic Radius SEO Studio</title>
+  <link rel="icon" href="{% static 'img/traffic-radius-mark.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/studio.css' %}">
+</head>
+<body class="login-page">
+  <a class="skip-link" href="#main-content">Skip to sign in</a>
+  <main id="main-content" class="login-shell" tabindex="-1">
+    <section class="login-context" aria-labelledby="studio-purpose">
+      <div class="page-heading__copy">
+        <span class="eyebrow">Private agency workspace</span>
+        <h1 id="studio-purpose">Evidence before assertion.</h1>
+        <p class="lede">Turn live search evidence into strategies, implementation assets, and client-ready packages that withstand scrutiny.</p>
+      </div>
+      <div class="login-principles" aria-label="Studio principles">
+        <div><strong>Traceable</strong><span>Every claim returns to a dated source.</span></div>
+        <div><strong>Reviewable</strong><span>Risky changes stop at a human gate.</span></div>
+        <div><strong>Reproducible</strong><span>Runs, rules and exports stay versioned.</span></div>
+      </div>
+    </section>
+
+    <section class="login-form-wrap" aria-labelledby="sign-in-title">
+      <form class="login-form" method="post" action="{{ request.path }}" novalidate>
+        {% csrf_token %}
+        <div class="login-brand">
+          <img src="{% static 'img/traffic-radius-mark.svg' %}" alt="" width="42" height="42">
+          <div class="brand__wordmark"><strong>Traffic Radius</strong><span>Enterprise SEO Studio</span></div>
+        </div>
+
+        <div class="page-heading__copy">
+          <span class="eyebrow">Authorised access</span>
+          <h2 id="sign-in-title">Sign in to the studio</h2>
+          <p class="muted">Use the login ID supplied by your agency administrator.</p>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="error-summary" role="alert" tabindex="-1">
+          <h3>We could not sign you in</h3>
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="fields">
+          <div class="field field--wide">
+            <label for="id_username">Login ID</label>
+            <input id="id_username" name="username" type="text" autocomplete="username" autocapitalize="none" required {% if form.username.value %}value="{{ form.username.value }}"{% endif %} {% if form.username.errors %}aria-invalid="true" aria-describedby="username-error"{% endif %}>
+            {% if form.username.errors %}<span class="field-error" id="username-error">{{ form.username.errors|striptags }}</span>{% endif %}
+          </div>
+          <div class="field field--wide">
+            <label for="id_password">Password</label>
+            <input id="id_password" name="password" type="password" autocomplete="current-password" required {% if form.password.errors %}aria-invalid="true" aria-describedby="password-error"{% endif %}>
+            {% if form.password.errors %}<span class="field-error" id="password-error">{{ form.password.errors|striptags }}</span>{% endif %}
+          </div>
+        </div>
+
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <button class="button" type="submit">Sign in securely</button>
+        <p class="fine-print">Locked out? Contact your Traffic Radius administrator for a time-limited recovery password. Passwords are never sent back in plain text.</p>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

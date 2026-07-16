@@ -1,0 +1,5 @@
+PASS FOR REVIEW
+Evidence as of 2026-07-15
+Exact duplicates removed: 24
+Disavow disabled: true
+GPT strategy status: available

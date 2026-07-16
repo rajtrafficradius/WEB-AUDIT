@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name|default:"Project" }}{% endblock %}
+
+{% block content %}
+{% url 'dashboard' as dashboard_url %}
+{% url 'project-intake' project.pk as intake_url %}
+{% url 'project-sources' project.pk as sources_url %}
+{% url 'project-findings' project.pk as findings_url %}
+{% url 'action-plan' project.pk as action_plan_url %}
+{% url 'project-approvals' project.pk as approvals_url %}
+{% url 'export-qa' project.pk as export_url %}
+{% url 'audit-results-download' project.pk as audit_download_url %}
+<div class="page-shell">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li aria-current="page">{{ project.name|default:"Project" }}</li></ol></nav>
+
+  <header class="page-heading">
+    <div class="page-heading__copy">
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · {{ project.get_profile_display|default:project.profile|default:"Profile pending" }}</span>
+      <h1>{{ project.name|default:"Untitled SEO project" }}</h1>
+      <p class="lede">{{ project.primary_domain|default:"Approved domain not yet set" }} · {{ project.locale|default:"en-AU" }}</p>
+    </div>
+    <div class="page-heading__actions">
+      <a class="button button--quiet" href="{{ intake_url|default:'#' }}">Edit intake</a>
+      {% if audit_download_available %}<a class="button button--secondary" href="{{ audit_download_url }}">Download audit results</a>{% endif %}
+      {% if latest_run %}{% url 'run-detail' latest_run.pk as run_url %}<a class="button" href="{{ run_url|default:'#' }}">Open current run</a>{% endif %}
+    </div>
+  </header>
+
+  <nav class="table-toolbar" aria-label="Project sections">
+    <div class="table-toolbar__filters">
+      <a href="{{ sources_url|default:'#' }}">Sources</a>
+      <a href="{{ findings_url|default:'#' }}">Findings</a>
+      <a href="{{ action_plan_url|default:'#' }}">Action plan</a>
+      <a href="{{ approvals_url|default:'#' }}">Approvals</a>
+      <a href="{{ export_url|default:'#' }}">Export &amp; QA</a>
+    </div>
+    <span class="status status--{{ project.status|default:'review'|slugify }}">{{ project.get_status_display|default:project.status|default:"Draft" }}</span>
+  </nav>
+
+  <dl class="metric-ledger" aria-label="Project summary">
+    <div><dt>Evidence coverage</dt><dd>{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</dd><small>Overall score requires 70%</small></div>
+    <div><dt>Health score</dt><dd>{{ health_score|default:"—" }}</dd><small>{% if health_score %}Deterministic ruleset {{ ruleset_version|default:"current" }}{% else %}Withheld pending coverage{% endif %}</small></div>
+    <div><dt>Open findings</dt><dd>{{ open_findings_count|default:"0" }}</dd><small>{{ critical_high_count|default:"0" }} critical or high</small></div>
+    <div><dt>Approved actions</dt><dd>{{ approved_actions_count|default:"0" }}</dd><small>Of {{ action_count|default:"0" }} canonical actions</small></div>
+  </dl>
+
+  <section class="editorial-panel" aria-labelledby="short-summary-heading">
+    <span class="section-index">Summary</span>
+    <h2 id="short-summary-heading" class="app-title">Short summary below.</h2>
+    <p>{{ short_summary }}</p>
+  </section>
+
+  <section class="section" aria-labelledby="workflow-heading">
+    <div class="section-heading__copy"><span class="section-index">01 / Workflow</span><h2 id="workflow-heading">Run progression</h2></div>
+    {% if workflow_stages %}
+      <ol class="stage-rail">
+        {% for stage in workflow_stages %}
+          <li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}" {% if stage.current %}aria-current="step"{% endif %}>
+            <strong>{{ stage.number|default:forloop.counter|stringformat:"02d" }}</strong>{{ stage.label|default:"Stage" }}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">No run has started. Validate intake and sources before collection.</p>
+    {% endif %}
+  </section>
+
+  <div class="split-layout">
+    <section class="section" aria-labelledby="findings-heading">
+      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Evidence</span><h2 id="findings-heading">What the evidence says</h2></div><a href="{{ findings_url|default:'#' }}">View all findings</a></div>
+      {% if priority_findings %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>Highest-priority open findings</caption>
+          <thead><tr><th scope="col">Priority</th><th scope="col">Finding</th><th scope="col">Evidence</th><th scope="col">Confidence</th></tr></thead>
+          <tbody>
+            {% for finding in priority_findings %}
+            <tr><td><span class="priority priority--{{ finding.priority|default:'p3'|lower }}">{{ finding.priority|default:"—" }}</span></td><td><strong>{{ finding.title|default:"Untitled finding" }}</strong><br><span class="muted">{{ finding.category|default:"Uncategorised" }}</span></td><td>{{ finding.evidence_count|default:"0" }} records</td><td>{{ finding.confidence|default:"—" }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<div class="empty-state"><h3>Findings will appear after audit rules run</h3><p class="muted">Missing data remains unavailable; it never silently passes.</p></div>{% endif %}
+    </section>
+
+    <aside class="rail" aria-label="Project context">
+      <section class="editorial-panel rail-section">
+        <span class="section-index">03 / Coverage</span>
+        <h2 class="app-title">Source availability</h2>
+        {% for source in source_summary %}
+          <div class="rail-section">
+            <div class="section-heading"><strong>{{ source.label|default:"Source" }}</strong><span class="status status--{{ source.status|default:'unavailable'|slugify }}">{{ source.get_status_display|default:source.status|default:"Unavailable" }}</span></div>
+            <p class="fine-print">{{ source.detail|default:"No evidence has been captured." }}</p>
+          </div>
+        {% empty %}<p class="muted">No source status has been recorded.</p>{% endfor %}
+      </section>
+      <section class="rail-section">
+        <span class="section-index">04 / Governance</span>
+        <h2 class="app-title">Current decision</h2>
+        {% if current_approval %}<p><strong>{{ current_approval.label|default:"Approval required" }}</strong></p><p class="muted">{{ current_approval.summary|default:"Review the evidence and record a decision." }}</p><a href="{{ approvals_url|default:'#' }}">Review approval gate</a>{% else %}<p class="muted">No approval decision is currently blocking progress.</p>{% endif %}
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

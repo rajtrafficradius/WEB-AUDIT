@@ -1,0 +1,1 @@
+Zero Critical and High canonical QA failures. Missing private sources remain explicitly unavailable. All deployment-risk assets remain approval-gated.

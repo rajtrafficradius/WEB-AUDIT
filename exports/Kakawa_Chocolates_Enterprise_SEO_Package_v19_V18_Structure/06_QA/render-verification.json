@@ -1,0 +1,25 @@
+{
+  "verified_at": "2026-07-16T07:23:38.741024+00:00",
+  "status": "PASS",
+  "critical_failures": 0,
+  "high_failures": 0,
+  "duplicate_payloads": 0,
+  "file_count": 72,
+  "format_counts": {
+    ".csv": 3,
+    ".docx": 8,
+    ".html": 11,
+    ".json": 8,
+    ".pdf": 5,
+    ".png": 2,
+    ".pptx": 1,
+    ".sha256": 1,
+    ".txt": 4,
+    ".xlsx": 29
+  },
+  "workbook_previews": 29,
+  "wrong_domain_urls": 0,
+  "unsupported_claims": 0,
+  "unapproved_risky_assets": 0,
+  "failures": []
+}
