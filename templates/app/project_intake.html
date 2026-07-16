@@ -10,7 +10,7 @@
   <header class="page-heading">
     <div class="page-heading__copy">
       <span class="eyebrow">Project setup</span>
-      <h1>{% if is_create %}Start with four essentials.{% else %}Refine the project brief.{% endif %}</h1>
+      <h1>{% if is_create %}Start with the essentials.{% else %}Refine the project brief.{% endif %}</h1>
       <p class="lede">{% if is_create %}The AI engine turns these inputs into an evidence-bounded audit brief. Everything else can be added later.{% else %}Update targeting, evidence and brand rules when verified information becomes available.{% endif %}</p>
     </div>
     <div class="page-heading__actions"><a class="button button--quiet" href="{{ project_url|default:dashboard_url }}">Cancel</a></div>
@@ -18,16 +18,17 @@
   {% if form.errors %}
   <section class="error-summary" role="alert" aria-labelledby="form-errors" tabindex="-1"><h2 id="form-errors">Check the highlighted fields</h2><p>Your information is still here. Correct the highlighted fields and save again.</p></section>
   {% endif %}
-  <form class="form-layout intake-form" method="post" novalidate>
+  <form class="form-layout intake-form" method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     <section class="form-section form-section--compact" aria-labelledby="essentials-heading">
-      <div class="form-section__intro"><span class="section-index">01</span><h2 id="essentials-heading" class="app-title">Essential setup</h2><p class="muted">{% if is_create %}Only four fields are required.{% else %}Core project identity and crawl boundary.{% endif %}</p></div>
+      <div class="form-section__intro"><span class="section-index">01</span><h2 id="essentials-heading" class="app-title">Essential setup</h2><p class="muted">{% if is_create %}Four details are required; the crawl-data upload is optional.{% else %}Core project identity and crawl boundary.{% endif %}</p></div>
       <div class="fields fields--single intake-core">
         <div class="field"><label for="id_client_name">Client or business name <span class="required" aria-hidden="true">*</span></label><input id="id_client_name" name="client_name" value="{{ form.client_name.value|default:project.client.name|default:'' }}" required>{% if form.client_name.errors %}<span class="field-error">{{ form.client_name.errors|striptags }}</span>{% endif %}</div>
         {% if not is_create %}<div class="field"><label for="id_project_name">Project name</label><input id="id_project_name" name="name" value="{{ form.name.value|default:project.name|default:'' }}">{% if form.name.errors %}<span class="field-error">{{ form.name.errors|striptags }}</span>{% endif %}</div>{% endif %}
         <div class="field"><label for="id_primary_domain">Website <span class="required" aria-hidden="true">*</span></label><input id="id_primary_domain" name="primary_domain" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com.au" value="{{ form.primary_domain.value|default:project.primary_domain|default:'' }}" required aria-describedby="domain-help"><span class="field-help" id="domain-help">The crawler stays within this approved domain.</span>{% if form.primary_domain.errors %}<span class="field-error">{{ form.primary_domain.errors|striptags }}</span>{% endif %}</div>
         <div class="field"><label for="id_business_type">Business type <span class="required" aria-hidden="true">*</span></label><select id="id_business_type" name="business_type" required><option value="ecommerce" {% if form.business_type.value == "ecommerce" or not form.business_type.value %}selected{% endif %}>Online store</option><option value="local" {% if form.business_type.value == "local" %}selected{% endif %}>Local business</option><option value="service" {% if form.business_type.value == "service" %}selected{% endif %}>Service or SaaS</option><option value="hybrid" {% if form.business_type.value == "hybrid" %}selected{% endif %}>Mixed business</option></select></div>
         <div class="field"><label for="id_business_summary">What does the business do? <span class="required" aria-hidden="true">*</span></label><textarea id="id_business_summary" name="business_summary" required aria-describedby="business-summary-help" placeholder="What you sell, who you serve and where you operate.">{{ form.business_summary.value|default:project.business_summary|default:'' }}</textarea><span class="field-help" id="business-summary-help">Two or three sentences are enough.</span>{% if form.business_summary.errors %}<span class="field-error">{{ form.business_summary.errors|striptags }}</span>{% endif %}</div>
+        {% if is_create %}<div class="field field--wide"><label for="{{ form.crawl_data_file.id_for_label }}">Upload CDX / CDD / XML file here</label><span class="field-help" id="crawl-data-help">Optional. Upload existing crawl data now and it will be securely validated and linked to this project. Maximum 50 MB.</span>{{ form.crawl_data_file }}{% if form.crawl_data_file.errors %}<span id="id_crawl_data_file_error" class="field-error" role="alert">{{ form.crawl_data_file.errors|striptags }}</span>{% endif %}</div>{% endif %}
       </div>
     </section>
     {% if not is_create %}

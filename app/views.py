@@ -388,6 +388,16 @@ class ProjectIntakeForm(forms.Form):
     business_type = forms.ChoiceField(choices=Project.BusinessType.choices)
     locale = forms.ChoiceField(required=False, choices=(("en-AU", "English (Australia)"), ("en-GB", "English (United Kingdom)"), ("en-US", "English (United States)")))
     business_summary = forms.CharField(max_length=5000)
+    crawl_data_file = forms.FileField(
+        required=False,
+        allow_empty_file=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".cdx,.cdd,.xml,application/xml,text/xml",
+                "aria-describedby": "crawl-data-help",
+            }
+        ),
+    )
     primary_domain = forms.CharField(max_length=2048)
     approved_domains = forms.CharField(required=False, max_length=10000)
     cms_platform = forms.CharField(required=False, max_length=80)
@@ -402,6 +412,12 @@ class ProjectIntakeForm(forms.Form):
 
     def clean_primary_domain(self):
         return _normalise_domain(self.cleaned_data["primary_domain"])
+
+    def clean_crawl_data_file(self):
+        uploaded = self.cleaned_data.get("crawl_data_file")
+        if uploaded and uploaded.size > ImportLimits().max_file_bytes:
+            raise forms.ValidationError("Upload exceeds the configured 50 MB limit.")
+        return uploaded
 
     def clean(self):
         cleaned = super().clean()
@@ -751,42 +767,127 @@ def dashboard_view(request):
     )
 
 
+def _project_create_context(form: ProjectIntakeForm) -> dict:
+    return {
+        "form": form,
+        "is_create": True,
+        "project": SimpleNamespace(
+            pk="00000000-0000-0000-0000-000000000000",
+            name="",
+            client=SimpleNamespace(name=""),
+            business_summary="",
+            primary_domain="",
+            cms_platform="",
+            primary_market="",
+            conversion_goals="",
+            priority_offerings="",
+            verified_facts="",
+            prohibited_claims="",
+            brand_voice="",
+        ),
+    }
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def project_create_view(request):
     if not (request.user.is_superuser or request.user.role == UserRole.AGENCY_ADMIN):
         raise PermissionDenied("Agency administrator permission is required.")
-    form = ProjectIntakeForm(request.POST or None)
+    form = ProjectIntakeForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            client = Client.objects.filter(name__iexact=form.cleaned_data["client_name"]).first()
-            if client is None:
-                client = Client.objects.create(
-                    name=form.cleaned_data["client_name"],
-                    slug=_unique_slug(Client.objects.all(), form.cleaned_data["client_name"]),
+        crawl_import = None
+        try:
+            with transaction.atomic():
+                client = Client.objects.filter(
+                    name__iexact=form.cleaned_data["client_name"]
+                ).first()
+                if client is None:
+                    client = Client.objects.create(
+                        name=form.cleaned_data["client_name"],
+                        slug=_unique_slug(
+                            Client.objects.all(), form.cleaned_data["client_name"]
+                        ),
+                    )
+                project = Project(
+                    client=client,
+                    name=form.cleaned_data["name"],
+                    slug=_unique_slug(client.projects.all(), form.cleaned_data["name"]),
+                    primary_domain=form.cleaned_data["primary_domain"],
+                    approved_domains=form.cleaned_data["domain_allowlist"],
+                    locale=form.cleaned_data["locale"],
+                    country_code=form.cleaned_data["locale"].rsplit("-", 1)[-1].upper(),
+                    business_type=form.cleaned_data["business_type"],
+                    default_profile="standard",
                 )
-            project = Project(
-                client=client,
-                name=form.cleaned_data["name"],
-                slug=_unique_slug(client.projects.all(), form.cleaned_data["name"]),
-                primary_domain=form.cleaned_data["primary_domain"],
-                approved_domains=form.cleaned_data["domain_allowlist"],
-                locale=form.cleaned_data["locale"],
-                country_code=form.cleaned_data["locale"].rsplit("-", 1)[-1].upper(),
-                business_type=form.cleaned_data["business_type"],
-                default_profile="standard",
+                _apply_project_form(project, form)
+                record_event(
+                    event_type="project.created",
+                    actor=request.user,
+                    request=request,
+                    object_instance=project,
+                )
+                uploaded = form.cleaned_data.get("crawl_data_file")
+                if uploaded:
+                    crawl_import, created = persist_validated_import(
+                        project=project,
+                        actor=request.user,
+                        source_type="crawl_data_file",
+                        uploaded=uploaded,
+                    )
+                    record_event(
+                        event_type=(
+                            "source_import.accepted"
+                            if created
+                            else "source_import.idempotent"
+                        ),
+                        actor=request.user,
+                        request=request,
+                        project=project,
+                        object_instance=crawl_import,
+                        payload={
+                            "source_type": crawl_import.source_type,
+                            "sha256": crawl_import.sha256,
+                            "origin": "project_setup",
+                        },
+                    )
+        except UploadValidationError as exc:
+            form.add_error("crawl_data_file", exc.safe_message)
+            messages.error(
+                request,
+                "The crawl file failed validation. No project or upload was created.",
             )
-            _apply_project_form(project, form)
-            record_event(
-                event_type="project.created",
-                actor=request.user,
-                request=request,
-                object_instance=project,
+            return render(
+                request,
+                "app/project_intake.html",
+                _project_create_context(form),
+                status=400,
+            )
+        except ImportStorageError:
+            form.add_error(
+                "crawl_data_file",
+                "Private storage verification failed. No project or upload was created.",
+            )
+            messages.error(request, "The crawl file could not be stored safely.")
+            return render(
+                request,
+                "app/project_intake.html",
+                _project_create_context(form),
+                status=503,
             )
         ai_status = _generate_ai_intake_brief(
             project=project, actor=request.user, request=request
         )
-        if ai_status == "available":
+        if crawl_import and ai_status == "available":
+            messages.success(
+                request,
+                "Project created, crawl data imported, and its AI audit brief is ready.",
+            )
+        elif crawl_import:
+            messages.success(
+                request,
+                "Project created and crawl data imported. AI generation can be retried later.",
+            )
+        elif ai_status == "available":
             messages.success(request, "Project created and its AI audit brief is ready.")
         else:
             messages.success(request, "Project created. AI generation can be retried later.")
@@ -796,34 +897,18 @@ def project_create_view(request):
     return render(
         request,
         "app/project_intake.html",
-        {
-            "form": form,
-            "is_create": True,
-            "project": SimpleNamespace(
-                pk="00000000-0000-0000-0000-000000000000",
-                name="",
-                client=SimpleNamespace(name=""),
-                business_summary="",
-                primary_domain="",
-                cms_platform="",
-                primary_market="",
-                conversion_goals="",
-                priority_offerings="",
-                verified_facts="",
-                prohibited_claims="",
-                brand_voice="",
-            ),
-        },
+        _project_create_context(form),
         status=status,
     )
-
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def project_intake_view(request, project_id):
     project = _project_for_user(request, project_id)
     _require_manage(request.user, project)
-    form = ProjectIntakeForm(request.POST or None, initial=_project_initial(project))
+    form = ProjectIntakeForm(
+        request.POST or None, request.FILES or None, initial=_project_initial(project)
+    )
     if request.method == "POST" and form.is_valid():
         if request.user.is_superuser or request.user.role == UserRole.AGENCY_ADMIN:
             project.client.name = form.cleaned_data["client_name"]

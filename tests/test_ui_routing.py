@@ -1,9 +1,11 @@
 # ruff: noqa: S106
 from decimal import Decimal
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -388,11 +390,17 @@ class ProjectCreationRoutingTests(TestCase):
         )
         self.client.force_login(self.admin)
 
-    def test_project_create_contains_only_four_essential_fields(self):
+    def test_project_create_places_crawl_upload_after_required_fields(self):
         response = self.client.get(reverse("project-create"), secure=True)
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        for field_name in ("client_name", "primary_domain", "business_type", "business_summary"):
+        for field_name in (
+            "client_name",
+            "primary_domain",
+            "business_type",
+            "business_summary",
+            "crawl_data_file",
+        ):
             self.assertIn(f'name="{field_name}"', html)
         for field_name in (
             "name", "conversion_goals", "locale", "approved_domains", "cms_platform",
@@ -401,7 +409,13 @@ class ProjectCreationRoutingTests(TestCase):
         ):
             self.assertNotIn(f'name="{field_name}"', html)
         self.assertNotIn('<details class="advanced-intake"', html)
-        self.assertIn("Only four fields are required.", html)
+        self.assertIn('enctype="multipart/form-data"', html)
+        self.assertIn("Upload CDX / CDD / XML file here", html)
+        self.assertIn("Four details are required; the crawl-data upload is optional.", html)
+        self.assertLess(
+            html.index('name="business_summary"'),
+            html.index('name="crawl_data_file"'),
+        )
 
     def test_project_creation_accepts_only_essential_values_and_locale_default(self):
         response = self.client.post(
@@ -424,6 +438,77 @@ class ProjectCreationRoutingTests(TestCase):
             ["Improve qualified organic visibility and conversions"],
         )
 
+    def test_project_creation_validates_and_links_xml_crawl_data(self):
+        with TemporaryDirectory(dir=r"C:\tmp") as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ):
+            response = self.client.post(
+                reverse("project-create"),
+                {
+                    "client_name": "Crawl Import Client",
+                    "primary_domain": "https://crawl-import.example.com.au",
+                    "business_type": "ecommerce",
+                    "business_summary": "An Australian ecommerce test business.",
+                    "crawl_data_file": SimpleUploadedFile(
+                        "crawl.xml",
+                        (
+                            b"<?xml version='1.0' encoding='UTF-8'?>"
+                            b"<urlset><url><loc>https://crawl-import.example.com.au/</loc>"
+                            b"<status>200</status></url></urlset>"
+                        ),
+                        content_type="application/xml",
+                    ),
+                    "continue": "project",
+                },
+                secure=True,
+            )
+        project = Project.objects.get(name="Crawl Import Client SEO Audit")
+        crawl_import = SourceImport.objects.get(project=project)
+        self.assertRedirects(
+            response,
+            reverse("project-detail", args=(project.pk,)),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(crawl_import.source_type, "crawl_data_file")
+        self.assertEqual(crawl_import.original_filename, "crawl.xml")
+        self.assertEqual(crawl_import.status, SourceImport.Status.ACCEPTED)
+        self.assertEqual(crawl_import.column_mapping["row_count"], 1)
+        event = AuditEvent.objects.get(
+            project=project, event_type="source_import.accepted"
+        )
+        self.assertEqual(event.payload["origin"], "project_setup")
+
+    def test_invalid_setup_crawl_file_does_not_create_project(self):
+        with TemporaryDirectory(dir=r"C:\tmp") as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ):
+            response = self.client.post(
+                reverse("project-create"),
+                {
+                    "client_name": "Rejected Crawl Client",
+                    "primary_domain": "https://rejected-crawl.example.com.au",
+                    "business_type": "service",
+                    "business_summary": "An Australian service test business.",
+                    "crawl_data_file": SimpleUploadedFile(
+                        "crawl.csv",
+                        b"url,status\nhttps://rejected-crawl.example.com.au/,200\n",
+                        content_type="text/csv",
+                    ),
+                    "continue": "project",
+                },
+                secure=True,
+            )
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(
+            response,
+            "Choose a CDX, CDD, or XML file for the crawl-data source.",
+            status_code=400,
+        )
+        self.assertFalse(
+            Project.objects.filter(name="Rejected Crawl Client SEO Audit").exists()
+        )
+        self.assertFalse(Client.objects.filter(name="Rejected Crawl Client").exists())
+        self.assertFalse(SourceImport.objects.exists())
     def test_project_creation_normalizes_and_persists_domain_allowlist(self):
         response = self.client.post(
             reverse("project-create"),
