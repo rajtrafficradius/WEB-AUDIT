@@ -259,6 +259,12 @@ if SESSION_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
 if CSRF_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
     raise ImproperlyConfigured("CSRF_COOKIE_SAMESITE must be Lax, Strict, or None.")
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+# Exempt orchestration probes from HTTP->HTTPS redirect. Railway's internal
+# healthcheck hits the container over plain HTTP without X-Forwarded-Proto,
+# so without this exemption SecurityMiddleware returns 301 and the probe
+# never sees a 200. Values are unanchored regexes matched against the path
+# with the leading slash stripped.
+SECURE_REDIRECT_EXEMPT = [r"^healthz/$", r"^readyz/$"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
