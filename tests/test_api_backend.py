@@ -1,7 +1,7 @@
 # ruff: noqa: S106
 import json
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from app.domain.constants import UserRole
 from app.domain.models import Artifact, AuditRun, Client, Membership, Project, User
@@ -115,3 +115,16 @@ class APISecurityTests(TestCase):
         self.assertIn(
             self.client.get("/readyz/", secure=True).json()["status"], {"ready", "not_ready"}
         )
+
+    @override_settings(
+        SECURE_SSL_REDIRECT=True,
+        SECURE_REDIRECT_EXEMPT=[r"^healthz/$", r"^readyz/$"],
+    )
+    def test_internal_health_probes_are_not_redirected_to_https(self):
+        health = self.client.get("/healthz/", secure=False)
+        readiness = self.client.get("/readyz/", secure=False)
+        normal_page = self.client.get("/auth/login/", secure=False)
+
+        self.assertEqual(health.status_code, 200)
+        self.assertIn(readiness.status_code, {200, 503})
+        self.assertEqual(normal_page.status_code, 301)

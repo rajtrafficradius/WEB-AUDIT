@@ -259,6 +259,10 @@ if SESSION_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
 if CSRF_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
     raise ImproperlyConfigured("CSRF_COOKIE_SAMESITE must be Lax, Strict, or None.")
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+# Railway performs deployment health checks over the container's internal HTTP
+# endpoint. Exempt only the machine health routes so the probe receives the
+# view's direct 200/503 response while every user-facing route still forces HTTPS.
+SECURE_REDIRECT_EXEMPT = [r"^healthz/$", r"^readyz/$"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
