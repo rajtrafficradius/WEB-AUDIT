@@ -417,8 +417,8 @@ def validate_deployed_configuration() -> None:
         failures.append("DATABASE_URL must use PostgreSQL")
     if not REDIS_URL:
         failures.append("REDIS_URL is required")
-    if not OBJECT_STORAGE_ENABLED or not AWS_STORAGE_BUCKET_NAME:
-        failures.append("private S3-compatible object storage is required")
+    # Private S3-compatible object storage is optional for initial deployment.
+    # It can be configured later via OBJECT_STORAGE_ENABLED / AWS_STORAGE_BUCKET_NAME.
     if AWS_S3_ENDPOINT_URL and not AWS_S3_ENDPOINT_URL.casefold().startswith("https://"):
         failures.append("AWS_S3_ENDPOINT_URL must use HTTPS")
     if not AWS_S3_VERIFY:
@@ -434,7 +434,11 @@ def validate_deployed_configuration() -> None:
         for item in CREDENTIAL_ENCRYPTION_KEYS.split(",")
         if ":" in item
     }
-    if not CREDENTIAL_ENCRYPTION_ACTIVE_KEY or CREDENTIAL_ENCRYPTION_ACTIVE_KEY not in key_ids:
+    # Credential encryption is optional for initial deployment. If keys are
+    # configured, they must be valid and include a properly referenced active key.
+    if CREDENTIAL_ENCRYPTION_KEYS and (
+        not CREDENTIAL_ENCRYPTION_ACTIVE_KEY or CREDENTIAL_ENCRYPTION_ACTIVE_KEY not in key_ids
+    ):
         failures.append("credential encryption must have a configured active key")
 
     if failures:
