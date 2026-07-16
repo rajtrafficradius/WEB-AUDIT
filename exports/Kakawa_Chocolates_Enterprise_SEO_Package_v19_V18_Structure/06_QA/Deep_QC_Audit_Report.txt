@@ -1,5 +1,6 @@
 PASS FOR REVIEW
 Evidence as of 2026-07-15
-Exact duplicates removed: 24
+Exact duplicate copies removed: 24
+Unsafe unique files withheld: 1
 Disavow disabled: true
 GPT strategy status: available

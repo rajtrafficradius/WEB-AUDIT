@@ -31,7 +31,7 @@
     <div class="form-section__intro">
       <span class="section-index">Import / Quarantine</span>
       <h2 id="upload-heading" class="app-title">Upload evidence safely</h2>
-      <p class="muted" id="upload-help">Only UTF-8 CSV and formula-free XLSX files up to 50 MB are accepted. Macro, legacy, encrypted, embedded, externally linked, path-escaping and unsafe-compression files are rejected before storage.</p>
+      <p class="muted" id="upload-help">UTF-8 CSV, formula-free XLSX, CDX, CDD and XML crawl exports up to 50 MB are accepted. XML DTDs and entities, binary data, macros, encryption, external links, path escapes and unsafe compression are rejected before storage.</p>
     </div>
     <form method="post" action="{{ upload_url }}" enctype="multipart/form-data" class="fields" novalidate>
       {% csrf_token %}
@@ -47,7 +47,8 @@
         {% if upload_form.as_of_date.errors %}<span id="id_as_of_date_error" class="field-error" role="alert">{{ upload_form.as_of_date.errors|striptags }}</span>{% endif %}
       </div>
       <div class="field field--wide">
-        <label for="{{ upload_form.evidence_file.id_for_label }}">CSV or XLSX file <span class="required" aria-hidden="true">*</span></label>
+        <label for="{{ upload_form.evidence_file.id_for_label }}">Upload CDX / CDD / XML file here <span class="required" aria-hidden="true">*</span></label>
+        <span class="fine-print">CSV and XLSX evidence files remain supported through the matching source options.</span>
         {{ upload_form.evidence_file }}
         {% if upload_form.evidence_file.errors %}<span id="id_evidence_file_error" class="field-error" role="alert">{{ upload_form.evidence_file.errors|striptags }}</span>{% endif %}
       </div>
@@ -75,7 +76,7 @@
   <section class="section" aria-labelledby="imports-heading">
     <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Imported</span><h2 id="imports-heading">Validated evidence imports</h2></div><a class="button button--secondary" href="{{ upload_url|default:'#' }}">Upload evidence</a></div>
     {% if imports %}
-    <div class="table-wrap"><table class="data-table"><caption>Uploaded Ahrefs, Screaming Frog, BrightLocal, GBP, CSV and XLSX sources</caption><thead><tr><th scope="col">Import</th><th scope="col">Format</th><th scope="col">Captured</th><th scope="col">Rows</th><th scope="col">Validation</th><th scope="col">Action</th></tr></thead><tbody>{% for item in imports %}{% url 'source-import-detail' project.pk item.pk as import_url %}<tr><td><strong>{{ item.display_name|default:item.filename|default:"Import" }}</strong><br><span class="fine-print data-value">{{ item.sha256|default:"Hash pending"|truncatechars:18 }}</span></td><td>{{ item.get_source_type_display|default:item.source_type|default:"Mapped data" }}</td><td>{{ item.captured_at|date:"j M Y"|default:"Unknown" }}</td><td class="data-value">{{ item.row_count|default:"—" }}</td><td><span class="status status--{{ item.status|default:'review'|slugify }}">{{ item.get_status_display|default:item.status|default:"Review" }}</span></td><td><a href="{{ import_url|default:'#' }}">Inspect mapping</a></td></tr>{% endfor %}</tbody></table></div>
+    <div class="table-wrap"><table class="data-table"><caption>Uploaded Ahrefs, Screaming Frog, BrightLocal, GBP, CSV, XLSX, CDX, CDD and XML sources</caption><thead><tr><th scope="col">Import</th><th scope="col">Format</th><th scope="col">Captured</th><th scope="col">Rows</th><th scope="col">Validation</th><th scope="col">Action</th></tr></thead><tbody>{% for item in imports %}{% url 'source-import-detail' project.pk item.pk as import_url %}<tr><td><strong>{{ item.display_name|default:item.filename|default:"Import" }}</strong><br><span class="fine-print data-value">{{ item.sha256|default:"Hash pending"|truncatechars:18 }}</span></td><td>{{ item.get_source_type_display|default:item.source_type|default:"Mapped data" }}</td><td>{{ item.captured_at|date:"j M Y"|default:"Unknown" }}</td><td class="data-value">{{ item.row_count|default:"—" }}</td><td><span class="status status--{{ item.status|default:'review'|slugify }}">{{ item.get_status_display|default:item.status|default:"Review" }}</span></td><td><a href="{{ import_url|default:'#' }}">Inspect mapping</a></td></tr>{% endfor %}</tbody></table></div>
     {% else %}<div class="empty-state"><h3>No validated imports</h3><p class="muted">Upload source exports when a live integration is unavailable. Files are quarantined and validated before analysis.</p></div>{% endif %}
   </section>
 

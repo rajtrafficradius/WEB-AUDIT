@@ -961,6 +961,7 @@ class EvidenceUploadForm(forms.Form):
         ("screaming_frog", "Screaming Frog"),
         ("brightlocal_gbp", "BrightLocal / GBP"),
         ("mapped_csv_xlsx", "Mapped CSV or XLSX"),
+        ("crawl_data_file", "CDX / CDD / XML crawl data"),
     )
 
     source_type = forms.ChoiceField(choices=SOURCE_CHOICES)
@@ -969,7 +970,7 @@ class EvidenceUploadForm(forms.Form):
         allow_empty_file=False,
         widget=forms.ClearableFileInput(
             attrs={
-                "accept": ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "accept": ".csv,.xlsx,.cdx,.cdd,.xml,text/csv,application/xml,text/xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "aria-describedby": "upload-help",
             }
         ),
@@ -1111,7 +1112,7 @@ def source_upload_view(request, project_id):
     if request.method == "GET":
         messages.info(
             request,
-            "CSV and XLSX evidence is quarantined, scanned, and stored privately after validation.",
+            "CSV, XLSX, CDX, CDD, and XML evidence is quarantined, scanned, and stored privately after validation.",
         )
         return render(
             request,

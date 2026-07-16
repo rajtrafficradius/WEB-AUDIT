@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-07-16T07:21:40.667956+00:00",
+  "generated_at": "2026-07-16T12:06:27.644349+00:00",
   "run_id": "KAKAWA-ENT-20260715",
   "client": {
     "name": "Kakawa Chocolates",
@@ -110,16 +110,16 @@
       },
       {
         "measure": "Canonical actions",
-        "canonical": 16,
-        "package": 16,
+        "canonical": 48,
+        "package": 48,
         "result": "PASS",
         "rule": "Exact integer equality",
         "evidence": "Canonical acceptance dataset"
       },
       {
         "measure": "Content assets",
-        "canonical": 6,
-        "package": 6,
+        "canonical": 20,
+        "package": 20,
         "result": "PASS",
         "rule": "Exact integer equality",
         "evidence": "Canonical acceptance dataset"

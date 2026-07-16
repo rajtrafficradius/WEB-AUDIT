@@ -568,39 +568,55 @@ class PDFReportBuilder:
     def comparison_report(self, data: dict[str, Any], output: Path) -> Path:
         doc = self._doc(output, "Kakawa v18 vs v19 Quality Comparison")
         run = data["run"]
+        benchmark = data.get("quality_benchmark", {})
+        packages = benchmark.get("packages", [])
+        categories = benchmark.get("categories", [])
         story = self._cover(
-            "Kakawa v18 → v19 Quality Comparison",
-            "A negative-regression review showing which historical failure modes are now prevented by design and verified before release.",
+            "Kakawa v18 to v19 Quality Comparison",
+            "A scored evidence-and-usability benchmark plus negative-regression review.",
             client=data["client"]["name"],
             as_of=run["evidence_as_of"],
             run_id=run["id"],
         )
-        story.extend(
-            [
-                Paragraph("Regression outcomes", self.styles["h1"]),
+        if packages:
+            story.extend([
+                Paragraph("Quality score", self.styles["h1"]),
+                Paragraph(benchmark.get("method", ""), self.styles["body"]),
                 self._table(
-                    ["Failure mode", "v18 observation", "v19 control", "v19 result"],
-                    [
-                        (
-                            item["failure_mode"],
-                            item["v18_observation"],
-                            item["v19_control"],
-                            item["v19_result"],
-                        )
-                        for item in data.get("comparison", [])
-                    ],
-                    [31 * mm, 35 * mm, 45 * mm, 29 * mm],
+                    ["Package", "Score / 100", "Verdict"],
+                    [(item["version"], item["total"], item["verdict"]) for item in packages],
+                    [35 * mm, 22 * mm, 83 * mm],
                 ),
-                Spacer(1, 7 * mm),
-                self._callout(
-                    "v19 improves traceability and safety without pretending unavailable private analytics exist. That honesty is a quality feature, not an omission.",
-                    "BENCHMARK CONCLUSION",
-                ),
-            ]
-        )
+                Spacer(1, 6 * mm),
+            ])
+            if categories and all(len(item.get("scores", [])) == len(categories) for item in packages):
+                story.extend([
+                    Paragraph("Rubric detail", self.styles["h1"]),
+                    self._table(
+                        ["Category", "Weight", *[item["version"] for item in packages]],
+                        [
+                            (category["name"], category["weight"], *[item["scores"][index] for item in packages])
+                            for index, category in enumerate(categories)
+                        ],
+                        [48 * mm, 18 * mm, 24 * mm, 24 * mm, 26 * mm],
+                    ),
+                    Spacer(1, 7 * mm),
+                ])
+        story.extend([
+            Paragraph("Regression outcomes", self.styles["h1"]),
+            self._table(
+                ["Failure mode", "v18 observation", "v19 control", "v19 result"],
+                [(item["failure_mode"], item["v18_observation"], item["v19_control"], item["v19_result"]) for item in data.get("comparison", [])],
+                [31 * mm, 35 * mm, 45 * mm, 29 * mm],
+            ),
+            Spacer(1, 7 * mm),
+            self._callout(
+                "Enhanced v19 preserves V18's useful breadth while removing duplicate payloads, unsafe assumptions and contradictory counts. Missing private evidence remains unavailable rather than fabricated.",
+                "BENCHMARK CONCLUSION",
+            ),
+        ])
         doc.build(story)
         return output
-
     def deck_pdf(self, data: dict[str, Any], output: Path) -> Path:
         """Render a self-contained PDF slide derivative independent of office software."""
         output.parent.mkdir(parents=True, exist_ok=True)

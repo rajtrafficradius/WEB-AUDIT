@@ -1,0 +1,1954 @@
+{
+  "schema_version": "1.0",
+  "package_id": "Kakawa_Chocolates_Enterprise_SEO_Package_v19",
+  "project_id": "55aec604-824f-59c4-95df-34992797b4d9",
+  "run_id": "KAKAWA-ENT-20260715",
+  "rule_version": "1.0.0",
+  "generated_at": "2026-07-16T12:12:19.290327+00:00",
+  "approved_domains": [
+    "kakawachocolates.com.au"
+  ],
+  "evidence_as_of": "2026-07-15",
+  "manifest_policy": {
+    "scope": "Every client-facing payload; control files are covered by checksums.sha256.",
+    "duplicate_policy": "Byte-identical payloads are forbidden.",
+    "derivatives": "Cross-format derivatives declare derivative_of."
+  },
+  "reconciliation": {
+    "Normalized pages": 357,
+    "Aggregated findings": 5,
+    "Canonical actions": 48,
+    "Content assets": 20,
+    "Duplicate normalized pages": 0,
+    "Duplicate observations collapsed": 5
+  },
+  "limitations": [
+    "GSC, GA4, SEMrush and PageSpeed were not collected because credentials were unavailable.",
+    "The overall health score is withheld because weighted evidence coverage is below 70%.",
+    "No traffic, ranking, conversion, revenue, backlink or performance forecast is present.",
+    "Content and risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+    "No live CMS, Search Console, analytics platform, robots file, redirect map, schema or disavow system was changed."
+  ],
+  "files": [
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.html",
+      "media_type": "text/html",
+      "bytes": 9170,
+      "sha256": "7a717be878bda249282ef7a6520ae274fcaeea86532b62770de8e1648090b403",
+      "artifact_type": "executive",
+      "title": "Kakawa Executive Deck v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.pdf",
+      "media_type": "application/pdf",
+      "bytes": 11311,
+      "sha256": "7c3a42cb98e682d1980cd331ede61eaa0163fb9e9f3d47edc455b16a5d29d146",
+      "artifact_type": "executive",
+      "title": "Kakawa Executive Deck v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "00_Executive/Kakawa_Executive_Deck_v19.pptx",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.pptx",
+      "media_type": "application/octet-stream",
+      "bytes": 42758,
+      "sha256": "1777f6f0ed277cd36942d6d6ea5ed26fef439c78d3e2c37dfe3c232bd52d7edd",
+      "artifact_type": "executive",
+      "title": "Kakawa Executive Deck v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_SEO_Report_v19.pdf",
+      "media_type": "application/pdf",
+      "bytes": 14597,
+      "sha256": "c016e72e16caabbd79b36ca4a1d12e46f92ab420c5f6bfda0451299fe19d5668",
+      "artifact_type": "executive",
+      "title": "Kakawa Executive SEO Report v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "01_Evidence_and_Audits/Kakawa_Enterprise_SEO_Audit_v19.xlsx",
+      "media_type": "application/octet-stream",
+      "bytes": 76785,
+      "sha256": "a175a46d7d38c7c78f1c7cc3bc8eafd76032e36f7746641d90f8d7b663e08690",
+      "artifact_type": "evidence_audit",
+      "title": "Kakawa Enterprise SEO Audit v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "01_Evidence_and_Audits/canonical_evidence_snapshot.json",
+      "media_type": "application/json",
+      "bytes": 2393579,
+      "sha256": "a29859501b931968b956ce9a71643da52812facd448c12399127d447f6fd9646",
+      "artifact_type": "evidence_audit",
+      "title": "canonical evidence snapshot",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "01_Evidence_and_Audits/evidence_index.csv",
+      "media_type": "text/csv",
+      "bytes": 156402,
+      "sha256": "8e37a3b9827e2776bfe843e44dd746bf718b8e17c8191e4ebcaff72307e12ce3",
+      "artifact_type": "evidence_audit",
+      "title": "evidence index",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "01_Evidence_and_Audits/issue_register.csv",
+      "media_type": "text/csv",
+      "bytes": 17930,
+      "sha256": "c62b8dd7dd0218edb6cfce6eb05fdc4f3e553a70a852dcfda659bfbbe9e83c12",
+      "artifact_type": "evidence_audit",
+      "title": "issue register",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "01_Evidence_and_Audits/source_coverage.csv",
+      "media_type": "text/csv",
+      "bytes": 1182,
+      "sha256": "b0ea380baafe24935ccf79e184e8e2035fae32c4ada613dcea63e561bb5c8576",
+      "artifact_type": "evidence_audit",
+      "title": "source coverage",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/Kakawa_Enterprise_SEO_Strategy_v19.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 44996,
+      "sha256": "60af8148e69222aa0d54bc4b627097cc4b97a943fb96e82ef33902cb41d5fcb7",
+      "artifact_type": "strategy",
+      "title": "Kakawa Enterprise SEO Strategy v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/Kakawa_Enterprise_SEO_Strategy_v19.pdf",
+      "media_type": "application/pdf",
+      "bytes": 13550,
+      "sha256": "e1bae9879e97df8c08dbdc41ca9b2339d5728177a65fbc83ac92deb4e75bb781",
+      "artifact_type": "strategy",
+      "title": "Kakawa Enterprise SEO Strategy v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "02_Strategy/Kakawa_Enterprise_SEO_Strategy_v19.docx",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/cannibalization_decisions.csv",
+      "media_type": "text/csv",
+      "bytes": 3686,
+      "sha256": "1bb0ca7ad0ec1328901c497e458a0a504f629c922cc9a21fa1a78e05a3dc2a4c",
+      "artifact_type": "strategy",
+      "title": "cannibalization decisions",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/competitor_intelligence.json",
+      "media_type": "application/json",
+      "bytes": 222,
+      "sha256": "9294f9d3671034517b3e6d3815c047b0949f974e25a9b7c6d45fa106f74d421c",
+      "artifact_type": "strategy",
+      "title": "competitor intelligence",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/content_roadmap.csv",
+      "media_type": "text/csv",
+      "bytes": 5568,
+      "sha256": "f7fa993ee473a1408aa2dfb7d9a255224a6344c69a44c2f051415ffcc320e793",
+      "artifact_type": "strategy",
+      "title": "content roadmap",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/keyword_universe.csv",
+      "media_type": "text/csv",
+      "bytes": 4464,
+      "sha256": "411cdbc96af7c5f4f42c684c5069c0eb53bbc1ed8180a30394a148158cfe46b9",
+      "artifact_type": "strategy",
+      "title": "keyword universe",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/topical_map.csv",
+      "media_type": "text/csv",
+      "bytes": 3543,
+      "sha256": "6f85fac84f931706942b69b75c45edb2daa1dadacf8bfcd12740557293d47bc1",
+      "artifact_type": "strategy",
+      "title": "topical map",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "02_Strategy/url_architecture.csv",
+      "media_type": "text/csv",
+      "bytes": 98159,
+      "sha256": "bc728dec2d1f21154747fa52f35e7ea766fe19a9b8dd53aabcf7131668441621",
+      "artifact_type": "strategy",
+      "title": "url architecture",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.csv",
+      "media_type": "text/csv",
+      "bytes": 15684,
+      "sha256": "6f0f3659e730ec9f263a5d9c2b38735f9496f18ec6552c9c807e8fe80dc4d59d",
+      "artifact_type": "action_plan",
+      "title": "Kakawa 16 Week Action Plan v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.xlsx",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.pdf",
+      "media_type": "application/pdf",
+      "bytes": 15130,
+      "sha256": "a247355ae56e6dee4cc0260d0c7252b94f69b775f60365a8eceb11c2b0128d00",
+      "artifact_type": "action_plan",
+      "title": "Kakawa 16 Week Action Plan v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.xlsx",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.xlsx",
+      "media_type": "application/octet-stream",
+      "bytes": 27890,
+      "sha256": "5b67d3b115823430105f382996e78f49bc074a3b3db4a6ec64e7f7e87f82bd1f",
+      "artifact_type": "action_plan",
+      "title": "Kakawa 16 Week Action Plan v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/approval_ledger.csv",
+      "media_type": "text/csv",
+      "bytes": 449,
+      "sha256": "e57f9f79eda34b90e5277bbf5ce373f25d99f12ee3b5d056360ce47a580a2021",
+      "artifact_type": "deployment_proposal",
+      "title": "approval ledger",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/canonical_recommendations.csv",
+      "media_type": "text/csv",
+      "bytes": 112,
+      "sha256": "06d56ec4ec2f89192a0f3022971ed2c163d7d8e8789534093d73af4a889934ef",
+      "artifact_type": "deployment_proposal",
+      "title": "canonical recommendations",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/internal_link_recommendations.csv",
+      "media_type": "text/csv",
+      "bytes": 33807,
+      "sha256": "cedac5798248457b2fd61e6ef1abdd3c9bad988bfc4be6646caf631af887100b",
+      "artifact_type": "deployment_proposal",
+      "title": "internal link recommendations",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/metadata_and_heading_review.csv",
+      "media_type": "text/csv",
+      "bytes": 29914,
+      "sha256": "1b85cdfc98d46008af62bc1aa16fbcbcd822cd1ead662dcc82fb161011f908e8",
+      "artifact_type": "deployment_proposal",
+      "title": "metadata and heading review",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/page_specific_jsonld_recommendations.json",
+      "media_type": "application/json",
+      "bytes": 209,
+      "sha256": "e1c9b813c6394994f2db26261c3494f586bbaacd12a2765b9cf509b347f855da",
+      "artifact_type": "deployment_proposal",
+      "title": "page specific jsonld recommendations",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/platform_implementation_notes.md",
+      "media_type": "text/markdown",
+      "bytes": 451,
+      "sha256": "f29ce6327626ae0a277888d8f1de09c6da65558fcb5010cd13023fdc01d97e6b",
+      "artifact_type": "deployment_proposal",
+      "title": "platform implementation notes",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/redirect_candidates.csv",
+      "media_type": "text/csv",
+      "bytes": 12468,
+      "sha256": "7267b550d4d659bab33c635945becea67abe8c9797a5d448d47755e2d19090eb",
+      "artifact_type": "deployment_proposal",
+      "title": "redirect candidates",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "04_Deployment_Assets/robots_recommendations.txt",
+      "media_type": "text/plain",
+      "bytes": 201,
+      "sha256": "dfba4cd805532992a64c8f7cee9b50d3a0781f3c5b2a15f1692cdf8ebf751f72",
+      "artifact_type": "deployment_proposal",
+      "title": "robots recommendations",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41189,
+      "sha256": "945679aaef254c935fc66817bd54420a54bcbd0765acc460176adf1b36ffc91f",
+      "artifact_type": "content_review",
+      "title": "CONTENT-01 sydney-artisan-chocolate-shopping-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.html",
+      "media_type": "text/html",
+      "bytes": 5954,
+      "sha256": "667eb5674c580c8c5eb805e0bbbfc074496bdeb79e86626879f05657fdcd3cfe",
+      "artifact_type": "content_review",
+      "title": "CONTENT-01 sydney-artisan-chocolate-shopping-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3350,
+      "sha256": "9fb4d0016a63d01d82ee6b2c1f71118bbe271ead38d173f23507060a1b8d23cd",
+      "artifact_type": "content_review",
+      "title": "CONTENT-01 sydney-artisan-chocolate-shopping-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41151,
+      "sha256": "70c479b579ba1cdccd442d666dbc4937143ee030d36ed2e92874fc2047513c89",
+      "artifact_type": "content_review",
+      "title": "CONTENT-02 chocolate-gift-box-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.html",
+      "media_type": "text/html",
+      "bytes": 5860,
+      "sha256": "e35a77fa2dfabe8ce1d774d02d1140a753bbf6217c79001f9d2cf64e533c5171",
+      "artifact_type": "content_review",
+      "title": "CONTENT-02 chocolate-gift-box-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3279,
+      "sha256": "d0e899f9fa332da65b6a0d855538c6c43550d5bb653bc2de44bcd6c8fe024c64",
+      "artifact_type": "content_review",
+      "title": "CONTENT-02 chocolate-gift-box-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41143,
+      "sha256": "3e77f87a315227bf8805b83c28245c4be490aa5365f16378526248a8524d4bc3",
+      "artifact_type": "content_review",
+      "title": "CONTENT-03 chocolate-bar-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.html",
+      "media_type": "text/html",
+      "bytes": 5910,
+      "sha256": "98957131e5b1ad9dcf2657b33750678bcff3a8384868857aee7cfa21636c8aea",
+      "artifact_type": "content_review",
+      "title": "CONTENT-03 chocolate-bar-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-03_chocolate-bar-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3317,
+      "sha256": "54236ccf3398cad5cdc9151cc45483fb97abe667ebab05d5e77edd056af46e22",
+      "artifact_type": "content_review",
+      "title": "CONTENT-03 chocolate-bar-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-03_chocolate-bar-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41177,
+      "sha256": "0d41ae4490608d0c0495659bd474ae18859bdc2f3c114c2feaa8839d8f4c5381",
+      "artifact_type": "content_review",
+      "title": "CONTENT-04 praline-and-bonbon-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.html",
+      "media_type": "text/html",
+      "bytes": 5964,
+      "sha256": "cfb44c4a80c65987c286750fb76751c66cc2a9de925cc2709aef4abd1d6ab3c2",
+      "artifact_type": "content_review",
+      "title": "CONTENT-04 praline-and-bonbon-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3351,
+      "sha256": "2cf779defe47b814920196ef89889da6c83666c7be0f1fae6d27d6e15e950c51",
+      "artifact_type": "content_review",
+      "title": "CONTENT-04 praline-and-bonbon-selection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41158,
+      "sha256": "c82a43bee32160570f7e9892ccfd0c0c4789f19f3a631dc311797f4c078853bb",
+      "artifact_type": "content_review",
+      "title": "CONTENT-05 chocolate-slab-buying-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.html",
+      "media_type": "text/html",
+      "bytes": 5917,
+      "sha256": "1a481404b7dae1838420a1c8fedd1073914c848fdd1ef46b32a454a082d0dab6",
+      "artifact_type": "content_review",
+      "title": "CONTENT-05 chocolate-slab-buying-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-05_chocolate-slab-buying-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3319,
+      "sha256": "12975722b433716077dba90646e2e72ceab98f0a421f9d751f5758b3d1af1ed8",
+      "artifact_type": "content_review",
+      "title": "CONTENT-05 chocolate-slab-buying-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-05_chocolate-slab-buying-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41160,
+      "sha256": "b3cc0b59557f37591f8ec95f87ea19d58d16e652d5ea1bc47063f253f7b0b2b6",
+      "artifact_type": "content_review",
+      "title": "CONTENT-06 single-origin-chocolate-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.html",
+      "media_type": "text/html",
+      "bytes": 5973,
+      "sha256": "ecb31baee9989a0886729e2e131d7212341634a5b635d41cc4ec9760f5f7c21a",
+      "artifact_type": "content_review",
+      "title": "CONTENT-06 single-origin-chocolate-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3369,
+      "sha256": "19b2122223ac9783af38ddbcad596397085b2feb8557a0c5724570621e11df32",
+      "artifact_type": "content_review",
+      "title": "CONTENT-06 single-origin-chocolate-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41147,
+      "sha256": "212521431bf774804b0e7c6ae3d114afa556cbdc3aa5ff5662996c46166f0e7b",
+      "artifact_type": "content_review",
+      "title": "CONTENT-07 design-your-own-chocolate-box-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.html",
+      "media_type": "text/html",
+      "bytes": 5847,
+      "sha256": "78def0899874ccb56fc547834316c2f309226df18681f25a18e71b496ea68e3b",
+      "artifact_type": "content_review",
+      "title": "CONTENT-07 design-your-own-chocolate-box-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3252,
+      "sha256": "a859f88679ad425f427204f3df975dc580c95fc57d97d62985347519fe705769",
+      "artifact_type": "content_review",
+      "title": "CONTENT-07 design-your-own-chocolate-box-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41137,
+      "sha256": "e82ff048286685f081d28684bb9e26226985fdae944d24e0ee936c89f0122484",
+      "artifact_type": "content_review",
+      "title": "CONTENT-08 confectionery-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.html",
+      "media_type": "text/html",
+      "bytes": 5854,
+      "sha256": "2e80417b1d9d65051cc8a977a7babed50efa344d4c8f60317a951cc2d4fd0a68",
+      "artifact_type": "content_review",
+      "title": "CONTENT-08 confectionery-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-08_confectionery-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3261,
+      "sha256": "719a108c7eb46a15dd56e420e59bf330e47ee0b4f296712c68b30cd237cc433e",
+      "artifact_type": "content_review",
+      "title": "CONTENT-08 confectionery-collection-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-08_confectionery-collection-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41155,
+      "sha256": "ee3591883deae3107cb374e848785eb6bc398413d335e4e77126bbd5a1f20e07",
+      "artifact_type": "content_review",
+      "title": "CONTENT-09 corporate-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.html",
+      "media_type": "text/html",
+      "bytes": 5918,
+      "sha256": "5f839f28e1fbbd7c52542c56abdb0302f80f815d7fcf79f638b99624248775b9",
+      "artifact_type": "content_review",
+      "title": "CONTENT-09 corporate-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3330,
+      "sha256": "816097c7ea168664eae825e165259fb009bf8baa415d2543cf55883441591c72",
+      "artifact_type": "content_review",
+      "title": "CONTENT-09 corporate-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41171,
+      "sha256": "517f7555503b91875be63115467c44b22b2fa501dfc51cf6ae97b8da096a67b9",
+      "artifact_type": "content_review",
+      "title": "CONTENT-10 events-and-corporate-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.html",
+      "media_type": "text/html",
+      "bytes": 5927,
+      "sha256": "caaa1736219266b508624b16c28dfd40f4593765a68593e26e174d440245644a",
+      "artifact_type": "content_review",
+      "title": "CONTENT-10 events-and-corporate-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3313,
+      "sha256": "8577062f5f5afd077a189cc0ad280de6fd0c81bf24f8ed1f8ab9ce558406de51",
+      "artifact_type": "content_review",
+      "title": "CONTENT-10 events-and-corporate-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41172,
+      "sha256": "99bf9ffd7603b9e2dc2b5d3c8718fce3f879c93a7f10c0795f1e4cdf89caf987",
+      "artifact_type": "content_review",
+      "title": "CONTENT-11 wedding-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.html",
+      "media_type": "text/html",
+      "bytes": 5937,
+      "sha256": "0e32c3b85c2dbeef5b942489fe289f04bb1f4e5f6336164608baed8ffa10db0e",
+      "artifact_type": "content_review",
+      "title": "CONTENT-11 wedding-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3338,
+      "sha256": "77890258884e69b5e00bedd2da8c44bba5269cc207f180ab1927ececc0b4cb27",
+      "artifact_type": "content_review",
+      "title": "CONTENT-11 wedding-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41134,
+      "sha256": "400fbbe0bb21f616495ac9ed7d8f5c0c66f0b9a99f33ef8b04003a7855f35beb",
+      "artifact_type": "content_review",
+      "title": "CONTENT-12 wholesale-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.html",
+      "media_type": "text/html",
+      "bytes": 5793,
+      "sha256": "cb1375acae4a133e4ba98080199d441f0a11f72c6ec34e33beebf65104576a48",
+      "artifact_type": "content_review",
+      "title": "CONTENT-12 wholesale-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3192,
+      "sha256": "1c180a2a0ca64dc2bebde4f0959beb22e34a223c4fddead5c7083e1528b4bd91",
+      "artifact_type": "content_review",
+      "title": "CONTENT-12 wholesale-chocolate-enquiry-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41118,
+      "sha256": "1d4445c5b7cea23f9e2ad92a2eb2a21fb5485c7efbcb27e314047757fa840321",
+      "artifact_type": "content_review",
+      "title": "CONTENT-13 chocolate-delivery-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.html",
+      "media_type": "text/html",
+      "bytes": 5763,
+      "sha256": "dab9232bd3d5ab5840825b9b1278bc7c49e12648cbed4e02c3b86579ccc9dbed",
+      "artifact_type": "content_review",
+      "title": "CONTENT-13 chocolate-delivery-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3174,
+      "sha256": "9adcbe630854a81e8b40eaea79e68a7f8c59d4b4d35de3dec02bf0f6afaef932",
+      "artifact_type": "content_review",
+      "title": "CONTENT-13 chocolate-delivery-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41162,
+      "sha256": "d4894c0d16316b098d5f4c9397740f85761d38522691634be77d7f0526543dfe",
+      "artifact_type": "content_review",
+      "title": "CONTENT-14 about-kakawa-evidence-led-page-refresh",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.html",
+      "media_type": "text/html",
+      "bytes": 5850,
+      "sha256": "774f8e5d7bd8f028b3c3c9c138dabbaaa986fd033bfddaebe482a5bb82de81e2",
+      "artifact_type": "content_review",
+      "title": "CONTENT-14 about-kakawa-evidence-led-page-refresh",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.md",
+      "media_type": "text/markdown",
+      "bytes": 3254,
+      "sha256": "a4afb8f79a303437e0880610f6c3270d1635382c161a8ccafdf3aa3ecc6284c7",
+      "artifact_type": "content_review",
+      "title": "CONTENT-14 about-kakawa-evidence-led-page-refresh",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41187,
+      "sha256": "52aac9325856f1f3c52caf9d4ddf426184f76801db8e8519649c9338d82f1e81",
+      "artifact_type": "content_review",
+      "title": "CONTENT-15 how-kakawa-presents-its-chocolate-making-process",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.html",
+      "media_type": "text/html",
+      "bytes": 5964,
+      "sha256": "a04e311367976c702b28d492643c692b052c39a3cc5fa84ac2c53e868f426df4",
+      "artifact_type": "content_review",
+      "title": "CONTENT-15 how-kakawa-presents-its-chocolate-making-process",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.md",
+      "media_type": "text/markdown",
+      "bytes": 3361,
+      "sha256": "3afe338fd230d771b062281bf6c8e18894aaf75087abb4bc50cca981aa9deb79",
+      "artifact_type": "content_review",
+      "title": "CONTENT-15 how-kakawa-presents-its-chocolate-making-process",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41148,
+      "sha256": "a487174e497bdfae799047ad2d561585bbe1d75fd8ce3ca3d01d9e234f0574d1",
+      "artifact_type": "content_review",
+      "title": "CONTENT-16 ingredients-and-ethics-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.html",
+      "media_type": "text/html",
+      "bytes": 5921,
+      "sha256": "d91af4e70bcf508ba430f212a72b0e6ebd3f7899e70e1419ad4155a18fedc09f",
+      "artifact_type": "content_review",
+      "title": "CONTENT-16 ingredients-and-ethics-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3317,
+      "sha256": "f3b72e737edc8deab9f88f2122c79eff0c734d057dce2e415d0efbab873fff2e",
+      "artifact_type": "content_review",
+      "title": "CONTENT-16 ingredients-and-ethics-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41133,
+      "sha256": "34b19d9d9a92c1dc4ffce1c8781f5f710d53f73b781b1e91a0a79231605932a5",
+      "artifact_type": "content_review",
+      "title": "CONTENT-17 kakawa-rewards-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.html",
+      "media_type": "text/html",
+      "bytes": 5791,
+      "sha256": "78c072cd01ab2e3f295890004b68f95f4eb02fadda8dbe4ad2f014a824981374",
+      "artifact_type": "content_review",
+      "title": "CONTENT-17 kakawa-rewards-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-17_kakawa-rewards-information-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3200,
+      "sha256": "6c37e0e9fb637ff1e07f69d860ef77344e63ebc75c7ac57400fe7279495fab2b",
+      "artifact_type": "content_review",
+      "title": "CONTENT-17 kakawa-rewards-information-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-17_kakawa-rewards-information-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41147,
+      "sha256": "852a9f95966cc35645a9b7195a6b2705e98133a0eb77c6dbf7307e81b198b9ac",
+      "artifact_type": "content_review",
+      "title": "CONTENT-18 chocolate-journal-discovery-hub",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.html",
+      "media_type": "text/html",
+      "bytes": 5878,
+      "sha256": "89e19abd691c2c353b1799ab5df4ddb69a07dffb287ad79bb03e3e0132701292",
+      "artifact_type": "content_review",
+      "title": "CONTENT-18 chocolate-journal-discovery-hub",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.md",
+      "media_type": "text/markdown",
+      "bytes": 3268,
+      "sha256": "0630748835b34c89920b1608af404ead0559f16f6d94791be8c534895eb30f7b",
+      "artifact_type": "content_review",
+      "title": "CONTENT-18 chocolate-journal-discovery-hub",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41191,
+      "sha256": "70496e7db28d480194c999130c00f78581b552fc4b22cd72cdb0e457be977952",
+      "artifact_type": "content_review",
+      "title": "CONTENT-19 christmas-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.html",
+      "media_type": "text/html",
+      "bytes": 5948,
+      "sha256": "fb07ea848c1ad04eded098c869f95364c491914947b5a5c0542bab98faef7d74",
+      "artifact_type": "content_review",
+      "title": "CONTENT-19 christmas-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3352,
+      "sha256": "af63b670c325d27071fb48f381778cdf302978b7d1220f2aa5a741f1155231f9",
+      "artifact_type": "content_review",
+      "title": "CONTENT-19 christmas-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.docx",
+      "media_type": "application/octet-stream",
+      "bytes": 41177,
+      "sha256": "d1435abb6c1dc2e696465c23f864566adbdb8e881c5fa0d38be95d13d559d6f9",
+      "artifact_type": "content_review",
+      "title": "CONTENT-20 easter-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.html",
+      "media_type": "text/html",
+      "bytes": 5907,
+      "sha256": "8f2c1da3cd781ebaa724c6c9ce3ba0942d5e1435b181b855f66b51ccd80c1f4a",
+      "artifact_type": "content_review",
+      "title": "CONTENT-20 easter-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-20_easter-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.md",
+      "media_type": "text/markdown",
+      "bytes": 3310,
+      "sha256": "1ee62be9dd88b47ae452979f6c3c86e7ac80eaa7be83815556847e25d869c04a",
+      "artifact_type": "content_review",
+      "title": "CONTENT-20 easter-chocolate-planning-guide",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "05_Content/CONTENT-20_easter-chocolate-planning-guide.docx",
+      "approval_state": "withheld_pending_human_approval",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.json",
+      "media_type": "application/json",
+      "bytes": 5156,
+      "sha256": "a72347af45ad1fbf94e87415006827e3adf27369aa5e03b807fc8108ad07a846",
+      "artifact_type": "quality_assurance",
+      "title": "Kakawa QA v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.pdf",
+      "media_type": "application/pdf",
+      "bytes": 5795,
+      "sha256": "72c2d4075bd1de3cb2c7575e270b807454ef44e871cd4ffadc68160be1780b90",
+      "artifact_type": "quality_assurance",
+      "title": "Kakawa QA v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "06_QA_and_Manifest/Kakawa_QA_v19.json",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.xlsx",
+      "media_type": "application/octet-stream",
+      "bytes": 13044,
+      "sha256": "a819d2107d2eb79a7df8bedf1f832ba772e1cec4846fd677af7d86658f806611",
+      "artifact_type": "quality_assurance",
+      "title": "Kakawa QA v19",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": "06_QA_and_Manifest/Kakawa_QA_v19.json",
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/availability_and_release_notes.json",
+      "media_type": "application/json",
+      "bytes": 783,
+      "sha256": "eadada75d8e5f7cec034c19eeb5fefb148fa82eed8711b50a8e8e134a9b17986",
+      "artifact_type": "quality_assurance",
+      "title": "availability and release notes",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/availability_matrix.csv",
+      "media_type": "text/csv",
+      "bytes": 1783,
+      "sha256": "a9d19b98c474f7dc0b55a1ea7eadfae04c53007aa960176fed8e9aca68b929bc",
+      "artifact_type": "quality_assurance",
+      "title": "availability matrix",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/change_log.csv",
+      "media_type": "text/csv",
+      "bytes": 615,
+      "sha256": "03e84758c3d68ea40de424aef13e0e74b58921b205e400c7d472b1e0a95b0dfd",
+      "artifact_type": "quality_assurance",
+      "title": "change log",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/generation_ledger.csv",
+      "media_type": "text/csv",
+      "bytes": 732,
+      "sha256": "2e985ac511eff51a88d295474326294a8da50685202be60375c83fedb3e1800b",
+      "artifact_type": "quality_assurance",
+      "title": "generation ledger",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    },
+    {
+      "path": "06_QA_and_Manifest/render-verification.json",
+      "media_type": "application/json",
+      "bytes": 27417,
+      "sha256": "a1a42d820ca3ce33767e45efe8d2aa945a36a48398d01f7f9b6e28e9ef3cbb39",
+      "artifact_type": "quality_assurance",
+      "title": "render-verification",
+      "source_records": [
+        "SRC-CRAWL",
+        "SRC-PUBLIC",
+        "SRC-GSC",
+        "SRC-GA4",
+        "SRC-SEMRUSH",
+        "SRC-PAGESPEED",
+        "SRC-OPENAI"
+      ],
+      "derivative_of": null,
+      "approval_state": "review_ready",
+      "as_of_date": "2026-07-15"
+    }
+  ]
+}

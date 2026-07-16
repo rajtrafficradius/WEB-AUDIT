@@ -1,7 +1,21 @@
 ﻿cluster,intent,target_url,decision,evidence_ids
-Corporate chocolate enquiry guide,commercial enquiry,https://kakawachocolates.com.au/pages/corporate-chocolates,Refresh existing target; do not create a competing URL,EV-0022
-Wholesale enquiry guide,trade enquiry,https://kakawachocolates.com.au/pages/wholesale,Refresh existing target; do not create a competing URL,EV-0034
-Chocolate delivery planning guide,shipping support,https://kakawachocolates.com.au/pages/shipping,Refresh existing target; do not create a competing URL,EV-0031
-How Kakawa presents its craft,brand education,https://kakawachocolates.com.au/pages/how-we-make-chocolate,Refresh existing target; do not create a competing URL,EV-0024
+Sydney artisan chocolate shopping guide,brand and product discovery,https://kakawachocolates.com.au/,Refresh existing target; do not create a competing URL,EV-0001
+Chocolate gift box selection guide,gift selection,https://kakawachocolates.com.au/collections/gift-boxes,Refresh existing target; do not create a competing URL,EV-0011
 Chocolate bar collection guide,collection discovery,https://kakawachocolates.com.au/collections/chocolate-bar,Refresh existing target; do not create a competing URL,EV-0006
-Praline and bonbon collection guide,collection discovery,https://kakawachocolates.com.au/collections/pralines-bonbons,Refresh existing target; do not create a competing URL,EV-0017
+Praline and bonbon selection guide,collection discovery,https://kakawachocolates.com.au/collections/pralines-bonbons,Refresh existing target; do not create a competing URL,EV-0017
+Chocolate slab buying guide,collection discovery,https://kakawachocolates.com.au/collections/chocolate-slab,Refresh existing target; do not create a competing URL,EV-0008
+Single-origin chocolate collection guide,product education,https://kakawachocolates.com.au/collections/single-origin-chocolates,Refresh existing target; do not create a competing URL,EV-0018
+Design-your-own chocolate box guide,custom selection,https://kakawachocolates.com.au/collections/design-your-own-box,Refresh existing target; do not create a competing URL,EV-0081
+Confectionery collection guide,collection discovery,https://kakawachocolates.com.au/collections/confectionary,Refresh existing target; do not create a competing URL,EV-0009
+Corporate chocolate enquiry guide,commercial enquiry,https://kakawachocolates.com.au/pages/corporate-chocolates,Refresh existing target; do not create a competing URL,EV-0022
+Events and corporate chocolate planning guide,event enquiry,https://kakawachocolates.com.au/pages/events-corporates,Refresh existing target; do not create a competing URL,EV-0023
+Wedding chocolate planning guide,wedding enquiry,https://kakawachocolates.com.au/pages/wedding-chocolates,Refresh existing target; do not create a competing URL,EV-0033
+Wholesale chocolate enquiry guide,trade enquiry,https://kakawachocolates.com.au/pages/wholesale,Refresh existing target; do not create a competing URL,EV-0034
+Chocolate delivery planning guide,shipping support,https://kakawachocolates.com.au/pages/shipping,Refresh existing target; do not create a competing URL,EV-0031
+About Kakawa evidence-led page refresh,brand education,https://kakawachocolates.com.au/pages/about-us,Refresh existing target; do not create a competing URL,EV-0020
+How Kakawa presents its chocolate-making process,brand education,https://kakawachocolates.com.au/pages/how-we-make-chocolate,Refresh existing target; do not create a competing URL,EV-0024
+Ingredients and ethics information guide,trust and product education,https://kakawachocolates.com.au/pages/our-ingredients-and-ethics,Refresh existing target; do not create a competing URL,EV-0026
+Kakawa rewards information guide,membership support,https://kakawachocolates.com.au/pages/membership,Refresh existing target; do not create a competing URL,EV-0025
+Chocolate journal discovery hub,informational discovery,https://kakawachocolates.com.au/blogs/chocolates,Refresh existing target; do not create a competing URL,EV-0002
+Christmas chocolate planning guide,seasonal gift discovery,https://kakawachocolates.com.au/collections/christmas,Refresh existing target; do not create a competing URL,EV-0193
+Easter chocolate planning guide,seasonal gift discovery,https://kakawachocolates.com.au/collections/easter,Refresh existing target; do not create a competing URL,EV-0194

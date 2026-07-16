@@ -63,6 +63,9 @@ def test_browser_upload_quarantines_validates_and_deduplicates_csv(
     assert page.status_code == 200
     assert b'multipart/form-data' in page.content
     assert b'name="evidence_file"' in page.content
+    assert b"Upload CDX / CDD / XML file here" in page.content
+    assert b'value="crawl_data_file"' in page.content
+    assert b".cdx,.cdd,.xml" in page.content
 
     def upload():
         return SimpleUploadedFile(
@@ -96,6 +99,71 @@ def test_browser_upload_quarantines_validates_and_deduplicates_csv(
     assert SourceImport.objects.filter(project=project).count() == 1
     assert len(storage.objects) == 1
 
+
+@pytest.mark.django_db
+def test_browser_upload_accepts_and_persists_xml_crawl_data(
+    client, upload_project, monkeypatch, settings, tmp_path
+) -> None:
+    user, project = upload_project
+    storage = MemoryStorage()
+    monkeypatch.setattr("integrations.import_service.default_storage", storage)
+    settings.MEDIA_ROOT = tmp_path
+    client.force_login(user)
+
+    response = client.post(
+        reverse("source-upload", args=(project.pk,)),
+        {
+            "source_type": "crawl_data_file",
+            "as_of_date": "2026-07-16",
+            "evidence_file": SimpleUploadedFile(
+                "crawl.xml",
+                (
+                    b"<?xml version='1.0' encoding='UTF-8'?>"
+                    b"<urlset><url><loc>https://example.org/</loc><status>200</status></url>"
+                    b"<url><loc>https://example.org/about/</loc><status>200</status></url></urlset>"
+                ),
+                content_type="application/xml",
+            ),
+        },
+        secure=True,
+    )
+
+    item = SourceImport.objects.get(project=project)
+    assert response.status_code == 302
+    assert item.source_type == "crawl_data_file"
+    assert item.schema_version == "imports-1.1"
+    assert item.media_type == "application/xml"
+    assert item.storage_key.endswith(".xml")
+    assert item.column_mapping["row_count"] == 2
+    assert item.column_mapping["media_type"] == "application/xml"
+    assert storage.objects[item.storage_key].startswith(b"<?xml")
+
+
+@pytest.mark.django_db
+def test_browser_upload_rejects_mismatched_crawl_source_extension(
+    client, upload_project, monkeypatch, settings, tmp_path
+) -> None:
+    user, project = upload_project
+    storage = MemoryStorage()
+    monkeypatch.setattr("integrations.import_service.default_storage", storage)
+    settings.MEDIA_ROOT = tmp_path
+    client.force_login(user)
+
+    response = client.post(
+        reverse("source-upload", args=(project.pk,)),
+        {
+            "source_type": "crawl_data_file",
+            "evidence_file": SimpleUploadedFile(
+                "crawl.csv", b"url,status\nhttps://example.org/,200\n", content_type="text/csv"
+            ),
+        },
+        secure=True,
+    )
+
+    item = SourceImport.objects.get(project=project)
+    assert response.status_code == 400
+    assert item.validation_issues[0]["code"] == "source_file_type"
+    assert storage.objects == {}
 
 @pytest.mark.django_db
 def test_browser_upload_rejects_formula_without_storing_payload(

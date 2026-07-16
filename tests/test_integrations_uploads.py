@@ -66,6 +66,82 @@ def test_valid_xlsx_is_scanned_without_extraction(tmp_path: Path) -> None:
     assert report.sheets[0].row_count == 2
 
 
+def test_valid_xml_crawl_export_returns_bounded_record_shape(tmp_path: Path) -> None:
+    path = tmp_path / "crawl.xml"
+    path.write_text(
+        "<?xml version='1.0' encoding='UTF-8'?>"
+        "<urlset>"
+        "<url><loc>https://example.org/</loc><lastmod>2026-07-15</lastmod></url>"
+        "<url><loc>https://example.org/about/</loc><lastmod>2026-07-14</lastmod></url>"
+        "</urlset>",
+        encoding="utf-8",
+    )
+    report = validate_import(path)
+    assert report.media_type == "application/xml"
+    assert report.sheets[0].headers == ("loc", "lastmod")
+    assert report.sheets[0].row_count == 3
+    with pytest.raises(UploadValidationError) as row_error:
+        validate_import(path, limits=ImportLimits(max_rows=2))
+    assert row_error.value.code == "too_many_rows"
+
+
+def test_xml_crawl_export_rejects_dtd_entities_and_excessive_depth(tmp_path: Path) -> None:
+    entity = tmp_path / "entity.xml"
+    entity.write_text(
+        "<!DOCTYPE crawl [<!ENTITY secret SYSTEM 'file:///etc/passwd'>]>"
+        "<crawl><url>&secret;</url></crawl>",
+        encoding="utf-8",
+    )
+    with pytest.raises(UploadValidationError) as entity_error:
+        validate_import(entity)
+    assert entity_error.value.code == "xml_entity"
+
+    non_utf8 = tmp_path / "latin1.xml"
+    non_utf8.write_bytes(
+        b"<?xml version='1.0' encoding='ISO-8859-1'?><crawl><page url='https://example.org/\xe9'/></crawl>"
+    )
+    with pytest.raises(UploadValidationError) as encoding_error:
+        validate_import(non_utf8)
+    assert encoding_error.value.code == "encoding"
+
+    deep = tmp_path / "deep.xml"
+    deep.write_text("<a><b><c><d url='https://example.org/'/></c></b></a>", encoding="utf-8")
+    with pytest.raises(UploadValidationError) as depth_error:
+        validate_import(deep, limits=ImportLimits(max_xml_depth=3))
+    assert depth_error.value.code == "xml_too_deep"
+
+
+def test_valid_cdx_and_cdd_crawl_exports_are_treated_as_untrusted_text(tmp_path: Path) -> None:
+    cdx = tmp_path / "crawl.cdx"
+    cdx.write_text(
+        "CDX N b a m s\n"
+        "com,example)/ 20260715000000 https://example.org/ text/html 200\n",
+        encoding="utf-8",
+    )
+    cdx_report = validate_import(cdx)
+    assert cdx_report.media_type == "text/plain"
+    assert cdx_report.sheets[0].headers == ("N", "b", "a", "m", "s")
+    assert cdx_report.sheets[0].row_count == 2
+
+    cdd = tmp_path / "crawl.cdd"
+    cdd.write_text("url,status\nhttps://example.org/,200\n", encoding="utf-8")
+    cdd_report = validate_import(cdd)
+    assert cdd_report.sheets[0].headers == ("url", "status")
+
+
+def test_crawl_text_rejects_binary_and_formula_hazards(tmp_path: Path) -> None:
+    binary = tmp_path / "binary.cdx"
+    binary.write_bytes(b"url,status\x00\nhttps://example.org/,200\n")
+    with pytest.raises(UploadValidationError) as binary_error:
+        validate_import(binary)
+    assert binary_error.value.code == "nul_byte"
+
+    formula = tmp_path / "formula.cdd"
+    formula.write_text("url,note\nhttps://example.org/,=HYPERLINK('x')\n", encoding="utf-8")
+    with pytest.raises(UploadValidationError) as formula_error:
+        validate_import(formula)
+    assert formula_error.value.code == "formula"
+
 def test_xlsx_rejects_formulas(tmp_path: Path) -> None:
     workbook = Workbook()
     sheet = workbook.active

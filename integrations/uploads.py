@@ -1,13 +1,15 @@
-"""Defensive CSV/XLSX validation without extracting untrusted archives."""
+"""Defensive tabular and crawl-export validation without executing untrusted data."""
 
 from __future__ import annotations
 
+import codecs
 import csv
 import hashlib
 import re
 import stat
 import zipfile
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from xml.etree.ElementTree import Element, ParseError
 
@@ -32,6 +34,9 @@ class ImportLimits:
     max_rows: int = 1_000_000
     max_columns: int = 500
     max_cell_characters: int = 32_767
+    max_xml_depth: int = 128
+    max_xml_elements: int = 1_000_000
+    max_xml_attributes: int = 500
 
     def __post_init__(self) -> None:
         if (
@@ -43,6 +48,9 @@ class ImportLimits:
                 self.max_rows,
                 self.max_columns,
                 self.max_cell_characters,
+                self.max_xml_depth,
+                self.max_xml_elements,
+                self.max_xml_attributes,
             )
             <= 0
             or self.max_compression_ratio < 1
@@ -258,6 +266,248 @@ def _xml(data: bytes) -> Element:
         raise UploadValidationError("malformed_xml", "Workbook contains malformed XML.") from exc
 
 
+@dataclass(slots=True)
+class _XMLFrame:
+    tag: str
+    attributes: tuple[tuple[str, str], ...]
+    child_count: int = 0
+    children: list[tuple[str, bool, str | None]] = field(default_factory=list)
+
+
+def _local_xml_name(value: str) -> str:
+    return value.rsplit("}", 1)[-1].rsplit(":", 1)[-1].strip()
+
+
+def _validate_crawl_cell(value: str, limits: ImportLimits) -> None:
+    if any(ord(character) < 32 and character not in "\t\r\n" for character in value):
+        raise UploadValidationError(
+            "binary_content", "Crawl import contains prohibited binary control characters."
+        )
+    if value.strip() == "-":
+        if len(value) > limits.max_cell_characters or "\x00" in value:
+            _validate_cell(value, limits)
+        return
+    _validate_cell(value, limits)
+
+
+def _scan_xml_declarations(path: Path) -> None:
+    overlap = b""
+    decoder = codecs.getincrementaldecoder("utf-8")("strict")
+    try:
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1_048_576), b""):
+                if b"\x00" in chunk:
+                    raise UploadValidationError(
+                        "encoding", "XML crawl imports must use UTF-8 encoding."
+                    )
+                decoder.decode(chunk)
+                combined = (overlap + chunk).upper()
+                if any(marker in combined for marker in XML_PROHIBITED):
+                    raise UploadValidationError(
+                        "xml_entity",
+                        "XML crawl imports cannot contain DTD or entity declarations.",
+                    )
+                overlap = combined[-32:]
+        decoder.decode(b"", final=True)
+    except UnicodeDecodeError as exc:
+        raise UploadValidationError(
+            "encoding", "XML crawl imports must use UTF-8 encoding."
+        ) from exc
+
+
+def _xml_headers(frame: _XMLFrame, limits: ImportLimits) -> tuple[str, ...] | None:
+    if frame.child_count == 0 and frame.attributes:
+        return _validate_headers([name for name, _ in frame.attributes], limits)
+    if (
+        not frame.children
+        or frame.child_count != len(frame.children)
+        or any(has_children for _, has_children, _ in frame.children)
+    ):
+        return None
+    child_names = [
+        declared_name.strip() if declared_name else child_name
+        for child_name, _, declared_name in frame.children
+    ]
+    if len({name.casefold() for name in child_names}) != len(child_names):
+        return None
+    attribute_names = [name for name, _ in frame.attributes]
+    headers = attribute_names + child_names
+    if len({name.casefold() for name in headers}) != len(headers):
+        headers = [f"attribute_{name}" for name in attribute_names] + child_names
+    return _validate_headers(headers, limits)
+
+
+def _validate_crawl_xml(path: Path, limits: ImportLimits) -> tuple[SheetReport, ...]:
+    _scan_xml_declarations(path)
+    stack: list[_XMLFrame] = []
+    shapes: Counter[tuple[str, tuple[str, ...]]] = Counter()
+    element_count = 0
+    try:
+        events = DefusedET.iterparse(
+            path,
+            events=("start", "end"),
+            forbid_dtd=True,
+            forbid_entities=True,
+            forbid_external=True,
+        )
+        for event, element in events:
+            if event == "start":
+                element_count += 1
+                if element_count > limits.max_xml_elements:
+                    raise UploadValidationError(
+                        "too_many_elements", "XML crawl import exceeds the element limit."
+                    )
+                if len(stack) + 1 > limits.max_xml_depth:
+                    raise UploadValidationError(
+                        "xml_too_deep", "XML crawl import exceeds the nesting-depth limit."
+                    )
+                if len(element.attrib) > limits.max_xml_attributes:
+                    raise UploadValidationError(
+                        "too_many_attributes", "XML crawl import exceeds the attribute limit."
+                    )
+                attributes: list[tuple[str, str]] = []
+                for raw_name, value in element.attrib.items():
+                    name = _local_xml_name(raw_name)
+                    _validate_crawl_cell(name, limits)
+                    _validate_crawl_cell(value, limits)
+                    attributes.append((name, value))
+                stack.append(_XMLFrame(_local_xml_name(element.tag), tuple(attributes)))
+                continue
+
+            frame = stack.pop()
+            if element.text and element.text.strip():
+                _validate_crawl_cell(element.text, limits)
+            if element.tail and element.tail.strip():
+                _validate_crawl_cell(element.tail, limits)
+            headers = _xml_headers(frame, limits)
+            if headers is not None:
+                if len(shapes) >= 1_024 and (frame.tag, headers) not in shapes:
+                    raise UploadValidationError(
+                        "xml_too_complex", "XML crawl import contains too many record shapes."
+                    )
+                shapes[(frame.tag, headers)] += 1
+            if stack:
+                parent = stack[-1]
+                parent.child_count += 1
+                if len(parent.children) < limits.max_columns + 1:
+                    declared_name = dict(frame.attributes).get("name")
+                    parent.children.append((frame.tag, bool(frame.child_count), declared_name))
+            element.clear()
+    except UploadValidationError:
+        raise
+    except (DefusedXmlException, ParseError, OSError) as exc:
+        raise UploadValidationError(
+            "malformed_xml", "XML crawl data could not be parsed safely."
+        ) from exc
+    if not shapes:
+        raise UploadValidationError(
+            "missing_records", "XML crawl import contains no recognizable records."
+        )
+    (record_tag, headers), record_count = max(
+        shapes.items(), key=lambda item: (item[1], len(item[0][1]))
+    )
+    if record_count + 1 > limits.max_rows:
+        raise UploadValidationError(
+            "too_many_rows", "XML crawl import exceeds the configured row limit."
+        )
+    return (
+        SheetReport(
+            f"XML {record_tag}"[:100],
+            record_count + 1,
+            len(headers),
+            headers,
+        ),
+    )
+
+
+def _crawl_text_rows(path: Path, sample: str):
+    first_line = next((line.strip() for line in sample.splitlines() if line.strip()), "")
+    dialect = None
+    if not first_line.casefold().startswith("cdx ") and any(
+        delimiter in first_line for delimiter in ",;\t|"
+    ):
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        except csv.Error:
+            dialect = None
+    handle = path.open("r", encoding="utf-8-sig", errors="strict", newline="")
+    if dialect is not None:
+        return handle, csv.reader(handle, dialect)
+    return handle, (re.split(r"\s+", line.strip()) for line in handle if line.strip())
+
+
+def _validate_crawl_text(
+    path: Path, limits: ImportLimits, *, label: str
+) -> tuple[SheetReport, ...]:
+    with path.open("rb") as raw:
+        prefix = raw.read(min(65_536, limits.max_file_bytes + 1))
+    if b"\x00" in prefix:
+        raise UploadValidationError("nul_byte", "Crawl import contains a prohibited NUL byte.")
+    try:
+        sample = prefix.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise UploadValidationError(
+            "encoding", "CDX and CDD crawl imports must use UTF-8 encoding."
+        ) from exc
+    rows = 0
+    max_columns = 0
+    headers: tuple[str, ...] | None = None
+    try:
+        handle, parsed_rows = _crawl_text_rows(path, sample)
+        with handle:
+            for raw_row in parsed_rows:
+                row = list(raw_row)
+                if not row or all(not value.strip() for value in row):
+                    continue
+                if headers is None and row[0].casefold() == "cdx" and len(row) > 1:
+                    row = row[1:]
+                rows += 1
+                if rows > limits.max_rows:
+                    raise UploadValidationError(
+                        "too_many_rows", "Crawl import exceeds the configured row limit."
+                    )
+                if len(row) > limits.max_columns:
+                    raise UploadValidationError(
+                        "too_many_columns", "Crawl import exceeds the configured column limit."
+                    )
+                for value in row:
+                    _validate_crawl_cell(value, limits)
+                max_columns = max(max_columns, len(row))
+                if headers is None:
+                    headers = _validate_headers(row, limits)
+    except UnicodeDecodeError as exc:
+        raise UploadValidationError(
+            "encoding", "CDX and CDD crawl imports must use UTF-8 encoding."
+        ) from exc
+    except csv.Error as exc:
+        raise UploadValidationError(
+            "malformed_crawl_data", "Crawl data structure could not be parsed safely."
+        ) from exc
+    if headers is None:
+        raise UploadValidationError("empty_file", "Crawl import contains no rows.")
+    if rows < 2:
+        raise UploadValidationError(
+            "missing_records", "Crawl import must include a header and at least one record."
+        )
+    return (SheetReport(label, rows, max_columns, headers),)
+
+
+def _looks_like_xml(path: Path) -> bool:
+    with path.open("rb") as handle:
+        prefix = handle.read(4_096)
+    if prefix.startswith(b"\xef\xbb\xbf"):
+        prefix = prefix[3:]
+    return prefix.lstrip(b" \t\r\n").startswith(b"<")
+
+
+def _validate_crawl_file(
+    path: Path, limits: ImportLimits, *, suffix: str
+) -> tuple[str, tuple[SheetReport, ...]]:
+    if suffix == ".xml" or _looks_like_xml(path):
+        return "application/xml", _validate_crawl_xml(path, limits)
+    return "text/plain", _validate_crawl_text(path, limits, label=suffix[1:].upper())
+
+
 def _cell_text(cell: Element, shared: list[str]) -> str:
     namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
     if cell.find(namespace + "f") is not None:
@@ -395,6 +645,8 @@ def validate_import(
                 raise UploadValidationError("signature", "XLSX file signature is invalid.")
         media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         sheets = _validate_xlsx(path, policy)
+    elif suffix in {".cdx", ".cdd", ".xml"}:
+        media_type, sheets = _validate_crawl_file(path, policy, suffix=suffix)
     elif suffix in {".xlsm", ".xlsb", ".xls", ".zip"}:
         raise UploadValidationError(
             "active_or_legacy",
@@ -402,6 +654,7 @@ def validate_import(
         )
     else:
         raise UploadValidationError(
-            "unsupported_type", "Only CSV and XLSX evidence imports are supported."
+            "unsupported_type",
+            "Only CSV, XLSX, CDX, CDD, and XML evidence imports are supported.",
         )
     return ImportReport(path.name, media_type, size, _hash_file(path), sheets)

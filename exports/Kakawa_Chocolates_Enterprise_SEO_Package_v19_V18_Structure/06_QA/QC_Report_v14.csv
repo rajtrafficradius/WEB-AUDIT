@@ -1,7 +1,7 @@
 ﻿measure,canonical,package,result,rule,evidence
 Normalized pages,357,357,PASS,Exact integer equality,Canonical acceptance dataset
 Aggregated findings,5,5,PASS,Exact integer equality,Canonical acceptance dataset
-Canonical actions,16,16,PASS,Exact integer equality,Canonical acceptance dataset
-Content assets,6,6,PASS,Exact integer equality,Canonical acceptance dataset
+Canonical actions,48,48,PASS,Exact integer equality,Canonical acceptance dataset
+Content assets,20,20,PASS,Exact integer equality,Canonical acceptance dataset
 Duplicate normalized pages,0,0,PASS,Exact integer equality,Canonical acceptance dataset
 Duplicate observations collapsed,5,5,PASS,Exact integer equality,Canonical acceptance dataset

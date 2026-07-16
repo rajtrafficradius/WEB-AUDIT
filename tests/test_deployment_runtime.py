@@ -60,7 +60,7 @@ def test_worker_manifests_have_explicit_environment_and_process(
 
 
 @pytest.mark.deployment
-def test_web_startup_never_runs_migrations_and_image_defaults_to_production() -> None:
+def test_web_startup_supports_single_service_migrations_and_image_defaults_to_production() -> None:
     entrypoint = (DEPLOYMENT_ROOT / "entrypoint.sh").read_text(encoding="utf-8")
     release_block = entrypoint.split("release)", 1)[1].split(";;", 1)[0]
     web_block = entrypoint.split("web)", 1)[1].split(";;", 1)[0]
@@ -68,12 +68,13 @@ def test_web_startup_never_runs_migrations_and_image_defaults_to_production() ->
 
     assert "manage.py migrate --noinput" in release_block
     assert "manage.py migrate --check" in release_block
-    assert "manage.py migrate" not in web_block
+    assert "manage.py migrate --noinput" in web_block
+    assert "manage.py migrate --check" in web_block
+    assert "bootstrap_admin_from_env" in web_block
     assert "DJANGO_ENV=production" in dockerfile
     assert "manage.py collectstatic --noinput" in dockerfile
     assert "/app/.local-media/quarantine" in dockerfile
     assert "chown -R studio:studio /app/.local-media" in dockerfile
-
 
 @pytest.mark.deployment
 def test_scheduler_and_render_tasks_are_registered_and_routed() -> None:

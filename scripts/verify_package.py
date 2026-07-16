@@ -43,9 +43,7 @@ class Verifier:
         self.zip_verified = False
 
     def fail(self, code: str, path: str, message: str, severity: str = "High") -> None:
-        self.issues.append(
-            {"severity": severity, "code": code, "path": path, "message": message}
-        )
+        self.issues.append({"severity": severity, "code": code, "path": path, "message": message})
 
     def load_manifest(self) -> None:
         path = self.package / "06_QA_and_Manifest" / "package-manifest.json"
@@ -65,7 +63,9 @@ class Verifier:
         entries = self.manifest.get("files") or []
         by_path = {entry.get("path"): entry for entry in entries}
         if None in by_path or len(by_path) != len(entries):
-            self.fail("manifest_paths", "package-manifest.json", "Duplicate or empty path", "Critical")
+            self.fail(
+                "manifest_paths", "package-manifest.json", "Duplicate or empty path", "Critical"
+            )
             return
         actual = {
             path.relative_to(self.package).as_posix()
@@ -117,7 +117,9 @@ class Verifier:
             recorded[relative] = digest
         expected = set(by_path) | {"06_QA_and_Manifest/package-manifest.json"}
         if set(recorded) != expected:
-            self.fail("checksum_coverage", checksum_path.name, "Paths differ from manifest", "Critical")
+            self.fail(
+                "checksum_coverage", checksum_path.name, "Paths differ from manifest", "Critical"
+            )
         for relative, digest in recorded.items():
             candidate = (self.package / relative).resolve()
             if not candidate.is_file() or PackageManifest.sha256(candidate) != digest:
@@ -166,7 +168,9 @@ class Verifier:
         return ""
 
     def scan_payloads(self) -> None:
-        allowed = {value.casefold().rstrip(".") for value in self.manifest.get("approved_domains", [])}
+        allowed = {
+            value.casefold().rstrip(".") for value in self.manifest.get("approved_domains", [])
+        }
         for path in sorted(self.package.rglob("*")):
             if not path.is_file():
                 continue
@@ -174,7 +178,9 @@ class Verifier:
             text = self.extract_text(path)
             if not text:
                 continue
-            if "\ufffd" in text or any(marker in text for marker in ("Â·", "â€", "Ã")):
+            if "\ufffd" in text or any(
+                marker in text for marker in ("\u00c2\u00b7", "\u00e2\u20ac", "\u00c3")
+            ):
                 self.fail("mojibake", relative, "Encoding corruption marker")
             if PATH_RE.search(text):
                 self.fail("machine_path", relative, "Machine-specific path")
@@ -238,7 +244,9 @@ class Verifier:
         targets: set[str] = set()
         for asset in data.get("content_assets", []):
             if not isinstance(asset, dict):
-                self.fail("content_asset_invalid", snapshot_path.name, "Expected an object", "Critical")
+                self.fail(
+                    "content_asset_invalid", snapshot_path.name, "Expected an object", "Critical"
+                )
                 continue
             asset_id = str(asset.get("id") or "unknown-content-asset")
             target_url = asset.get("target_url")
@@ -253,7 +261,9 @@ class Verifier:
                     self.fail("claim_invalid", asset_id, "Expected an object", "Critical")
                     continue
                 if claim.get("validation") != "supported":
-                    self.fail("unsupported_claim", asset_id, str(claim.get("claim", "")), "Critical")
+                    self.fail(
+                        "unsupported_claim", asset_id, str(claim.get("claim", "")), "Critical"
+                    )
                 claim_evidence = claim.get("evidence_ids", [])
                 if not isinstance(claim_evidence, list):
                     self.fail("claim_evidence", asset_id, "Evidence IDs must be a list", "Critical")
@@ -297,7 +307,12 @@ class Verifier:
                 if path.is_file()
             }
             if set(archive.namelist()) != expected:
-                self.fail("zip_coverage", self.archive.name, "Members differ from unpacked package", "Critical")
+                self.fail(
+                    "zip_coverage",
+                    self.archive.name,
+                    "Members differ from unpacked package",
+                    "Critical",
+                )
         if len(self.issues) == starting_issue_count:
             self.zip_verified = True
 

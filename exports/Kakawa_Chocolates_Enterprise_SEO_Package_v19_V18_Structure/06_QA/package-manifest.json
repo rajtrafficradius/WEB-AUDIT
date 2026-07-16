@@ -8,225 +8,363 @@
   "evidence_as_of": "2026-07-15",
   "v18_structure_compatible": true,
   "exact_duplicates_removed": 24,
-  "content_assets_emitted": 6,
+  "unsafe_unique_files_withheld": 1,
+  "redundant_or_unsafe_removed": 25,
+  "content_assets_emitted": 20,
   "content_asset_policy": "Only distinct evidence-supported, cannibalization-cleared opportunities are emitted.",
   "disavow_enabled": false,
   "openai_generation": {
     "status": "available",
     "model": "gpt-5.6-luna",
     "ledger": {
-      "id": "ef4baae3-4a11-49b2-afd1-d2c93de056de",
+      "id": "99d02adb-461c-4794-90b3-f0c4cad7b435",
       "task": "Evidence-constrained package strategy synthesis",
       "configured_model": "gpt-5.6-luna",
       "returned_model": "gpt-5.6-luna",
       "prompt_version": "seo-evidence-boundary-1.0.0",
       "status": "available",
-      "request_hash": "147ad488c696b4e7a11cd1cf73965f639e30d2ce30de78c0e1b50b658c3b9607",
-      "response_hash": "2251043fa6839048072ff74a3d569fd28e6e844d5db6233a2d0d372d1da69bad",
-      "tokens": 16731,
+      "request_hash": "898039ad48b7c367882a2f2b9c4d4427fe84a3b47436f1838adc424dc328a83e",
+      "response_hash": "0d7d82ea78814d03f6d59d983da99e183f8708a1e34e7210e400361173659e00",
+      "tokens": 23120,
       "cost": null,
       "unavailable_reason": null
     },
     "quality_issues": [],
     "output": {
-      "executive_summary": "The approved evidence boundary covers kakawachocolates.com.au, but weighted evidence coverage is 35.0%, below the 70% publication threshold. The current evidence supports a gated stabilisation and measurement programme rather than performance forecasting. Private analytics sources—Google Search Console and GA4—are unavailable, and market baselines for traffic, rankings, conversions, revenue, backlinks and performance are also unavailable. Risky assets, including crawl-graph changes, schema and production deployment, must remain approval-gated. No live systems have been changed.",
-      "note": "Validated structured output incorporated into the strategy report."
+      "title": "Kakawa Chocolates Enterprise SEO Executive Synthesis",
+      "executive_summary": "The approved scope is kakawachocolates.com.au. Evidence coverage is 35.0%, below the 70% publication threshold, so no overall health score or performance forecast is supported. The immediate opportunity is controlled technical remediation and refresh of existing URLs across approved product, collection, commercial, brand, informational and seasonal intents. Private analytics and market baselines are unavailable: Google Search Console, GA4 and SEMrush credentials were not configured or collected. Risky deployment, schema and content assets should remain approval-gated pending Gate 1, Gate 2 and agency-admin decisions.",
+      "recommendations": [
+        {
+          "title": "Establish the evidence boundary before publishing decisions",
+          "rationale": "Evidence coverage is 35.0%, below the 70% publication threshold, and the overall health score is therefore withheld. Private analytics and market baselines are unavailable because GSC, GA4, SEMrush and PageSpeed data were not collected.",
+          "implementation": "Record the evidence boundary and unavailable-source register; confirm the approved .com.au domain and exclusion rules; connect and validate GSC, GA4, SEMrush and PageSpeed where credentials become available, or preserve truthful unavailable states. Do not publish performance, ranking, conversion, revenue, backlink or forecast claims.",
+          "evidence_ids": [
+            "69b6cd53-1cfc-5fd1-91e4-f26ac02b242a",
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d",
+            "2f471623-f8df-5303-bfb5-533fa905246a"
+          ],
+          "risk": "moderate"
+        },
+        {
+          "title": "Prioritise crawl and template hygiene",
+          "rationale": "The approved findings record HTTP 404 responses on 42 of 357 fetched pages, missing primary headings on 2 of 357 pages, missing meta descriptions on 12 of 357 pages, multiple primary headings on 3 of 357 pages and long document titles on 62 of 357 pages.",
+          "implementation": "Validate each error URL and its ownership; review redirects and canonicals; then resolve priority title, meta-description and H1 issues on representative templates before broader implementation. Re-crawl staging and reconcile the normalized URL inventory after changes.",
+          "evidence_ids": [
+            "bdffa8bb-e977-518e-a4b2-11efa0cf67c1",
+            "2f471623-f8df-5303-bfb5-533fa905246a"
+          ],
+          "risk": "moderate"
+        },
+        {
+          "title": "Refresh existing URLs rather than creating competing pages",
+          "rationale": "The approved opportunity set contains 20 content-intent clusters, each with a decision to refresh an existing target and not create a competing URL.",
+          "implementation": "Freeze one accountable URL per approved intent, document duplicate-title and H1 clusters, and maintain a cannibalization ledger. Prioritise existing targets such as the homepage, gift-box, chocolate-bar, praline-and-bonbon, single-origin, corporate, wedding, wholesale, shipping, journal and seasonal collection URLs only after editorial review.",
+          "evidence_ids": [
+            "221e1b59-3a93-5582-a390-1bbcb0f4025d",
+            "2f471623-f8df-5303-bfb5-533fa905246a"
+          ],
+          "risk": "low"
+        },
+        {
+          "title": "Keep redirects, canonicals, schema and releases approval-gated",
+          "rationale": "The approved action sequence classifies redirect, canonical, product-template, schema and release activities as requiring agency-admin approval or other gated decisions. The limitations state that risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+          "implementation": "Use staging only for approved redirects and canonicals; validate product indexability, collection pagination and canonical targets; create a verified fact pack before proposing Product schema; deploy only approved page-specific schema candidates; re-crawl and run domain-safety, link, redirect, canonical and schema gates before any release.",
+          "evidence_ids": [
+            "2f471623-f8df-5303-bfb5-533fa905246a",
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+          ],
+          "risk": "high"
+        },
+        {
+          "title": "Build measurement before CRO or commercial performance claims",
+          "rationale": "No traffic, ranking, conversion, revenue, backlink or performance forecast is present, and analytics validation is required before CRO claims or experiment baselines can be supported.",
+          "implementation": "Validate GA4 events and conversion definitions, map priority journeys only after validation, and create an experiment backlog with approved baselines and owners. Until then, treat CRO and commercial impact as unavailable rather than inferred.",
+          "evidence_ids": [
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d",
+            "2f471623-f8df-5303-bfb5-533fa905246a"
+          ],
+          "risk": "low"
+        }
+      ],
+      "claims": [
+        {
+          "text": "The approved domain is kakawachocolates.com.au and weighted evidence coverage is 35.0%, below the 70% publication threshold.",
+          "fact_keys": [
+            "run_evidence_posture"
+          ],
+          "evidence_ids": [
+            "69b6cd53-1cfc-5fd1-91e4-f26ac02b242a"
+          ]
+        },
+        {
+          "text": "The overall health score is withheld, and no traffic, ranking, conversion, revenue, backlink or performance forecast is present.",
+          "fact_keys": [
+            "explicit_limitations"
+          ],
+          "evidence_ids": [
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+          ]
+        },
+        {
+          "text": "GSC, GA4, SEMrush and PageSpeed were not collected because credentials were unavailable.",
+          "fact_keys": [
+            "explicit_limitations"
+          ],
+          "evidence_ids": [
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+          ]
+        },
+        {
+          "text": "Approved findings record HTTP 404 responses on 42 of 357 fetched pages; missing primary headings on 2 of 357 pages; missing meta descriptions on 12 of 357 pages; multiple primary headings on 3 of 357 pages; and long document titles on 62 of 357 pages.",
+          "fact_keys": [
+            "approved_findings"
+          ],
+          "evidence_ids": [
+            "bdffa8bb-e977-518e-a4b2-11efa0cf67c1"
+          ]
+        },
+        {
+          "text": "The approved opportunity set contains 20 clusters, each recommending refresh of an existing target rather than creation of a competing URL.",
+          "fact_keys": [
+            "approved_opportunities"
+          ],
+          "evidence_ids": [
+            "221e1b59-3a93-5582-a390-1bbcb0f4025d"
+          ]
+        },
+        {
+          "text": "Content and risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+          "fact_keys": [
+            "explicit_limitations"
+          ],
+          "evidence_ids": [
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+          ]
+        },
+        {
+          "text": "No live CMS, Search Console, analytics platform, robots file, redirect map, schema or disavow system was changed.",
+          "fact_keys": [
+            "explicit_limitations"
+          ],
+          "evidence_ids": [
+            "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+          ]
+        }
+      ],
+      "unavailable_items": [
+        {
+          "source": "Private analytics: Google Search Console and Google Analytics 4",
+          "reason": "Credentials were unavailable or not configured, so private search and analytics baselines cannot be reported."
+        },
+        {
+          "source": "Market baselines: SEMrush and backlink evidence",
+          "reason": "SEMrush credentials were unavailable, and no backlink evidence, market baseline or authority comparison is present."
+        },
+        {
+          "source": "PageSpeed Insights",
+          "reason": "Credentials were unavailable; performance evidence was not collected."
+        },
+        {
+          "source": "CRO and commercial performance baselines",
+          "reason": "No traffic, ranking, conversion, revenue or performance forecast is present; GA4 validation is required before CRO claims."
+        }
+      ]
     }
   },
   "files": [
     {
       "path": "01_Audit_Reports/Backlink_Audit_Report.xlsx",
-      "sha256": "2dbc205b85ba000f48450cddcb1f89d576cc6f962fe6ed208a1d88b9e6832c3b",
-      "bytes": 8186,
+      "sha256": "d382551773dae8ea64fbfacd83a652ec224bfbcbe442413da4b331f8836bc181",
+      "bytes": 28795,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Baseline_Performance_Analysis.xlsx",
-      "sha256": "2feb2b41e9d53c9e3318ce930f45a8ca91d3a5eb0aab4c20727474d575c7e599",
-      "bytes": 8472,
+      "sha256": "c494cf44ba06543f002fa5fa1910ad64c91d6cdcac4a50072b8e9371ba9473ab",
+      "bytes": 5444,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Competitor_Landscape_Analysis.xlsx",
-      "sha256": "9340a8528963b38d25382ad7f43d6af7bded3102b7b361e7720fa9d86268621b",
-      "bytes": 8212,
+      "sha256": "a5617639a1991ebb103567333fecfe0c58887f1f1c32261fab273856cfe82a0c",
+      "bytes": 8468,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Content_Audit_Workbook.xlsx",
-      "sha256": "0f2d2fa4fc75f7b9e4f388123f570ab06e0b6b23b2be9c584562437ba554bc1e",
-      "bytes": 32959,
+      "sha256": "aeb9f73e2a395fd2d13fa6b06616cf1bdac36902b21ecbc71112bf3574d69fa8",
+      "bytes": 86879,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/CRO_UX_Findings.docx",
-      "sha256": "301a532bf3f6307c2a7e72faa3f26b9c80d9919689f641b48cf811202fad873a",
-      "bytes": 40671,
+      "sha256": "317890bcd40caec307aef0a776f59e85e1af236a65d6e37553c18358aace627d",
+      "bytes": 40690,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/CRO_UX_Findings.xlsx",
-      "sha256": "97d536f054d5b7b8829ef52a0f5bd998125df2b3465f48b7b26d328d09229727",
-      "bytes": 8815,
+      "sha256": "3ce95b5249a93d9014823b759e3b1443498c4654eb120536546103181729fa02",
+      "bytes": 12892,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Ecommerce_Audit_Report.xlsx",
-      "sha256": "9bd72620b8861def9e433f87d7fdb5030800bb1743ae84d42736aa43f1e55555",
-      "bytes": 8498,
+      "sha256": "c415125abb6f354d0f3110a9f01751e05bddc8e8fed837804afa90f1e041995f",
+      "bytes": 56234,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Enterprise_SEO_Audit_Report_v19.pdf",
-      "sha256": "0cb6e78655449a59d56e0a12f1acb0c3ba3c0a8d650bb51004f70e65aaec674c",
-      "bytes": 13644,
+      "sha256": "c5fe21b1996c0340627af82d9ca29c6f6bd12602ef455c886b1104f0405f0b64",
+      "bytes": 14597,
       "format": "pdf",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/GBP_Local_Audit.xlsx",
-      "sha256": "b68a5fb37169dfc12126a7da9aa24e3bdf38559184272a9e210fd2e329b131c3",
-      "bytes": 8187,
+      "sha256": "fe2a209210e2e0cb77c83dcc19a9a0e3b9cf3164ae59dcb62c8a9bea8e65a1d8",
+      "bytes": 7071,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/GEO_AEO_Readiness_Scorecard.xlsx",
-      "sha256": "e5351bc720fd9ef71f5e661b83e22f277c82daf487f314ef91c436208a231eb2",
-      "bytes": 8334,
+      "sha256": "281ef6176e3e1a70d626e115666925d02e029f0a3e0d783e630d0c04b1200df9",
+      "bytes": 39785,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Technical_Audit_Report.xlsx",
-      "sha256": "b1dd6f716a61ee0a431f449d2a532c2ab16b3c89e1fa6e6df60a2b27cf649e32",
-      "bytes": 8817,
+      "sha256": "597666409c1731497545db51823018be5f7b22223ea9e9bab2f183bfece518e5",
+      "bytes": 142125,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "01_Audit_Reports/Tracking_Audit_Report.xlsx",
-      "sha256": "9335903112752d630eedc4d6b4b84445b855a3bef1e641eda174cf43f3c120db",
-      "bytes": 8192,
+      "sha256": "0d5b2e4190c237ddd619ecb8b9320ba138657fddd15cdb7488738a9b948c275f",
+      "bytes": 7227,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Cannibalization_Resolution_Plan.xlsx",
-      "sha256": "bb8b9ab0472604c08e16cf621050bb78d2144ea683bc37dcd72837273711ff4d",
-      "bytes": 8511,
+      "sha256": "c156887ab2c605bfa71b388e053a44333208d871dfbb5c743946fcd3b1cd0274",
+      "bytes": 19929,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Content_Gap_Analysis.xlsx",
-      "sha256": "b32e08f0cbf25dedb795c6c4e5a3b6054d9bbb14c7baa6f9b6842b4dbd801c55",
-      "bytes": 8492,
+      "sha256": "f4fbf133ac30d45bad961eff927185372cccb99e384a4b30ceb001f07d2c4a10",
+      "bytes": 13882,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Content_Strategy.docx",
-      "sha256": "5489334607ac7ca22bc66989cb9486c21c3332cd347ee930e26031992474459b",
-      "bytes": 43725,
+      "sha256": "e53c336a135816072fe0475864e66ec1bb333f97e5c99f55d992a4e24fe6d5c5",
+      "bytes": 44996,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Content_Strategy.pdf",
-      "sha256": "27d15397e9e23ff03e8a372c146db6465b543913c1ec948a2aec9d58fcb7ce2a",
-      "bytes": 10535,
+      "sha256": "f0758e75588e04caa61bf4cfab2090fffebe8aeb994d1423681f797cf615c10b",
+      "bytes": 13550,
       "format": "pdf",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Content_Strategy.xlsx",
-      "sha256": "1a55f3946b7dc29f80d7d2b56f9861fa7e147963c033d9647395c7366d84e1d1",
-      "bytes": 8587,
+      "sha256": "a91226a63dbf488ea01bf905e0de7dd209051ba8b3e658484d8e01fcd773cc13",
+      "bytes": 11128,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Master_Keyword_Universe.xlsx",
-      "sha256": "149de19b450c2215de56ab788f25a36df780c843f44a11d1df4c1ff1abcd1c0e",
-      "bytes": 8623,
+      "sha256": "1f9ac0ae637666ec9b46cb9e28ea1bda0d66f0342c0a3bf880661f7fdcc25df8",
+      "bytes": 18948,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/Topical_Authority_Map.png",
-      "sha256": "5b9888093d14ef153111e49ab017cdc9222f2182f05af1a5d9adf5b579ca91da",
-      "bytes": 56826,
+      "sha256": "baad5ffa8152543a37a85639cf025c3618f8da67dbfdec20b6a0584e1dd7ff9e",
+      "bytes": 200619,
       "format": "png",
       "approval_state": "review_ready"
     },
     {
       "path": "02_Strategy_Documents/URL_Architecture_Map.xlsx",
-      "sha256": "ae67151ce938188185224ed1be39ada7e18ed4ca04b4f8407759011ae202d927",
-      "bytes": 32961,
+      "sha256": "fc8e85f02f287ba0e3a6c40dbe406177f146fb9a8d652e22479c8403c4b15169",
+      "bytes": 23512,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "03_Action_Plan/16_Week_Action_Plan.csv",
-      "sha256": "2bebb88303bf4d6a9204dc374255b040af4bd1cbb73ca19f3dd22044f9b8ad61",
-      "bytes": 4652,
+      "sha256": "6f0f3659e730ec9f263a5d9c2b38735f9496f18ec6552c9c807e8fe80dc4d59d",
+      "bytes": 15684,
       "format": "csv",
       "approval_state": "review_ready"
     },
     {
       "path": "03_Action_Plan/16_Week_Action_Plan.pdf",
-      "sha256": "d41a42bd5366fe9f62d64191691c4a204c7f6549e1adb58d2586d9708a65fd0c",
-      "bytes": 7938,
+      "sha256": "8a79b6c4c70085557ca1055062fb6cc9ced2b7c462f8255b0da44b5e91a59a97",
+      "bytes": 15130,
       "format": "pdf",
       "approval_state": "review_ready"
     },
     {
       "path": "03_Action_Plan/16_Week_Action_Plan.xlsx",
-      "sha256": "2c95dda0b030d8aed695543699356d120c91fb351429b928f64df285d87cb823",
-      "bytes": 10246,
+      "sha256": "b1312120be2db97fba3dfb5b6bf70f31de672c479d4ccf003303f101650e7ac7",
+      "bytes": 12595,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "03_Action_Plan/16_Week_Atomic_Action_Plan.xlsx",
-      "sha256": "b0c58968ae8a9e91605f19dfa10e8b0a12d906afbed828b6c79a73e3dda4d84c",
-      "bytes": 9798,
+      "sha256": "c976b2853c2146e8a388fafb7263a3a716c413dbe7080a4bffbfd2fb4dfed314",
+      "bytes": 12827,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "03_Action_Plan/Atomic_Action_Plan.xlsx",
-      "sha256": "e412989f08a95bbc62d88bac56c89ea74400e22ab85492efbe04070a252f32e4",
-      "bytes": 9360,
+      "sha256": "0b0d2964b4ecbcef9c883ee1238d902be89381c013c8931b102954a9295a6959",
+      "bytes": 10884,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "04_Implementation_Deliverables/Link_Building/Citation_List.xlsx",
-      "sha256": "670b4131c0a1b14e3a27367e6e78fe7716a0e819c02784c870fa3234ecd094c4",
-      "bytes": 8167,
+      "sha256": "6efa405196f815b86cc9730468cf2f1afab68102ce6ecb55144ab9a27340f832",
+      "bytes": 5003,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/Link_Building/Internal_Link_Map.xlsx",
-      "sha256": "a0110f6f8747688a7b58be98dd2c66fd8bd1ac26e9328d23368853c2572b6c08",
-      "bytes": 8137,
+      "sha256": "26d1f78d64c66eb299fee1546f4c68094bf37d62c8ef49e0842b4063f4efbfae",
+      "bytes": 12574,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/Link_Building/Outreach_Target_List.xlsx",
-      "sha256": "8b99d930b5389b8f57c7c9a224764654dbd4c4aef1aebb0df560aa73505aa0b2",
-      "bytes": 8196,
+      "sha256": "6b7b1cb5b670d9392dd3b760ba5ce4e6503afa3b10c8f11985b6e69d4448e2d2",
+      "bytes": 5030,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
@@ -239,29 +377,29 @@
     },
     {
       "path": "04_Implementation_Deliverables/On_Page_Optimizations/H1_Tags.xlsx",
-      "sha256": "7cb6f1ae230602e1e46779a34952d44f50db72993d38e54e06f217234633d3f8",
-      "bytes": 9581,
+      "sha256": "c0831f9b336b5ff36423f8d62c64ce3310d7bc16655e0be2ba0f5b28896e1864",
+      "bytes": 22541,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/On_Page_Optimizations/Meta_Description_Optimizations.xlsx",
-      "sha256": "043b0089869ffdd70378f59cd9ce4064e955400fa82f3082d39d3cd647db6e2e",
-      "bytes": 9593,
+      "sha256": "26a2bdf5884803b68ff217437caefe0dafacfb018f615b85b063e61fd9c4d154",
+      "bytes": 38112,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/On_Page_Optimizations/Meta_Tags.xlsx",
-      "sha256": "963349a15e0a42de7e2d7809ab2248c5ae429529fba9b9d3e28bc56d6a5d0b8a",
-      "bytes": 31409,
+      "sha256": "61c3f1d1ffea0f8fcc5d27773d4525e4555208797d64d00f9a8d997aceb927b7",
+      "bytes": 59583,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/On_Page_Optimizations/Title_Tag_Optimizations.xlsx",
-      "sha256": "f8b14807ec2d0f43bf643e160899eb44f7d5ca34f4dca4aecffc37640fbbe5a7",
-      "bytes": 9585,
+      "sha256": "8821e6900f00a34411e1ab4979a29315d389815dbd8f32fa33d624cc24918be4",
+      "bytes": 24688,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
@@ -288,22 +426,22 @@
     },
     {
       "path": "04_Implementation_Deliverables/Technical_Fixes/Canonical_Fixes.xlsx",
-      "sha256": "c135fe0bc77255feaae0ce2368a819fbe078dfdab7b83bbfedc21c9ea7fbcb35",
-      "bytes": 8179,
+      "sha256": "40e1e1439cd8eef05773f390b35cbc034dc442525b168e8848ca31032d7953ac",
+      "bytes": 20192,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/Technical_Fixes/Redirect_Map.csv",
-      "sha256": "f317e13e7698fe39e1476505f249660af385986eafe99a66336a1f11e2972e6c",
-      "bytes": 89,
+      "sha256": "13bd31c0bbec8bfba4ab6946e2cfeb5d788ae45ed90700dd5d73233b43256ab2",
+      "bytes": 12006,
       "format": "csv",
       "approval_state": "withheld_pending_approval"
     },
     {
       "path": "04_Implementation_Deliverables/Technical_Fixes/Redirect_Map.xlsx",
-      "sha256": "7463747600f3e9756dc83c3897cfa34ee8e856aad730678a713706087d9de228",
-      "bytes": 8132,
+      "sha256": "9d04549858ecf6e19d41abbf276f7139fb191eadcc8c983a8d76ab3c4287e298",
+      "bytes": 8975,
       "format": "xlsx",
       "approval_state": "withheld_pending_approval"
     },
@@ -315,72 +453,170 @@
       "approval_state": "withheld_pending_approval"
     },
     {
-      "path": "05_SEO_Content/CONTENT-01_Corporate_chocolate_enquiry_guide.docx",
-      "sha256": "aff11d495a223eba3abba5ba7dc7435ec3386511cc35931d823837e82360ca9f",
-      "bytes": 40410,
+      "path": "05_SEO_Content/CONTENT-01_Sydney_artisan_chocolate_shopping_guide.docx",
+      "sha256": "49ad2492baae7ff139ab89a52f0be4498e2620939bdbcb97dc19e2ee9688f7d2",
+      "bytes": 41189,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
-      "path": "05_SEO_Content/CONTENT-02_Wholesale_enquiry_guide.docx",
-      "sha256": "6d41dbae9c73df832dd82c7705029d3e6a677acec38c00065cae1f4e00af96b1",
-      "bytes": 40390,
+      "path": "05_SEO_Content/CONTENT-02_Chocolate_gift_box_selection_guide.docx",
+      "sha256": "4d55bc14a8eb5d458384bbd302e8fa0dffb53afa2860f08f4ef5597c6f41d89f",
+      "bytes": 41151,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
-      "path": "05_SEO_Content/CONTENT-03_Chocolate_delivery_planning_guide.docx",
-      "sha256": "7f6e03be24565f143dcaa6d311a5c1cac414dea99207aceffc1dc71be6af794c",
-      "bytes": 40375,
+      "path": "05_SEO_Content/CONTENT-03_Chocolate_bar_collection_guide.docx",
+      "sha256": "5548491484376597431496f637d54382ccdf94fb4371388f92a2d1fb25d7732c",
+      "bytes": 41143,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
-      "path": "05_SEO_Content/CONTENT-04_How_Kakawa_presents_its_craft.docx",
-      "sha256": "3a5c22f3f16e7e2711ae265a640dcc10cb57c30c6f6bcd8478d2ed67c049ec1b",
-      "bytes": 40442,
+      "path": "05_SEO_Content/CONTENT-04_Praline_and_bonbon_selection_guide.docx",
+      "sha256": "d66512afbdf915d5399ef28d1e53c610766c4e0027b503a844dea7495866fe67",
+      "bytes": 41177,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
-      "path": "05_SEO_Content/CONTENT-05_Chocolate_bar_collection_guide.docx",
-      "sha256": "9b881b83d5862cd5d1ca55f006edbe732f4703ce11f1d73c05eb00c26c2c4def",
-      "bytes": 40405,
+      "path": "05_SEO_Content/CONTENT-05_Chocolate_slab_buying_guide.docx",
+      "sha256": "d0b49d2bb9bfef761cedc331100606f6180cd75135dd2292bdc1e1127d4db9d4",
+      "bytes": 41158,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
-      "path": "05_SEO_Content/CONTENT-06_Praline_and_bonbon_collection_guide.docx",
-      "sha256": "ebe5a7822e8cdad9bd3252dbe4d1f0facdbfbdcd034f74df7f44c2fc4da0eed3",
-      "bytes": 40431,
+      "path": "05_SEO_Content/CONTENT-06_Single_origin_chocolate_collection_guide.docx",
+      "sha256": "d08c4b56a19b8b414dd3aa9b5bc2002c51ee1acece83ab89a5a0179ccd8d850c",
+      "bytes": 41160,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-07_Design_your_own_chocolate_box_guide.docx",
+      "sha256": "43dc006a50676ccd0acc589771b5059aab20977aade404956813984e7afeac1a",
+      "bytes": 41147,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-08_Confectionery_collection_guide.docx",
+      "sha256": "98401432283cc733b1dac85e8169ea77c862eb799d3e5709d407cca9853a563a",
+      "bytes": 41137,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-09_Corporate_chocolate_enquiry_guide.docx",
+      "sha256": "74bea7d5685bda38742b8300ff0f14c437b51c0edceee5de029f7acc5a793dcc",
+      "bytes": 41155,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-10_Events_and_corporate_chocolate_planning_guide.docx",
+      "sha256": "216544a4a63ffa0758800377872c90fd81e28a9028f472facb81e84ae7b58fc1",
+      "bytes": 41171,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-11_Wedding_chocolate_planning_guide.docx",
+      "sha256": "ef9a372418470c2160084e245b9a6ae51f4f7d346bca0035102643823ba5ac89",
+      "bytes": 41172,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-12_Wholesale_chocolate_enquiry_guide.docx",
+      "sha256": "8e37d42e0856b63beb2e79b3adc66cb8cb90f6997e36a5c4952ed840300405f7",
+      "bytes": 41134,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-13_Chocolate_delivery_planning_guide.docx",
+      "sha256": "7500a8485ff4a2538d77d51c6ed90f19d65b53b5ef3df680dce8218f4a439cea",
+      "bytes": 41118,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-14_About_Kakawa_evidence_led_page_refresh.docx",
+      "sha256": "242a2b9682619a84d62734ad1f325f44fab3aca1d19b41d6f9f2d7984291cdc3",
+      "bytes": 41162,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-15_How_Kakawa_presents_its_chocolate_making_process.docx",
+      "sha256": "89b6ad0c2a6e7e640a94cbd47c86fc681682595112a20b78a0a124fe2456eb08",
+      "bytes": 41187,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-16_Ingredients_and_ethics_information_guide.docx",
+      "sha256": "f189cb68b653fd92ce943d425198a0ec8f4cda658aeccfffcc215f60c83caf49",
+      "bytes": 41148,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-17_Kakawa_rewards_information_guide.docx",
+      "sha256": "863da7ab9e3126cfae20d53f53df47c9bb95010bd195ce1a3cad94a5e00d924b",
+      "bytes": 41133,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-18_Chocolate_journal_discovery_hub.docx",
+      "sha256": "5f1e91846667870dbcf1827c9d9fe162417be41a4b4b2d36feae037fa8de4ba4",
+      "bytes": 41147,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-19_Christmas_chocolate_planning_guide.docx",
+      "sha256": "01cae286086aab146240f3742e96a17f94f1f36ee44d1a1586ec43af7af89c77",
+      "bytes": 41191,
+      "format": "docx",
+      "approval_state": "review_ready"
+    },
+    {
+      "path": "05_SEO_Content/CONTENT-20_Easter_chocolate_planning_guide.docx",
+      "sha256": "dcc6e5879cfcb23e3fa4d59a36a6aac1ef4c12f2ee5d2ec73890f05be8b42877",
+      "bytes": 41177,
       "format": "docx",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/canonical_evidence_snapshot.json",
-      "sha256": "85fad1b6661da72961b1730826d7985f57d2fe83f1fcb88a1eeda48f6feb094d",
-      "bytes": 815638,
+      "sha256": "c55dc2a6159c57c08031c0bbd946f5f75b8623d0aeb3a3ae1ce2b26693ae15f5",
+      "bytes": 2435745,
       "format": "json",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/Deep_QC_Audit_Report.txt",
-      "sha256": "a7b09f35396a7dfaee8e3718808802ac4a56b1895b97424a03240c8f0bbef569",
-      "bytes": 125,
+      "sha256": "d95742c96d5f285a89a714eac1227798230a43a3ade4cfc64db740e8eb3edb63",
+      "bytes": 163,
       "format": "txt",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/GPT_Generation_Ledger.json",
-      "sha256": "8aa8cd5b1da86093adaa29842761a24db6f173cb0dcc46acd7338c26e516662d",
-      "bytes": 1355,
+      "sha256": "5c132e3af864f40adf9b41024ae1018f62c9d61176f67b628b3455e2ad1a05e4",
+      "bytes": 8933,
       "format": "json",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/QA_Validation_Report.pdf",
-      "sha256": "4ec74ba4e4edc448934e59c607d3f9740b48491ae7c7d17d21aa468c7d93c015",
-      "bytes": 5793,
+      "sha256": "6d5e19dd9c35808836dd75272fdb8e5db0ef60d8558b28a6e1fcfbd808403404",
+      "bytes": 5795,
       "format": "pdf",
       "approval_state": "review_ready"
     },
@@ -393,29 +629,29 @@
     },
     {
       "path": "06_QA/QC_Report_v12.xlsx",
-      "sha256": "e639cda38c0fd1726f6f38d147602309e7a289943e7ac0fa555dddf31dfad223",
-      "bytes": 8709,
+      "sha256": "62010f0bec95b897ff842baf9ffb93a91ea9fdbaf239690f07c9bf6e3659dd14",
+      "bytes": 43423,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/QC_Report_v13.xlsx",
-      "sha256": "299ae3d83e36fef4e4b4921980e3702e89f0f48b421fb9057bc6709132354808",
-      "bytes": 8334,
+      "sha256": "bab08b02fa53c08613a04238ac20c47206ecb0f870552aac655c559f2238e0fe",
+      "bytes": 39449,
       "format": "xlsx",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/QC_Report_v14.csv",
-      "sha256": "495d32bbdf75d8c7e1fe660f491c1667b621fadcbacc301c42d7a8eba900ed6f",
-      "bytes": 559,
+      "sha256": "e4e5170fb74a972b637457113c75afc5b9f37c1715c2196918409da0ce2eed0c",
+      "bytes": 561,
       "format": "csv",
       "approval_state": "review_ready"
     },
     {
       "path": "06_QA/render-verification.json",
-      "sha256": "04a8b6b2de8538cc6554e089ba0b35e9a157db1b252184aa21f3b53937e52fba",
-      "bytes": 486,
+      "sha256": "1585db576f928414ecc36c8a9a7e803c639af3576f8bbbef5b81a994ead66250",
+      "bytes": 469,
       "format": "json",
       "approval_state": "review_ready"
     },
@@ -456,22 +692,22 @@
     },
     {
       "path": "07_Slide_Deck/Executive_SEO_Deck_Self_Contained.html",
-      "sha256": "25409f9a94addc71d09bd2cb527dbde535a626684636691c1f365971c5612169",
-      "bytes": 9151,
+      "sha256": "7a717be878bda249282ef7a6520ae274fcaeea86532b62770de8e1648090b403",
+      "bytes": 9170,
       "format": "html",
       "approval_state": "review_ready"
     },
     {
       "path": "07_Slide_Deck/Executive_SEO_Deck_v19.pdf",
-      "sha256": "771a3f804d5a1422eec3bf4099904badcd245e51a8f174605e4676da134eaf49",
-      "bytes": 11313,
+      "sha256": "73554b3ef1670f5ce1bdeccaca8b2945e244be20a36c16e9b66abcc47621e7d0",
+      "bytes": 11311,
       "format": "pdf",
       "approval_state": "review_ready"
     },
     {
       "path": "07_Slide_Deck/Executive_SEO_Deck_v19.pptx",
-      "sha256": "5a2bccbd978352b02f4f9956cc54e032b520f3551d4968344a4d489224e2cede",
-      "bytes": 42783,
+      "sha256": "1777f6f0ed277cd36942d6d6ea5ed26fef439c78d3e2c37dfe3c232bd52d7edd",
+      "bytes": 42758,
       "format": "pptx",
       "approval_state": "review_ready"
     },
@@ -512,8 +748,8 @@
     },
     {
       "path": "07_Slide_Deck/technical_audit.html",
-      "sha256": "b45e6d11e13a82ad5709b21f8e61913b8df65e54f723884a594acd1c3da2be0f",
-      "bytes": 1637,
+      "sha256": "ff420fe303a3270d65ba41f2c4a42476b3e278eceeff3bef044e5b1512733f29",
+      "bytes": 1656,
       "format": "html",
       "approval_state": "review_ready"
     },

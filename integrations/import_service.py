@@ -22,11 +22,13 @@ from app.domain.permissions import can_manage_project
 from .uploads import ImportLimits, ImportReport, UploadValidationError, validate_import
 
 IMPORT_SCHEMA_VERSION = "imports-1.0"
+CRAWL_IMPORT_SCHEMA_VERSION = "imports-1.1"
 SOURCE_TYPES = {
     "ahrefs",
     "screaming_frog",
     "brightlocal_gbp",
     "mapped_csv_xlsx",
+    "crawl_data_file",
 }
 
 SOURCE_HEADER_ALIASES: dict[str, frozenset[str]] = {
@@ -54,11 +56,34 @@ SOURCE_HEADER_ALIASES: dict[str, frozenset[str]] = {
             "store code",
         }
     ),
+    "crawl_data_file": frozenset(
+        {
+            "a",
+            "address",
+            "crawl url",
+            "href",
+            "loc",
+            "location",
+            "original",
+            "original url",
+            "page url",
+            "uri",
+            "url",
+        }
+    ),
 }
 SOURCE_LABELS = {
     "ahrefs": "Ahrefs",
     "screaming_frog": "Screaming Frog",
     "brightlocal_gbp": "BrightLocal / GBP",
+    "crawl_data_file": "CDX / CDD / XML crawl data",
+}
+SOURCE_SUFFIXES = {
+    "ahrefs": frozenset({".csv", ".xlsx"}),
+    "screaming_frog": frozenset({".csv", ".xlsx"}),
+    "brightlocal_gbp": frozenset({".csv", ".xlsx"}),
+    "mapped_csv_xlsx": frozenset({".csv", ".xlsx"}),
+    "crawl_data_file": frozenset({".cdx", ".cdd", ".xml"}),
 }
 
 
@@ -88,8 +113,23 @@ def _validate_source_schema(report: ImportReport, source_type: str) -> None:
         )
 
 
+def _schema_version(source_type: str) -> str:
+    return CRAWL_IMPORT_SCHEMA_VERSION if source_type == "crawl_data_file" else IMPORT_SCHEMA_VERSION
+
+
+def _validate_source_suffix(source_type: str, suffix: str) -> None:
+    if suffix in SOURCE_SUFFIXES[source_type]:
+        return
+    if source_type == "crawl_data_file":
+        message = "Choose a CDX, CDD, or XML file for the crawl-data source."
+    else:
+        message = "Choose a CSV or XLSX file for this evidence source."
+    raise UploadValidationError("source_file_type", message)
+
+
 def _storage_key(project: Project, digest: str, suffix: str) -> str:
-    safe_suffix = suffix.casefold() if suffix.casefold() in {".csv", ".xlsx"} else ""
+    allowed_suffixes = {suffix for values in SOURCE_SUFFIXES.values() for suffix in values}
+    safe_suffix = suffix.casefold() if suffix.casefold() in allowed_suffixes else ""
     return PurePosixPath(
         "clients",
         str(project.client_id),
@@ -149,6 +189,7 @@ def _mapping(report: ImportReport, as_of_date: str | None) -> dict[str, Any]:
     ]
     return {
         "as_of_date": as_of_date or None,
+        "media_type": report.media_type,
         "row_count": sum(max(0, sheet.row_count - 1) for sheet in report.sheets),
         "sheets": sheets,
     }
@@ -159,6 +200,7 @@ def _record_rejection(
     project: Project,
     actor: User,
     source_type: str,
+    schema_version: str,
     original_filename: str,
     uploaded: UploadedFile,
     digest: str,
@@ -171,7 +213,7 @@ def _record_rejection(
             project=project,
             source_type=source_type,
             sha256=digest,
-            schema_version=IMPORT_SCHEMA_VERSION,
+            schema_version=schema_version,
             defaults={
                 "created_by": actor,
                 "original_filename": original_filename,
@@ -210,6 +252,7 @@ def persist_validated_import(
     policy = limits or ImportLimits()
     original_filename = _safe_filename(uploaded.name)
     suffix = Path(original_filename).suffix.casefold()
+    schema_version = _schema_version(source_type)
     quarantine = Path(settings.MEDIA_ROOT) / "quarantine"
     quarantine.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
@@ -227,6 +270,7 @@ def persist_validated_import(
                     size += len(chunk)
                     digest.update(chunk)
                     destination.write(chunk)
+            _validate_source_suffix(source_type, suffix)
             report = validate_import(staged, allowed_root=Path(temporary), limits=policy)
             _validate_source_schema(report, source_type)
         except UploadValidationError as exc:
@@ -235,6 +279,7 @@ def persist_validated_import(
                     project=project,
                     actor=actor,
                     source_type=source_type,
+                    schema_version=schema_version,
                     original_filename=original_filename,
                     uploaded=uploaded,
                     digest=digest.hexdigest(),
@@ -251,7 +296,7 @@ def persist_validated_import(
                 project=project,
                 source_type=source_type,
                 sha256=report.sha256,
-                schema_version=IMPORT_SCHEMA_VERSION,
+                schema_version=schema_version,
             ).first()
             expected_key = _storage_key(project, report.sha256, staged.suffix)
             if existing is not None:
@@ -264,7 +309,7 @@ def persist_validated_import(
             project=project,
             source_type=source_type,
             sha256=report.sha256,
-            schema_version=IMPORT_SCHEMA_VERSION,
+            schema_version=schema_version,
             created_by=actor,
             original_filename=original_filename,
             media_type=report.media_type,

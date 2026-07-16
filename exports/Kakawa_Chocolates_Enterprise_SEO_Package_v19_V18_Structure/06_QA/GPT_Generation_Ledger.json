@@ -2,21 +2,157 @@
   "status": "available",
   "model": "gpt-5.6-luna",
   "ledger": {
-    "id": "ef4baae3-4a11-49b2-afd1-d2c93de056de",
+    "id": "99d02adb-461c-4794-90b3-f0c4cad7b435",
     "task": "Evidence-constrained package strategy synthesis",
     "configured_model": "gpt-5.6-luna",
     "returned_model": "gpt-5.6-luna",
     "prompt_version": "seo-evidence-boundary-1.0.0",
     "status": "available",
-    "request_hash": "147ad488c696b4e7a11cd1cf73965f639e30d2ce30de78c0e1b50b658c3b9607",
-    "response_hash": "2251043fa6839048072ff74a3d569fd28e6e844d5db6233a2d0d372d1da69bad",
-    "tokens": 16731,
+    "request_hash": "898039ad48b7c367882a2f2b9c4d4427fe84a3b47436f1838adc424dc328a83e",
+    "response_hash": "0d7d82ea78814d03f6d59d983da99e183f8708a1e34e7210e400361173659e00",
+    "tokens": 23120,
     "cost": null,
     "unavailable_reason": null
   },
   "quality_issues": [],
   "output": {
-    "executive_summary": "The approved evidence boundary covers kakawachocolates.com.au, but weighted evidence coverage is 35.0%, below the 70% publication threshold. The current evidence supports a gated stabilisation and measurement programme rather than performance forecasting. Private analytics sources—Google Search Console and GA4—are unavailable, and market baselines for traffic, rankings, conversions, revenue, backlinks and performance are also unavailable. Risky assets, including crawl-graph changes, schema and production deployment, must remain approval-gated. No live systems have been changed.",
-    "note": "Validated structured output incorporated into the strategy report."
+    "title": "Kakawa Chocolates Enterprise SEO Executive Synthesis",
+    "executive_summary": "The approved scope is kakawachocolates.com.au. Evidence coverage is 35.0%, below the 70% publication threshold, so no overall health score or performance forecast is supported. The immediate opportunity is controlled technical remediation and refresh of existing URLs across approved product, collection, commercial, brand, informational and seasonal intents. Private analytics and market baselines are unavailable: Google Search Console, GA4 and SEMrush credentials were not configured or collected. Risky deployment, schema and content assets should remain approval-gated pending Gate 1, Gate 2 and agency-admin decisions.",
+    "recommendations": [
+      {
+        "title": "Establish the evidence boundary before publishing decisions",
+        "rationale": "Evidence coverage is 35.0%, below the 70% publication threshold, and the overall health score is therefore withheld. Private analytics and market baselines are unavailable because GSC, GA4, SEMrush and PageSpeed data were not collected.",
+        "implementation": "Record the evidence boundary and unavailable-source register; confirm the approved .com.au domain and exclusion rules; connect and validate GSC, GA4, SEMrush and PageSpeed where credentials become available, or preserve truthful unavailable states. Do not publish performance, ranking, conversion, revenue, backlink or forecast claims.",
+        "evidence_ids": [
+          "69b6cd53-1cfc-5fd1-91e4-f26ac02b242a",
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d",
+          "2f471623-f8df-5303-bfb5-533fa905246a"
+        ],
+        "risk": "moderate"
+      },
+      {
+        "title": "Prioritise crawl and template hygiene",
+        "rationale": "The approved findings record HTTP 404 responses on 42 of 357 fetched pages, missing primary headings on 2 of 357 pages, missing meta descriptions on 12 of 357 pages, multiple primary headings on 3 of 357 pages and long document titles on 62 of 357 pages.",
+        "implementation": "Validate each error URL and its ownership; review redirects and canonicals; then resolve priority title, meta-description and H1 issues on representative templates before broader implementation. Re-crawl staging and reconcile the normalized URL inventory after changes.",
+        "evidence_ids": [
+          "bdffa8bb-e977-518e-a4b2-11efa0cf67c1",
+          "2f471623-f8df-5303-bfb5-533fa905246a"
+        ],
+        "risk": "moderate"
+      },
+      {
+        "title": "Refresh existing URLs rather than creating competing pages",
+        "rationale": "The approved opportunity set contains 20 content-intent clusters, each with a decision to refresh an existing target and not create a competing URL.",
+        "implementation": "Freeze one accountable URL per approved intent, document duplicate-title and H1 clusters, and maintain a cannibalization ledger. Prioritise existing targets such as the homepage, gift-box, chocolate-bar, praline-and-bonbon, single-origin, corporate, wedding, wholesale, shipping, journal and seasonal collection URLs only after editorial review.",
+        "evidence_ids": [
+          "221e1b59-3a93-5582-a390-1bbcb0f4025d",
+          "2f471623-f8df-5303-bfb5-533fa905246a"
+        ],
+        "risk": "low"
+      },
+      {
+        "title": "Keep redirects, canonicals, schema and releases approval-gated",
+        "rationale": "The approved action sequence classifies redirect, canonical, product-template, schema and release activities as requiring agency-admin approval or other gated decisions. The limitations state that risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+        "implementation": "Use staging only for approved redirects and canonicals; validate product indexability, collection pagination and canonical targets; create a verified fact pack before proposing Product schema; deploy only approved page-specific schema candidates; re-crawl and run domain-safety, link, redirect, canonical and schema gates before any release.",
+        "evidence_ids": [
+          "2f471623-f8df-5303-bfb5-533fa905246a",
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+        ],
+        "risk": "high"
+      },
+      {
+        "title": "Build measurement before CRO or commercial performance claims",
+        "rationale": "No traffic, ranking, conversion, revenue, backlink or performance forecast is present, and analytics validation is required before CRO claims or experiment baselines can be supported.",
+        "implementation": "Validate GA4 events and conversion definitions, map priority journeys only after validation, and create an experiment backlog with approved baselines and owners. Until then, treat CRO and commercial impact as unavailable rather than inferred.",
+        "evidence_ids": [
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d",
+          "2f471623-f8df-5303-bfb5-533fa905246a"
+        ],
+        "risk": "low"
+      }
+    ],
+    "claims": [
+      {
+        "text": "The approved domain is kakawachocolates.com.au and weighted evidence coverage is 35.0%, below the 70% publication threshold.",
+        "fact_keys": [
+          "run_evidence_posture"
+        ],
+        "evidence_ids": [
+          "69b6cd53-1cfc-5fd1-91e4-f26ac02b242a"
+        ]
+      },
+      {
+        "text": "The overall health score is withheld, and no traffic, ranking, conversion, revenue, backlink or performance forecast is present.",
+        "fact_keys": [
+          "explicit_limitations"
+        ],
+        "evidence_ids": [
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+        ]
+      },
+      {
+        "text": "GSC, GA4, SEMrush and PageSpeed were not collected because credentials were unavailable.",
+        "fact_keys": [
+          "explicit_limitations"
+        ],
+        "evidence_ids": [
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+        ]
+      },
+      {
+        "text": "Approved findings record HTTP 404 responses on 42 of 357 fetched pages; missing primary headings on 2 of 357 pages; missing meta descriptions on 12 of 357 pages; multiple primary headings on 3 of 357 pages; and long document titles on 62 of 357 pages.",
+        "fact_keys": [
+          "approved_findings"
+        ],
+        "evidence_ids": [
+          "bdffa8bb-e977-518e-a4b2-11efa0cf67c1"
+        ]
+      },
+      {
+        "text": "The approved opportunity set contains 20 clusters, each recommending refresh of an existing target rather than creation of a competing URL.",
+        "fact_keys": [
+          "approved_opportunities"
+        ],
+        "evidence_ids": [
+          "221e1b59-3a93-5582-a390-1bbcb0f4025d"
+        ]
+      },
+      {
+        "text": "Content and risky deployment proposals are withheld pending human Gate 1/Gate 2 and agency-admin decisions.",
+        "fact_keys": [
+          "explicit_limitations"
+        ],
+        "evidence_ids": [
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+        ]
+      },
+      {
+        "text": "No live CMS, Search Console, analytics platform, robots file, redirect map, schema or disavow system was changed.",
+        "fact_keys": [
+          "explicit_limitations"
+        ],
+        "evidence_ids": [
+          "f0bc4eff-b7dc-5028-b0a7-957ef191019d"
+        ]
+      }
+    ],
+    "unavailable_items": [
+      {
+        "source": "Private analytics: Google Search Console and Google Analytics 4",
+        "reason": "Credentials were unavailable or not configured, so private search and analytics baselines cannot be reported."
+      },
+      {
+        "source": "Market baselines: SEMrush and backlink evidence",
+        "reason": "SEMrush credentials were unavailable, and no backlink evidence, market baseline or authority comparison is present."
+      },
+      {
+        "source": "PageSpeed Insights",
+        "reason": "Credentials were unavailable; performance evidence was not collected."
+      },
+      {
+        "source": "CRO and commercial performance baselines",
+        "reason": "No traffic, ranking, conversion, revenue or performance forecast is present; GA4 validation is required before CRO claims."
+      }
+    ]
   }
 }

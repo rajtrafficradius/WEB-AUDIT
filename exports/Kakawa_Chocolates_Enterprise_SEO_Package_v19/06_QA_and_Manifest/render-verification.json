@@ -1,0 +1,742 @@
+{
+  "schema_version": "1.0",
+  "verified_at": "2026-07-16T12:12:18.092267+00:00",
+  "critical_failures": 0,
+  "high_failures": 0,
+  "artifact_count": 96,
+  "artifacts": [
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.html",
+      "format": "html",
+      "sha256": "7a717be878bda249282ef7a6520ae274fcaeea86532b62770de8e1648090b403",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.pdf",
+      "format": "pdf",
+      "sha256": "7c3a42cb98e682d1980cd331ede61eaa0163fb9e9f3d47edc455b16a5d29d146",
+      "status": "RENDER_PASS",
+      "visual_preview": "pdf/Kakawa_Executive_Deck_v19.png",
+      "pages": 9
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_Deck_v19.pptx",
+      "format": "pptx",
+      "sha256": "1777f6f0ed277cd36942d6d6ea5ed26fef439c78d3e2c37dfe3c232bd52d7edd",
+      "status": "OOXML_PASS_WITH_ARTIFACT_TOOL_PREVIEWS",
+      "visual_preview": null
+    },
+    {
+      "path": "00_Executive/Kakawa_Executive_SEO_Report_v19.pdf",
+      "format": "pdf",
+      "sha256": "c016e72e16caabbd79b36ca4a1d12e46f92ab420c5f6bfda0451299fe19d5668",
+      "status": "RENDER_PASS",
+      "visual_preview": "pdf/Kakawa_Executive_SEO_Report_v19.png",
+      "pages": 7
+    },
+    {
+      "path": "01_Evidence_and_Audits/canonical_evidence_snapshot.json",
+      "format": "json",
+      "sha256": "a29859501b931968b956ce9a71643da52812facd448c12399127d447f6fd9646",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "01_Evidence_and_Audits/evidence_index.csv",
+      "format": "csv",
+      "sha256": "8e37a3b9827e2776bfe843e44dd746bf718b8e17c8191e4ebcaff72307e12ce3",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "01_Evidence_and_Audits/issue_register.csv",
+      "format": "csv",
+      "sha256": "c62b8dd7dd0218edb6cfce6eb05fdc4f3e553a70a852dcfda659bfbbe9e83c12",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "01_Evidence_and_Audits/Kakawa_Enterprise_SEO_Audit_v19.xlsx",
+      "format": "xlsx",
+      "sha256": "a175a46d7d38c7c78f1c7cc3bc8eafd76032e36f7746641d90f8d7b663e08690",
+      "status": "OOXML_PASS_WITH_ARTIFACT_TOOL_PREVIEWS",
+      "visual_preview": null
+    },
+    {
+      "path": "01_Evidence_and_Audits/source_coverage.csv",
+      "format": "csv",
+      "sha256": "b0ea380baafe24935ccf79e184e8e2035fae32c4ada613dcea63e561bb5c8576",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/cannibalization_decisions.csv",
+      "format": "csv",
+      "sha256": "1bb0ca7ad0ec1328901c497e458a0a504f629c922cc9a21fa1a78e05a3dc2a4c",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/competitor_intelligence.json",
+      "format": "json",
+      "sha256": "9294f9d3671034517b3e6d3815c047b0949f974e25a9b7c6d45fa106f74d421c",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/content_roadmap.csv",
+      "format": "csv",
+      "sha256": "f7fa993ee473a1408aa2dfb7d9a255224a6344c69a44c2f051415ffcc320e793",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/Kakawa_Enterprise_SEO_Strategy_v19.docx",
+      "format": "docx",
+      "sha256": "60af8148e69222aa0d54bc4b627097cc4b97a943fb96e82ef33902cb41d5fcb7",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "02_Strategy/Kakawa_Enterprise_SEO_Strategy_v19.pdf",
+      "format": "pdf",
+      "sha256": "e1bae9879e97df8c08dbdc41ca9b2339d5728177a65fbc83ac92deb4e75bb781",
+      "status": "RENDER_PASS",
+      "visual_preview": "pdf/Kakawa_Enterprise_SEO_Strategy_v19.png",
+      "pages": 5
+    },
+    {
+      "path": "02_Strategy/keyword_universe.csv",
+      "format": "csv",
+      "sha256": "411cdbc96af7c5f4f42c684c5069c0eb53bbc1ed8180a30394a148158cfe46b9",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/topical_map.csv",
+      "format": "csv",
+      "sha256": "6f85fac84f931706942b69b75c45edb2daa1dadacf8bfcd12740557293d47bc1",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "02_Strategy/url_architecture.csv",
+      "format": "csv",
+      "sha256": "bc728dec2d1f21154747fa52f35e7ea766fe19a9b8dd53aabcf7131668441621",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.csv",
+      "format": "csv",
+      "sha256": "6f0f3659e730ec9f263a5d9c2b38735f9496f18ec6552c9c807e8fe80dc4d59d",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.pdf",
+      "format": "pdf",
+      "sha256": "a247355ae56e6dee4cc0260d0c7252b94f69b775f60365a8eceb11c2b0128d00",
+      "status": "RENDER_PASS",
+      "visual_preview": "pdf/Kakawa_16_Week_Action_Plan_v19.png",
+      "pages": 5
+    },
+    {
+      "path": "03_Action_Plan/Kakawa_16_Week_Action_Plan_v19.xlsx",
+      "format": "xlsx",
+      "sha256": "5b67d3b115823430105f382996e78f49bc074a3b3db4a6ec64e7f7e87f82bd1f",
+      "status": "OOXML_PASS_WITH_ARTIFACT_TOOL_PREVIEWS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/approval_ledger.csv",
+      "format": "csv",
+      "sha256": "e57f9f79eda34b90e5277bbf5ce373f25d99f12ee3b5d056360ce47a580a2021",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/canonical_recommendations.csv",
+      "format": "csv",
+      "sha256": "06d56ec4ec2f89192a0f3022971ed2c163d7d8e8789534093d73af4a889934ef",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/internal_link_recommendations.csv",
+      "format": "csv",
+      "sha256": "cedac5798248457b2fd61e6ef1abdd3c9bad988bfc4be6646caf631af887100b",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/metadata_and_heading_review.csv",
+      "format": "csv",
+      "sha256": "1b85cdfc98d46008af62bc1aa16fbcbcd822cd1ead662dcc82fb161011f908e8",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/page_specific_jsonld_recommendations.json",
+      "format": "json",
+      "sha256": "e1c9b813c6394994f2db26261c3494f586bbaacd12a2765b9cf509b347f855da",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/platform_implementation_notes.md",
+      "format": "md",
+      "sha256": "f29ce6327626ae0a277888d8f1de09c6da65558fcb5010cd13023fdc01d97e6b",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/redirect_candidates.csv",
+      "format": "csv",
+      "sha256": "7267b550d4d659bab33c635945becea67abe8c9797a5d448d47755e2d19090eb",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "04_Deployment_Assets/robots_recommendations.txt",
+      "format": "txt",
+      "sha256": "dfba4cd805532992a64c8f7cee9b50d3a0781f3c5b2a15f1692cdf8ebf751f72",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.docx",
+      "format": "docx",
+      "sha256": "945679aaef254c935fc66817bd54420a54bcbd0765acc460176adf1b36ffc91f",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.html",
+      "format": "html",
+      "sha256": "667eb5674c580c8c5eb805e0bbbfc074496bdeb79e86626879f05657fdcd3cfe",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-01_sydney-artisan-chocolate-shopping-guide.md",
+      "format": "md",
+      "sha256": "9fb4d0016a63d01d82ee6b2c1f71118bbe271ead38d173f23507060a1b8d23cd",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.docx",
+      "format": "docx",
+      "sha256": "70c479b579ba1cdccd442d666dbc4937143ee030d36ed2e92874fc2047513c89",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.html",
+      "format": "html",
+      "sha256": "e35a77fa2dfabe8ce1d774d02d1140a753bbf6217c79001f9d2cf64e533c5171",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-02_chocolate-gift-box-selection-guide.md",
+      "format": "md",
+      "sha256": "d0e899f9fa332da65b6a0d855538c6c43550d5bb653bc2de44bcd6c8fe024c64",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.docx",
+      "format": "docx",
+      "sha256": "3e77f87a315227bf8805b83c28245c4be490aa5365f16378526248a8524d4bc3",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.html",
+      "format": "html",
+      "sha256": "98957131e5b1ad9dcf2657b33750678bcff3a8384868857aee7cfa21636c8aea",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-03_chocolate-bar-collection-guide.md",
+      "format": "md",
+      "sha256": "54236ccf3398cad5cdc9151cc45483fb97abe667ebab05d5e77edd056af46e22",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.docx",
+      "format": "docx",
+      "sha256": "0d41ae4490608d0c0495659bd474ae18859bdc2f3c114c2feaa8839d8f4c5381",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.html",
+      "format": "html",
+      "sha256": "cfb44c4a80c65987c286750fb76751c66cc2a9de925cc2709aef4abd1d6ab3c2",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-04_praline-and-bonbon-selection-guide.md",
+      "format": "md",
+      "sha256": "2cf779defe47b814920196ef89889da6c83666c7be0f1fae6d27d6e15e950c51",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.docx",
+      "format": "docx",
+      "sha256": "c82a43bee32160570f7e9892ccfd0c0c4789f19f3a631dc311797f4c078853bb",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.html",
+      "format": "html",
+      "sha256": "1a481404b7dae1838420a1c8fedd1073914c848fdd1ef46b32a454a082d0dab6",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-05_chocolate-slab-buying-guide.md",
+      "format": "md",
+      "sha256": "12975722b433716077dba90646e2e72ceab98f0a421f9d751f5758b3d1af1ed8",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.docx",
+      "format": "docx",
+      "sha256": "b3cc0b59557f37591f8ec95f87ea19d58d16e652d5ea1bc47063f253f7b0b2b6",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.html",
+      "format": "html",
+      "sha256": "ecb31baee9989a0886729e2e131d7212341634a5b635d41cc4ec9760f5f7c21a",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-06_single-origin-chocolate-collection-guide.md",
+      "format": "md",
+      "sha256": "19b2122223ac9783af38ddbcad596397085b2feb8557a0c5724570621e11df32",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.docx",
+      "format": "docx",
+      "sha256": "212521431bf774804b0e7c6ae3d114afa556cbdc3aa5ff5662996c46166f0e7b",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.html",
+      "format": "html",
+      "sha256": "78def0899874ccb56fc547834316c2f309226df18681f25a18e71b496ea68e3b",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-07_design-your-own-chocolate-box-guide.md",
+      "format": "md",
+      "sha256": "a859f88679ad425f427204f3df975dc580c95fc57d97d62985347519fe705769",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.docx",
+      "format": "docx",
+      "sha256": "e82ff048286685f081d28684bb9e26226985fdae944d24e0ee936c89f0122484",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.html",
+      "format": "html",
+      "sha256": "2e80417b1d9d65051cc8a977a7babed50efa344d4c8f60317a951cc2d4fd0a68",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-08_confectionery-collection-guide.md",
+      "format": "md",
+      "sha256": "719a108c7eb46a15dd56e420e59bf330e47ee0b4f296712c68b30cd237cc433e",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.docx",
+      "format": "docx",
+      "sha256": "ee3591883deae3107cb374e848785eb6bc398413d335e4e77126bbd5a1f20e07",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.html",
+      "format": "html",
+      "sha256": "5f839f28e1fbbd7c52542c56abdb0302f80f815d7fcf79f638b99624248775b9",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-09_corporate-chocolate-enquiry-guide.md",
+      "format": "md",
+      "sha256": "816097c7ea168664eae825e165259fb009bf8baa415d2543cf55883441591c72",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.docx",
+      "format": "docx",
+      "sha256": "517f7555503b91875be63115467c44b22b2fa501dfc51cf6ae97b8da096a67b9",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.html",
+      "format": "html",
+      "sha256": "caaa1736219266b508624b16c28dfd40f4593765a68593e26e174d440245644a",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-10_events-and-corporate-chocolate-planning-guide.md",
+      "format": "md",
+      "sha256": "8577062f5f5afd077a189cc0ad280de6fd0c81bf24f8ed1f8ab9ce558406de51",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.docx",
+      "format": "docx",
+      "sha256": "99bf9ffd7603b9e2dc2b5d3c8718fce3f879c93a7f10c0795f1e4cdf89caf987",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.html",
+      "format": "html",
+      "sha256": "0e32c3b85c2dbeef5b942489fe289f04bb1f4e5f6336164608baed8ffa10db0e",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-11_wedding-chocolate-planning-guide.md",
+      "format": "md",
+      "sha256": "77890258884e69b5e00bedd2da8c44bba5269cc207f180ab1927ececc0b4cb27",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.docx",
+      "format": "docx",
+      "sha256": "400fbbe0bb21f616495ac9ed7d8f5c0c66f0b9a99f33ef8b04003a7855f35beb",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.html",
+      "format": "html",
+      "sha256": "cb1375acae4a133e4ba98080199d441f0a11f72c6ec34e33beebf65104576a48",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-12_wholesale-chocolate-enquiry-guide.md",
+      "format": "md",
+      "sha256": "1c180a2a0ca64dc2bebde4f0959beb22e34a223c4fddead5c7083e1528b4bd91",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.docx",
+      "format": "docx",
+      "sha256": "1d4445c5b7cea23f9e2ad92a2eb2a21fb5485c7efbcb27e314047757fa840321",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.html",
+      "format": "html",
+      "sha256": "dab9232bd3d5ab5840825b9b1278bc7c49e12648cbed4e02c3b86579ccc9dbed",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-13_chocolate-delivery-planning-guide.md",
+      "format": "md",
+      "sha256": "9adcbe630854a81e8b40eaea79e68a7f8c59d4b4d35de3dec02bf0f6afaef932",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.docx",
+      "format": "docx",
+      "sha256": "d4894c0d16316b098d5f4c9397740f85761d38522691634be77d7f0526543dfe",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.html",
+      "format": "html",
+      "sha256": "774f8e5d7bd8f028b3c3c9c138dabbaaa986fd033bfddaebe482a5bb82de81e2",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-14_about-kakawa-evidence-led-page-refresh.md",
+      "format": "md",
+      "sha256": "a4afb8f79a303437e0880610f6c3270d1635382c161a8ccafdf3aa3ecc6284c7",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.docx",
+      "format": "docx",
+      "sha256": "52aac9325856f1f3c52caf9d4ddf426184f76801db8e8519649c9338d82f1e81",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.html",
+      "format": "html",
+      "sha256": "a04e311367976c702b28d492643c692b052c39a3cc5fa84ac2c53e868f426df4",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-15_how-kakawa-presents-its-chocolate-making-process.md",
+      "format": "md",
+      "sha256": "3afe338fd230d771b062281bf6c8e18894aaf75087abb4bc50cca981aa9deb79",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.docx",
+      "format": "docx",
+      "sha256": "a487174e497bdfae799047ad2d561585bbe1d75fd8ce3ca3d01d9e234f0574d1",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.html",
+      "format": "html",
+      "sha256": "d91af4e70bcf508ba430f212a72b0e6ebd3f7899e70e1419ad4155a18fedc09f",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-16_ingredients-and-ethics-information-guide.md",
+      "format": "md",
+      "sha256": "f3b72e737edc8deab9f88f2122c79eff0c734d057dce2e415d0efbab873fff2e",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.docx",
+      "format": "docx",
+      "sha256": "34b19d9d9a92c1dc4ffce1c8781f5f710d53f73b781b1e91a0a79231605932a5",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.html",
+      "format": "html",
+      "sha256": "78c072cd01ab2e3f295890004b68f95f4eb02fadda8dbe4ad2f014a824981374",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-17_kakawa-rewards-information-guide.md",
+      "format": "md",
+      "sha256": "6c37e0e9fb637ff1e07f69d860ef77344e63ebc75c7ac57400fe7279495fab2b",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.docx",
+      "format": "docx",
+      "sha256": "852a9f95966cc35645a9b7195a6b2705e98133a0eb77c6dbf7307e81b198b9ac",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.html",
+      "format": "html",
+      "sha256": "89e19abd691c2c353b1799ab5df4ddb69a07dffb287ad79bb03e3e0132701292",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-18_chocolate-journal-discovery-hub.md",
+      "format": "md",
+      "sha256": "0630748835b34c89920b1608af404ead0559f16f6d94791be8c534895eb30f7b",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.docx",
+      "format": "docx",
+      "sha256": "70496e7db28d480194c999130c00f78581b552fc4b22cd72cdb0e457be977952",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.html",
+      "format": "html",
+      "sha256": "fb07ea848c1ad04eded098c869f95364c491914947b5a5c0542bab98faef7d74",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-19_christmas-chocolate-planning-guide.md",
+      "format": "md",
+      "sha256": "af63b670c325d27071fb48f381778cdf302978b7d1220f2aa5a741f1155231f9",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.docx",
+      "format": "docx",
+      "sha256": "d1435abb6c1dc2e696465c23f864566adbdb8e881c5fa0d38be95d13d559d6f9",
+      "status": "STRUCTURAL_PASS_RENDERER_UNAVAILABLE",
+      "visual_preview": null,
+      "sections": 1,
+      "tables": 4
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.html",
+      "format": "html",
+      "sha256": "8f2c1da3cd781ebaa724c6c9ce3ba0942d5e1435b181b855f66b51ccd80c1f4a",
+      "status": "STRUCTURAL_PASS_SELF_CONTAINED",
+      "visual_preview": null
+    },
+    {
+      "path": "05_Content/CONTENT-20_easter-chocolate-planning-guide.md",
+      "format": "md",
+      "sha256": "1ee62be9dd88b47ae452979f6c3c86e7ac80eaa7be83815556847e25d869c04a",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/availability_and_release_notes.json",
+      "format": "json",
+      "sha256": "eadada75d8e5f7cec034c19eeb5fefb148fa82eed8711b50a8e8e134a9b17986",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/availability_matrix.csv",
+      "format": "csv",
+      "sha256": "a9d19b98c474f7dc0b55a1ea7eadfae04c53007aa960176fed8e9aca68b929bc",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/change_log.csv",
+      "format": "csv",
+      "sha256": "03e84758c3d68ea40de424aef13e0e74b58921b205e400c7d472b1e0a95b0dfd",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/generation_ledger.csv",
+      "format": "csv",
+      "sha256": "2e985ac511eff51a88d295474326294a8da50685202be60375c83fedb3e1800b",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.json",
+      "format": "json",
+      "sha256": "a72347af45ad1fbf94e87415006827e3adf27369aa5e03b807fc8108ad07a846",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.pdf",
+      "format": "pdf",
+      "sha256": "72c2d4075bd1de3cb2c7575e270b807454ef44e871cd4ffadc68160be1780b90",
+      "status": "RENDER_PASS",
+      "visual_preview": "pdf/Kakawa_QA_v19.png",
+      "pages": 2
+    },
+    {
+      "path": "06_QA_and_Manifest/Kakawa_QA_v19.xlsx",
+      "format": "xlsx",
+      "sha256": "a819d2107d2eb79a7df8bedf1f832ba772e1cec4846fd677af7d86658f806611",
+      "status": "OOXML_PASS_WITH_ARTIFACT_TOOL_PREVIEWS",
+      "visual_preview": null
+    },
+    {
+      "path": "06_QA_and_Manifest/render-verification.json",
+      "format": "json",
+      "sha256": "5b2b31a3a33856ab3cfdfa020a5e997a324e47859f7c42f4797f820823165a0e",
+      "status": "STRUCTURAL_PASS",
+      "visual_preview": null
+    }
+  ],
+  "required_artifact_tool_previews": [
+    "deck/deck-montage.webp",
+    "workbooks/action-dashboard.png",
+    "workbooks/action-gantt.png",
+    "workbooks/audit-executive.png",
+    "workbooks/audit-issues.png",
+    "workbooks/qa-gates.png",
+    "workbooks/qa-release.png"
+  ],
+  "missing_previews": [],
+  "limitations": [
+    "DOCX files received structural, accessibility and OOXML geometry verification; a Word/LibreOffice renderer was unavailable in this environment.",
+    "XLSX and PPTX visual evidence was produced by the required artifact renderer and stored outside the client package to avoid preview duplication."
+  ]
+}
