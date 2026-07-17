@@ -30,6 +30,7 @@ from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from audit_engine.models import VerifiedFact
+from audit_engine.rules import RULESET_VERSION
 from generation import FactPack, GenerationConfig, GenerationPurpose, OpenAIBoundary
 from generation.openai_boundary import GenerationStatus
 from generation.quality import validate_claims
@@ -43,6 +44,7 @@ from .domain.constants import (
     ReviewStatus,
     RunState,
     Severity,
+    StageStatus,
     UserRole,
 )
 from .domain.models import (
@@ -58,6 +60,7 @@ from .domain.models import (
     PackageManifest,
     Project,
     QAResult,
+    Recommendation,
     RunStage,
     SourceImport,
 )
@@ -75,6 +78,7 @@ from .domain.workflow import (
     InvalidTransition,
     QualityGateFailed,
     TransitionConflict,
+    create_run_idempotent,
     decide_approval,
     transition_run,
 )
@@ -874,6 +878,27 @@ def project_create_view(request):
                 _project_create_context(form),
                 status=503,
             )
+        if settings.AUTO_START_AUDIT_RUNS:
+            run, _ = create_run_idempotent(
+                project=project,
+                profile=project.default_profile,
+                idempotency_key=f"project-create-{project.pk}",
+                rule_version=RULESET_VERSION,
+                actor=request.user,
+                request=request,
+            )
+            try:
+                from audit_engine.tasks import run_website_audit
+                run_website_audit.delay(str(run.pk))
+            except Exception as exc:
+                run.state = RunState.FAILED
+                run.error_code = "audit_queue_unavailable"
+                run.error_summary = "The audit queue is temporarily unavailable. Resume this run to retry."
+                run.save(update_fields=["state", "error_code", "error_summary", "updated_at"])
+                record_event(
+                    event_type="audit.queue_failed", actor=request.user, request=request,
+                    run=run, object_instance=run, payload={"exception": type(exc).__name__},
+                )
         ai_status = _generate_ai_intake_brief(
             project=project, actor=request.user, request=request
         )
@@ -975,6 +1000,8 @@ def _project_detail_context(project: Project) -> dict:
         "priority_findings": priority_findings,
         "source_summary": source_summary,
         "current_approval": current_approval,
+        "audit_progress": _audit_progress_payload(latest),
+        "audit_active": bool(latest and latest.state in {RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING}),
     }
 
 
@@ -1021,6 +1048,41 @@ def _audit_download_available(user, project: Project, latest: AuditRun | None) -
         _latest_downloadable_artifact(user, project)
         or (latest and can_manage_project(user, project))
     )
+
+
+def _audit_progress_payload(run):
+    if not run:
+        return {
+            "state": "not_started", "label": "Waiting to start", "percent": 0,
+            "pages": 0, "findings": 0, "recommendations": 0, "active": False,
+            "failed": False, "message": "No audit run exists.",
+        }
+    percent = {
+        RunState.DRAFT: 2, RunState.COLLECTING: 25, RunState.AUDITING: 72,
+        RunState.FAILED: 100, RunState.CANCELLED: 100,
+    }.get(run.state, 100)
+    label = {
+        RunState.DRAFT: "Queued", RunState.COLLECTING: "Crawling the website",
+        RunState.AUDITING: "Analysing evidence",
+        RunState.GATE_1_REVIEW: "Audit ready for review",
+        RunState.FAILED: "Audit needs attention", RunState.CANCELLED: "Audit cancelled",
+    }.get(run.state, run.get_state_display())
+    stage = run.stages.filter(status=StageStatus.RUNNING).order_by("-sequence").first()
+    return {
+        "state": run.state, "label": label, "percent": percent,
+        "pages": run.pages.count(), "findings": run.findings.count(),
+        "recommendations": Recommendation.objects.filter(finding__run=run).count(),
+        "active": run.state in {RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING},
+        "failed": run.state == RunState.FAILED,
+        "message": run.error_summary or ((stage.checkpoint or {}).get("message") if stage else ""),
+    }
+
+
+@login_required
+@require_GET
+def project_progress_view(request, project_id):
+    project = _project_for_user(request, project_id)
+    return JsonResponse(_audit_progress_payload(project.audit_runs.first()))
 
 
 @login_required

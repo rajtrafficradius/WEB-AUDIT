@@ -16,6 +16,7 @@ urlpatterns = [
     path("projects/", views.dashboard_view, name="project-list"),
     path("projects/new/", views.project_create_view, name="project-create"),
     path("projects/<uuid:project_id>/", views.project_detail_view, name="project-detail"),
+    path("projects/<uuid:project_id>/progress/", views.project_progress_view, name="project-progress"),
     path(
         "projects/<uuid:project_id>/intake/",
         views.project_intake_view,

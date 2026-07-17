@@ -334,7 +334,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_DEFAULT_QUEUE = "analysis"
-CELERY_IMPORTS = ("app.domain.tasks", "exporters.tasks")
+CELERY_IMPORTS = ("app.domain.tasks", "audit_engine.tasks", "exporters.tasks")
 CELERY_TASK_ROUTES = {
     "studio.analysis.*": {"queue": "analysis"},
     "studio.scheduler.*": {"queue": "analysis"},
@@ -381,6 +381,9 @@ CELERY_BEAT_MAX_LOOP_INTERVAL = int(os.getenv("CELERY_BEAT_MAX_LOOP_INTERVAL", "
 CREDENTIAL_ENCRYPTION_KEYS = os.getenv("CREDENTIAL_ENCRYPTION_KEYS", "")
 CREDENTIAL_ENCRYPTION_ACTIVE_KEY = os.getenv("CREDENTIAL_ENCRYPTION_ACTIVE_KEY", "")
 OPENAI_INTAKE_GENERATION_ENABLED = env_bool("OPENAI_INTAKE_GENERATION_ENABLED", True)
+AUTO_START_AUDIT_RUNS = env_bool("AUTO_START_AUDIT_RUNS", not _RUNNING_TESTS)
+AUTO_AUDIT_PAGE_LIMIT = max(1, min(2500, int(os.getenv("AUTO_AUDIT_PAGE_LIMIT", "75"))))
+AUTO_AUDIT_DURATION_SECONDS = max(30, int(os.getenv("AUTO_AUDIT_DURATION_SECONDS", "180")))
 OPENAI_STRATEGY_MODEL = os.getenv("OPENAI_STRATEGY_MODEL", "gpt-5.6-sol").strip()
 OPENAI_EXTRACTION_MODEL = os.getenv("OPENAI_EXTRACTION_MODEL", "gpt-5.6-luna").strip()
 

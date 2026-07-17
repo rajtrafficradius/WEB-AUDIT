@@ -52,4 +52,44 @@
       if (message && !window.confirm(message)) event.preventDefault();
     });
   });
-})();
+
+  document.querySelectorAll("[data-audit-progress]").forEach(function (card) {
+    if (card.getAttribute("data-active") !== "true") return;
+    var url = card.getAttribute("data-progress-url");
+    var track = card.querySelector('[role="progressbar"]');
+    var priorState = "";
+    function setText(selector, value) {
+      var node = card.querySelector(selector);
+      if (node) node.textContent = value;
+    }
+    function poll() {
+      window.fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+        .then(function (response) {
+          if (!response.ok) throw new Error("Progress request failed");
+          return response.json();
+        })
+        .then(function (data) {
+          setText("[data-progress-label]", data.label);
+          setText("[data-progress-message]", data.message || "The audit uses approved-domain evidence only.");
+          setText("[data-progress-percent]", data.percent + "%");
+          setText("[data-progress-pages]", data.pages);
+          setText("[data-progress-findings]", data.findings);
+          setText("[data-progress-recommendations]", data.recommendations);
+          if (track) {
+            track.style.setProperty("--progress", data.percent + "%");
+            track.setAttribute("aria-valuenow", String(data.percent));
+          }
+          if (!data.active) {
+            window.setTimeout(function () { window.location.reload(); }, 700);
+            return;
+          }
+          priorState = data.state;
+          window.setTimeout(poll, 2200);
+        })
+        .catch(function () {
+          setText("[data-progress-message]", "Still working. Reconnecting to the progress service…");
+          window.setTimeout(poll, 5000);
+        });
+    }
+    poll();
+  });})();

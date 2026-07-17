@@ -446,3 +446,28 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
   .editorial-panel, .table-wrap { break-inside: avoid; border-color: #777; }
   .data-table th { position: static; color: black; background: #ddd; }
 }
+
+/* Project audit workspace */
+.project-heading { padding-bottom: var(--space-lg); }
+.project-tabs { display:flex; gap:var(--space-lg); overflow-x:auto; padding:var(--space-sm) 0; border-block:1px solid var(--rule-strong); white-space:nowrap; }
+.project-tabs a { color:var(--ink-soft); font-size:.82rem; font-weight:700; }
+.project-tabs a:hover { color:var(--blue); }
+.audit-progress-card { margin:var(--space-xl) 0 0; padding:var(--space-xl); border:1px solid var(--rule-strong); border-left:5px solid var(--blue); background:var(--paper-raised); box-shadow:0 10px 28px rgba(19,38,58,.06); }
+.audit-progress-card--failed { border-left-color:var(--red); }
+.audit-progress-card__header { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-lg); }
+.audit-progress-card__header h2 { margin:.25rem 0; font-family:var(--font-display); font-size:clamp(1.4rem,3vw,2.1rem); }
+.audit-progress-card__percent { color:var(--navy-dark); font-family:var(--font-display); font-size:2rem; font-variant-numeric:tabular-nums; }
+.progress-track--audit { height:.65rem; margin-top:var(--space-lg); }
+.progress-track--audit > span { transition:width .45s ease; background:linear-gradient(90deg,var(--blue),var(--green)); }
+.audit-live-metrics { display:flex; flex-wrap:wrap; gap:var(--space-lg); margin-top:var(--space-md); color:var(--ink-soft); font-size:.82rem; }
+.audit-live-metrics strong { color:var(--navy-dark); font-family:var(--font-data); }
+.project-metrics { margin-top:var(--space-xl); }
+.project-overview-grid { display:grid; grid-template-columns:1.35fr .65fr; gap:var(--space-lg); margin-top:var(--space-xl); }
+.results-section { margin-top:var(--space-xl); }
+@media (max-width:760px) {
+  .project-tabs { gap:var(--space-md); }
+  .audit-progress-card { padding:var(--space-lg); }
+  .audit-progress-card__header { align-items:center; }
+  .audit-progress-card__percent { font-size:1.45rem; }
+  .project-overview-grid { grid-template-columns:1fr; }
+}

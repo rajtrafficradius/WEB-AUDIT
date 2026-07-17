@@ -14,6 +14,9 @@ case "${1:-web}" in
     if [ -n "${SEO_STUDIO_BOOTSTRAP_ADMIN_ID:-}" ] && [ -n "${SEO_STUDIO_BOOTSTRAP_PASSWORD:-}" ]; then
       python manage.py bootstrap_admin_from_env
     fi
+    if [ "${EMBED_ANALYSIS_WORKER:-1}" = "1" ]; then
+      celery -A app worker --loglevel=${LOG_LEVEL:-INFO} --queues=analysis --concurrency=1 --max-tasks-per-child=20 &
+    fi
     exec gunicorn app.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 120 --access-logfile - --error-logfile -
     ;;
   analysis-worker)
