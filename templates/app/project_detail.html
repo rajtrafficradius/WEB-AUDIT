@@ -22,9 +22,9 @@
     </div>
     <div class="page-heading__actions">
       <a class="button button--quiet" href="{{ intake_url }}">Edit setup</a>
-      {% if audit_download_available %}<a class="button button--secondary" href="{{ audit_download_url }}">Download audit results</a>{% endif %}
-      {% if can_build_package %}<form method="post" action="{{ package_build_url }}" class="inline-action">{% csrf_token %}<button class="button button--secondary" type="submit">Build package</button></form>{% endif %}
-      {% if latest_run %}{% url 'run-detail' latest_run.pk as run_url %}<a class="button" href="{{ run_url }}">Run details</a>{% endif %}
+      {% if audit_download_available %}<a class="button" href="{{ audit_download_url }}">Download audit results</a>{% endif %}
+      {% if can_retry_package %}<form method="post" action="{{ package_build_url }}" class="inline-action">{% csrf_token %}<button class="button button--secondary" type="submit">Retry package build</button></form>{% endif %}
+      {% if latest_run %}{% url 'run-detail' latest_run.pk as run_url %}<a class="button button--quiet" href="{{ run_url }}">Run details</a>{% endif %}
     </div>
   </header>
 
@@ -54,6 +54,19 @@
       <span><strong data-progress-findings>{{ audit_progress.findings }}</strong> findings</span>
       <span><strong data-progress-recommendations>{{ audit_progress.recommendations }}</strong> recommendations</span>
     </div>
+    {% if audit_download_available %}
+    <div class="audit-progress-card__cta">
+      <a class="button" href="{{ audit_download_url }}">Download audit results</a>
+      <span class="muted">One ZIP: summary, workbooks, strategy, action plan, deck and QA manifest.</span>
+    </div>
+    {% elif can_retry_package %}
+    <div class="audit-progress-card__cta">
+      <form method="post" action="{{ package_build_url }}" class="inline-action">{% csrf_token %}
+        <button class="button" type="submit">Retry package build</button>
+      </form>
+      <span class="muted">The audit finished; only the deliverable packaging step needs a retry.</span>
+    </div>
+    {% endif %}
   </section>
 
   <dl class="metric-ledger project-metrics" aria-label="Audit results summary">

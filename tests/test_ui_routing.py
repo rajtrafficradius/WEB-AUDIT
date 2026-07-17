@@ -304,30 +304,50 @@ class UIRoutingTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url, secure=True).status_code, 404)
 
-    def test_project_detail_shows_short_summary_and_download_button(self):
-        self.client.force_login(self.admin)
-        response = self.client.get(
-            reverse("project-detail", args=(self.project.pk,)), secure=True
+    def _seed_package_artifact(self):
+        from app.domain.models import Artifact
+
+        return Artifact.objects.create(
+            run=self.run,
+            artifact_type="package",
+            title=f"{self.project.client.name} SEO audit package",
+            format="zip",
+            storage_key=f"clients/{self.project.client_id}/package.zip",
+            sha256="a" * 64,
+            size_bytes=1024,
+            media_type="application/zip",
+            metadata={"run_version": self.run.version},
         )
+
+    def test_project_detail_hides_download_until_the_package_exists(self):
+        self.client.force_login(self.admin)
+        url = reverse("project-detail", args=(self.project.pk,))
+
+        response = self.client.get(url, secure=True)
         self.assertContains(response, "Short summary below.")
+        self.assertNotContains(response, "Download audit results")
+
+        self._seed_package_artifact()
+        response = self.client.get(url, secure=True)
         self.assertContains(response, "Download audit results")
 
-    def test_latest_audit_download_falls_back_to_html_for_agency_user(self):
+    def test_download_without_package_redirects_instead_of_serving_html(self):
         self.client.force_login(self.admin)
         response = self.client.get(
             reverse("audit-results-download", args=(self.project.pk,)), secure=True
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "text/html; charset=utf-8")
-        self.assertIn("attachment;", response["Content-Disposition"])
-        self.assertIn("audit-results.html", response["Content-Disposition"])
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(
+            reverse("project-detail", args=(self.project.pk,)), response["Location"]
+        )
 
-    def test_client_reviewer_cannot_download_unapproved_fallback(self):
+    def test_client_reviewer_without_approved_package_is_redirected(self):
         self.client.force_login(self.reviewer)
+        self._seed_package_artifact()  # review_status stays draft
         response = self.client.get(
             reverse("audit-results-download", args=(self.project.pk,)), secure=True
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
     def test_mutation_routes_reject_get(self):
         self.client.force_login(self.admin)

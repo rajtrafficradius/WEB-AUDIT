@@ -6,7 +6,6 @@ import json
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from io import BytesIO
 from types import SimpleNamespace
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -1041,21 +1040,18 @@ def _latest_downloadable_artifact(user, project: Project) -> Artifact | None:
         .filter(run__project=project)
         .order_by("-created_at")
     )
-    for artifact_type in ("package", "final_package", "run_summary_html"):
+    # Only the finished deliverable package is a downloadable audit result.
+    # Serving intermediate formats (HTML summaries) here confused users into
+    # thinking the HTML *was* the deliverable.
+    for artifact_type in ("package", "final_package"):
         for artifact in artifacts.filter(artifact_type=artifact_type):
             if can_download_artifact(user, artifact):
                 return artifact
-    for artifact in artifacts:
-        if can_download_artifact(user, artifact):
-            return artifact
     return None
 
 
 def _audit_download_available(user, project: Project, latest: AuditRun | None) -> bool:
-    return bool(
-        _latest_downloadable_artifact(user, project)
-        or (latest and can_manage_project(user, project))
-    )
+    return _latest_downloadable_artifact(user, project) is not None
 
 
 def _audit_progress_payload(run):
@@ -1219,11 +1215,16 @@ def project_detail_view(request, project_id):
     context["audit_download_available"] = _audit_download_available(
         request.user, project, context["latest_run"]
     )
-    context["can_build_package"] = bool(
+    packaging_stage = (
+        latest.stages.filter(name="packaging").first() if latest is not None else None
+    )
+    context["can_retry_package"] = bool(
         latest
         and latest.state in PACKAGEABLE_STATES
         and can_manage_project(request.user, project)
         and not _package_artifact_exists(latest)
+        and packaging_stage is not None
+        and packaging_stage.status == StageStatus.FAILED
     )
     return render(request, "app/project_detail.html", context)
 
@@ -2297,54 +2298,45 @@ def export_download_view(request, project_id, package_id):
 @login_required
 @require_GET
 def audit_results_download_view(request, project_id):
-    """Download the best available audit result without weakening approval controls."""
+    """Download the deliverable package ZIP — the only audit result format.
+
+    There is deliberately no HTML (or other intermediate) fallback: when no
+    package exists yet the user is sent back to the project page, where the
+    progress card explains what is happening and queues the build if due.
+    """
 
     project = _project_for_user(request, project_id)
     artifact = _latest_downloadable_artifact(request.user, project)
-    if artifact:
-        try:
-            stream = open_verified_artifact(artifact)
-        except ArtifactIntegrityError:
-            messages.error(request, "Artifact integrity verification failed; download was blocked.")
-            return redirect("project-detail", project_id=project.pk)
-        record_event(
-            event_type="audit.results_downloaded",
-            actor=request.user,
-            request=request,
-            run=artifact.run,
-            object_instance=artifact,
-            payload={"artifact_id": str(artifact.pk), "format": artifact.format},
+    if artifact is None:
+        run = project.audit_runs.first()
+        if run is not None and getattr(settings, "AUTO_BUILD_PACKAGE", False):
+            _dispatch_package_build(run, actor=request.user)
+        messages.info(
+            request,
+            "The deliverable package is still being prepared. "
+            "This page shows live progress and the download unlocks the moment it is ready.",
         )
-        suffix = artifact.format.casefold() if artifact.format else "zip"
-        filename = f"{slugify(artifact.title) or project.slug + '-audit-results'}.{suffix}"
-        response = FileResponse(
-            stream,
-            as_attachment=True,
-            filename=filename,
-            content_type=artifact.media_type or "application/octet-stream",
-        )
-        response["X-Content-Type-Options"] = "nosniff"
-        return response
-
-    run = project.audit_runs.first()
-    if not run or not can_manage_project(request.user, project):
-        raise PermissionDenied("No approved audit result is available for download.")
-    from exporters.tasks import _render_run_summary
-
-    payload = _render_run_summary(run)
+        return redirect("project-detail", project_id=project.pk)
+    try:
+        stream = open_verified_artifact(artifact)
+    except ArtifactIntegrityError:
+        messages.error(request, "Artifact integrity verification failed; download was blocked.")
+        return redirect("project-detail", project_id=project.pk)
     record_event(
-        event_type="audit.results_summary_downloaded",
+        event_type="audit.results_downloaded",
         actor=request.user,
         request=request,
-        run=run,
-        object_instance=run,
-        payload={"format": "html", "fallback": True},
+        run=artifact.run,
+        object_instance=artifact,
+        payload={"artifact_id": str(artifact.pk), "format": artifact.format},
     )
+    suffix = artifact.format.casefold() if artifact.format else "zip"
+    filename = f"{slugify(artifact.title) or project.slug + '-audit-results'}.{suffix}"
     response = FileResponse(
-        BytesIO(payload),
+        stream,
         as_attachment=True,
-        filename=f"{project.slug}-audit-results.html",
-        content_type="text/html; charset=utf-8",
+        filename=filename,
+        content_type=artifact.media_type or "application/octet-stream",
     )
     response["X-Content-Type-Options"] = "nosniff"
     return response

@@ -453,6 +453,7 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 .project-tabs a { color:var(--ink-soft); font-size:.82rem; font-weight:700; }
 .project-tabs a:hover { color:var(--blue); }
 .inline-action { display:contents; }
+.audit-progress-card__cta { display:flex; align-items:center; gap:var(--space-lg); flex-wrap:wrap; margin-top:var(--space-lg); padding-top:var(--space-lg); border-top:1px solid var(--rule); }
 .audit-progress-card { margin:var(--space-xl) 0 0; padding:var(--space-xl); border:1px solid var(--rule-strong); background:var(--paper-raised); box-shadow:inset .3rem 0 0 var(--blue), 0 10px 28px rgba(19,38,58,.06); }
 .audit-progress-card--failed { box-shadow:inset .3rem 0 0 var(--red), 0 10px 28px rgba(19,38,58,.06); }
 .audit-progress-card__header { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-lg); }
