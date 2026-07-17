@@ -131,6 +131,25 @@ def save_artifact_bytes(
     return artifact, created
 
 
+def artifact_bytes_available(artifact: Artifact) -> bool:
+    """True when the artifact's stored bytes are actually retrievable.
+
+    Local container storage is ephemeral across redeploys, so a DB row alone
+    does not prove the object still exists; callers use this to decide
+    between serving a download and rebuilding the artifact.
+    """
+
+    if not artifact.storage_key:
+        return False
+    path = PurePosixPath(artifact.storage_key)
+    if path.is_absolute() or ".." in path.parts:
+        return False
+    try:
+        return default_storage.exists(artifact.storage_key)
+    except Exception:
+        return False
+
+
 def open_verified_artifact(artifact: Artifact) -> BinaryIO:
     """Open an artifact only after checking its path and content hash."""
     path = PurePosixPath(artifact.storage_key)

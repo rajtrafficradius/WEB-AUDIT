@@ -181,6 +181,34 @@ OBJECT_STORAGE_PREFIX = os.getenv("OBJECT_STORAGE_PREFIX", "private/objects").st
 OBJECT_STORAGE_SSE = os.getenv("OBJECT_STORAGE_SSE", "AES256").strip()
 OBJECT_STORAGE_KMS_KEY_ID = os.getenv("OBJECT_STORAGE_KMS_KEY_ID", "").strip()
 
+
+def storage_value_is_placeholder(value: str) -> bool:
+    """True when an AWS setting still carries an unedited template value."""
+
+    return "REPLACE_WITH" in value.upper()
+
+
+OBJECT_STORAGE_MISCONFIGURED = OBJECT_STORAGE_ENABLED and (
+    not AWS_STORAGE_BUCKET_NAME
+    or storage_value_is_placeholder(AWS_STORAGE_BUCKET_NAME)
+    or storage_value_is_placeholder(AWS_ACCESS_KEY_ID)
+    or storage_value_is_placeholder(AWS_SECRET_ACCESS_KEY)
+    or storage_value_is_placeholder(AWS_S3_REGION_NAME)
+    or AWS_S3_ENDPOINT_URL in {"https://", "http://"}
+)
+if OBJECT_STORAGE_MISCONFIGURED:
+    # Booting with a broken S3 backend silently breaks every artifact write
+    # (package builds fail at the final save). Fall back to app-local storage
+    # so the product keeps working; artifacts are rebuildable on demand.
+    import logging as _logging
+
+    _logging.getLogger("app.settings").warning(
+        "Object storage is enabled but AWS settings contain placeholder or "
+        "invalid values; falling back to local artifact storage. Set real S3 "
+        "credentials or OBJECT_STORAGE_ENABLED=false to silence this warning."
+    )
+    OBJECT_STORAGE_ENABLED = False
+
 if (
     not OBJECT_STORAGE_PREFIX
     or any(part in {"", ".", ".."} for part in OBJECT_STORAGE_PREFIX.split("/"))
@@ -430,12 +458,16 @@ def validate_deployed_configuration() -> None:
         failures.append("DATABASE_URL must use PostgreSQL")
     if not REDIS_URL:
         failures.append("REDIS_URL is required")
-    if not OBJECT_STORAGE_ENABLED or not AWS_STORAGE_BUCKET_NAME:
-        failures.append("private S3-compatible object storage is required")
-    if AWS_S3_ENDPOINT_URL and not AWS_S3_ENDPOINT_URL.casefold().startswith("https://"):
-        failures.append("AWS_S3_ENDPOINT_URL must use HTTPS")
-    if not AWS_S3_VERIFY:
-        failures.append("AWS_S3_VERIFY must remain enabled")
+    # Durable S3-compatible storage is recommended (artifacts survive
+    # redeploys) but not mandatory: single-service deployments may run on
+    # local storage because every artifact is rebuildable from the database.
+    if OBJECT_STORAGE_ENABLED:
+        if not AWS_STORAGE_BUCKET_NAME:
+            failures.append("AWS_STORAGE_BUCKET_NAME is required when object storage is enabled")
+        if AWS_S3_ENDPOINT_URL and not AWS_S3_ENDPOINT_URL.casefold().startswith("https://"):
+            failures.append("AWS_S3_ENDPOINT_URL must use HTTPS")
+        if not AWS_S3_VERIFY:
+            failures.append("AWS_S3_VERIFY must remain enabled")
     if not (SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE):
         failures.append("session and CSRF cookies must be Secure")
     if not SECURE_SSL_REDIRECT:

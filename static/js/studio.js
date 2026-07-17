@@ -79,8 +79,19 @@
             track.style.setProperty("--progress", data.percent + "%");
             track.setAttribute("aria-valuenow", String(data.percent));
           }
+          var autoDownloaded = false;
+          if (data.package_ready && data.package_url && data.package_artifact_id) {
+            var downloadKey = "tr-auto-download:" + data.package_artifact_id;
+            var alreadyDownloaded = null;
+            try { alreadyDownloaded = window.sessionStorage.getItem(downloadKey); } catch (err) { alreadyDownloaded = "unsupported"; }
+            if (!alreadyDownloaded) {
+              try { window.sessionStorage.setItem(downloadKey, "1"); } catch (err) { /* private mode */ }
+              autoDownloaded = true;
+              window.location.assign(data.package_url);
+            }
+          }
           if (!data.active) {
-            window.setTimeout(function () { window.location.reload(); }, 700);
+            window.setTimeout(function () { window.location.reload(); }, autoDownloaded ? 1800 : 700);
             return;
           }
           priorState = data.state;

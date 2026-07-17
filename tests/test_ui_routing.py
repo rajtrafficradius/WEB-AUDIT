@@ -305,16 +305,24 @@ class UIRoutingTests(TestCase):
                 self.assertEqual(self.client.get(url, secure=True).status_code, 404)
 
     def _seed_package_artifact(self):
+        from django.core.files.base import ContentFile
+
+        from app.domain import storage as domain_storage
         from app.domain.models import Artifact
 
+        payload = b"zip-bytes"
+        key = domain_storage.default_storage.save(
+            f"clients/{self.project.client_id}/package.zip", ContentFile(payload)
+        )
+        self.addCleanup(domain_storage.default_storage.delete, key)
         return Artifact.objects.create(
             run=self.run,
             artifact_type="package",
             title=f"{self.project.client.name} SEO audit package",
             format="zip",
-            storage_key=f"clients/{self.project.client_id}/package.zip",
+            storage_key=key,
             sha256="a" * 64,
-            size_bytes=1024,
+            size_bytes=len(payload),
             media_type="application/zip",
             metadata={"run_version": self.run.version},
         )

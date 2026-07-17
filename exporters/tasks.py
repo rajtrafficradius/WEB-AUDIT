@@ -15,7 +15,7 @@ from app.domain.audit import record_event
 from app.domain.constants import StageStatus
 from app.domain.models import AuditRun, RunStage
 from app.domain.permissions import can_access_project
-from app.domain.storage import save_artifact_bytes
+from app.domain.storage import artifact_bytes_available, save_artifact_bytes
 
 from .run_package import build_package_for_run
 
@@ -245,7 +245,7 @@ def build_audit_package(
         .order_by("-created_at")
         .first()
     )
-    if existing:
+    if existing and artifact_bytes_available(existing):
         return {
             "run_id": str(run.pk),
             "artifact_id": str(existing.pk),

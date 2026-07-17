@@ -71,7 +71,11 @@ from .domain.permissions import (
     can_manage_project,
     can_review_project,
 )
-from .domain.storage import ArtifactIntegrityError, open_verified_artifact
+from .domain.storage import (
+    ArtifactIntegrityError,
+    artifact_bytes_available,
+    open_verified_artifact,
+)
 from .domain.workflow import (
     ALLOWED_TRANSITIONS,
     ApprovalRequired,
@@ -1045,7 +1049,7 @@ def _latest_downloadable_artifact(user, project: Project) -> Artifact | None:
     # thinking the HTML *was* the deliverable.
     for artifact_type in ("package", "final_package"):
         for artifact in artifacts.filter(artifact_type=artifact_type):
-            if can_download_artifact(user, artifact):
+            if can_download_artifact(user, artifact) and artifact_bytes_available(artifact):
                 return artifact
     return None
 
@@ -1054,12 +1058,13 @@ def _audit_download_available(user, project: Project, latest: AuditRun | None) -
     return _latest_downloadable_artifact(user, project) is not None
 
 
-def _audit_progress_payload(run):
+def _audit_progress_payload(run, user=None):
     if not run:
         return {
             "state": "not_started", "label": "Waiting to start", "percent": 0,
             "pages": 0, "findings": 0, "recommendations": 0, "active": False,
             "failed": False, "message": "No audit run exists.",
+            "package_ready": False, "package_url": None, "package_artifact_id": None,
         }
     percent = {
         RunState.DRAFT: 2, RunState.COLLECTING: 25, RunState.AUDITING: 72,
@@ -1085,6 +1090,17 @@ def _audit_progress_payload(run):
         elif packaging and packaging.status == StageStatus.SUCCEEDED:
             percent, label, active = 100, "Audit complete — package ready to download", False
             message = (packaging.checkpoint or {}).get("message") or message
+    package_artifact = (
+        run.artifacts.filter(artifact_type="package", metadata__run_version=run.version)
+        .order_by("-created_at")
+        .first()
+    )
+    package_ready = package_artifact is not None and artifact_bytes_available(package_artifact)
+    package_url = (
+        reverse("audit-results-download", args=(run.project_id,))
+        if package_ready and user is not None and can_download_artifact(user, package_artifact)
+        else None
+    )
     return {
         "state": run.state, "label": label, "percent": percent,
         "pages": run.pages.count(), "findings": run.findings.count(),
@@ -1092,6 +1108,9 @@ def _audit_progress_payload(run):
         "active": active,
         "failed": run.state == RunState.FAILED,
         "message": message,
+        "package_ready": package_ready,
+        "package_url": package_url,
+        "package_artifact_id": str(package_artifact.pk) if package_ready else None,
     }
 
 
@@ -1110,9 +1129,12 @@ PACKAGE_MAX_AUTO_ATTEMPTS = 3
 
 
 def _package_artifact_exists(run) -> bool:
-    return run.artifacts.filter(
-        artifact_type="package", metadata__run_version=run.version
-    ).exists()
+    artifact = (
+        run.artifacts.filter(artifact_type="package", metadata__run_version=run.version)
+        .order_by("-created_at")
+        .first()
+    )
+    return artifact is not None and artifact_bytes_available(artifact)
 
 
 def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
@@ -1134,7 +1156,14 @@ def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
             (now - stage.heartbeat_at).total_seconds() < PACKAGE_STALE_HEARTBEAT_SECONDS
         ):
             return False
-        if stage.status == StageStatus.FAILED and stage.attempts >= PACKAGE_MAX_AUTO_ATTEMPTS:
+        # Exception to the attempt cap: builds that failed on placeholder
+        # storage config may retry automatically because settings neutralise
+        # that misconfiguration at boot — the retry cannot hit the same error.
+        if (
+            stage.status == StageStatus.FAILED
+            and stage.attempts >= PACKAGE_MAX_AUTO_ATTEMPTS
+            and "REPLACE_WITH" not in (stage.error_summary or "")
+        ):
             return False
         dispatched_raw = (stage.checkpoint or {}).get("dispatched_at")
         if dispatched_raw:
@@ -1165,7 +1194,7 @@ def project_progress_view(request, project_id):
     run = project.audit_runs.first()
     if run is not None and getattr(settings, "AUTO_BUILD_PACKAGE", False):
         _dispatch_package_build(run)
-    return JsonResponse(_audit_progress_payload(run))
+    return JsonResponse(_audit_progress_payload(run, user=request.user))
 
 
 @login_required
