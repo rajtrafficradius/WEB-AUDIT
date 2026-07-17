@@ -10,6 +10,7 @@
 {% url 'export-qa' project.pk as export_url %}
 {% url 'audit-results-download' project.pk as audit_download_url %}
 {% url 'project-progress' project.pk as progress_url %}
+{% url 'project-package-build' project.pk as package_build_url %}
 <div class="page-shell project-workspace">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url }}">Portfolio</a></li><li aria-current="page">{{ project.name }}</li></ol></nav>
 
@@ -22,6 +23,7 @@
     <div class="page-heading__actions">
       <a class="button button--quiet" href="{{ intake_url }}">Edit setup</a>
       {% if audit_download_available %}<a class="button button--secondary" href="{{ audit_download_url }}">Download audit results</a>{% endif %}
+      {% if can_build_package %}<form method="post" action="{{ package_build_url }}" class="inline-action">{% csrf_token %}<button class="button button--secondary" type="submit">Build package</button></form>{% endif %}
       {% if latest_run %}{% url 'run-detail' latest_run.pk as run_url %}<a class="button" href="{{ run_url }}">Run details</a>{% endif %}
     </div>
   </header>

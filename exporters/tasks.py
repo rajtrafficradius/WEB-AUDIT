@@ -218,10 +218,14 @@ def render_run_summary_html(
         }
 
 
+# Named under studio.analysis.* so it routes to the 'analysis' queue — the one
+# queue every deployment shape consumes (the embedded single-service worker,
+# a dedicated analysis worker, or the full multi-service topology). Routing it
+# to 'render' left packages queued forever on deployments without a render
+# consumer.
 @shared_task(
     bind=True,
-    name="exporters.tasks.build_audit_package",
-    queue="render",
+    name="studio.analysis.build_audit_package",
     acks_late=True,
     reject_on_worker_lost=True,
 )

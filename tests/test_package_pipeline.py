@@ -259,6 +259,75 @@ def test_progress_payload_reports_packaging_stage_while_running():
     assert progress["message"] == "Rendering audit workbooks"
 
 
+@pytest.mark.django_db
+def test_manual_package_build_endpoint_queues_and_throttles(monkeypatch, client):
+    import exporters.tasks as exporter_tasks
+
+    run = _seed_run(slug="package-manual")
+    run.state = RunState.GATE_1_REVIEW
+    run.save(update_fields=["state", "updated_at"])
+
+    queued: list[tuple[str, str | None]] = []
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "delay",
+        lambda run_id, actor_id=None: queued.append((run_id, actor_id)),
+    )
+
+    assert client.login(username="package-manual-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    url = f"/projects/{run.project_id}/package/build/"
+
+    response = client.post(url, secure=True)
+    assert response.status_code == 302
+    assert queued and queued[0][0] == str(run.pk)
+    stage = RunStage.objects.get(run=run, name="packaging")
+    assert (stage.checkpoint or {}).get("dispatched_at")
+
+    # Auto-redispatch (non-forced) is throttled by the fresh dispatched_at stamp.
+    run.refresh_from_db()
+    assert views._dispatch_package_build(run) is False
+    assert len(queued) == 1
+
+    # The forced manual endpoint may re-queue.
+    response = client.post(url, secure=True)
+    assert response.status_code == 302
+    assert len(queued) == 2
+
+    # A run that is still auditing cannot queue a package.
+    run.state = RunState.AUDITING
+    run.save(update_fields=["state", "updated_at"])
+    response = client.post(url, secure=True)
+    assert response.status_code == 302
+    assert len(queued) == 2
+
+
+@pytest.mark.django_db
+def test_progress_poll_autodispatches_missing_package(monkeypatch, client, settings):
+    import exporters.tasks as exporter_tasks
+
+    settings.AUTO_BUILD_PACKAGE = True
+    run = _seed_run(slug="package-auto")
+    run.state = RunState.GATE_1_REVIEW
+    run.save(update_fields=["state", "updated_at"])
+
+    queued: list[str] = []
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "delay",
+        lambda run_id, actor_id=None: queued.append(run_id),
+    )
+
+    assert client.login(username="package-auto-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    response = client.get(f"/projects/{run.project_id}/progress/", secure=True)
+    assert response.status_code == 200
+    assert queued == [str(run.pk)]
+
+    # Second poll inside the throttle window must not double-queue.
+    response = client.get(f"/projects/{run.project_id}/progress/", secure=True)
+    assert response.status_code == 200
+    assert queued == [str(run.pk)]
+
+
 @pytest.mark.render
 def test_docx_strategy_title_and_subtitle_follow_the_client_name(tmp_path):
     from docx import Document

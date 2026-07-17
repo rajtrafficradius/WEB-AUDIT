@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
 from types import SimpleNamespace
@@ -448,7 +449,14 @@ class ProjectIntakeForm(forms.Form):
                 self.add_error("approved_domains", exc)
         primary = cleaned.get("primary_domain")
         if primary:
-            cleaned["domain_allowlist"] = sorted({primary, *approved})
+            allowlist = {primary, *approved}
+            # A www host must also allow its registrable apex (the apex already
+            # covers www as a subdomain); otherwise a project entered as
+            # www.example.com rejects every apex-relative internal link.
+            for host in list(allowlist):
+                if host.startswith("www.") and host.count(".") >= 2:
+                    allowlist.add(host[4:])
+            cleaned["domain_allowlist"] = sorted(allowlist)
         return cleaned
 
 
@@ -1091,20 +1099,131 @@ def _audit_progress_payload(run):
     }
 
 
+PACKAGEABLE_STATES = {
+    RunState.GATE_1_REVIEW,
+    RunState.PLANNING,
+    RunState.GENERATING,
+    RunState.GATE_2_REVIEW,
+    RunState.FINAL_QA,
+    RunState.PACKAGED,
+    RunState.APPROVED,
+}
+PACKAGE_DISPATCH_THROTTLE_SECONDS = 300
+PACKAGE_STALE_HEARTBEAT_SECONDS = 600
+PACKAGE_MAX_AUTO_ATTEMPTS = 3
+
+
+def _package_artifact_exists(run) -> bool:
+    return run.artifacts.filter(
+        artifact_type="package", metadata__run_version=run.version
+    ).exists()
+
+
+def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
+    """Queue a deliverable package build when one is due.
+
+    Idempotent and throttled: the packaging stage checkpoint records the last
+    dispatch time so polling cannot flood the queue, and the task itself
+    replays safely because artifacts are content-addressed per run version.
+    """
+
+    if run.state not in PACKAGEABLE_STATES or _package_artifact_exists(run):
+        return False
+    stage = run.stages.filter(name="packaging").first()
+    now = timezone.now()
+    if stage is not None and not force:
+        if stage.status == StageStatus.SUCCEEDED:
+            return False
+        if stage.status == StageStatus.RUNNING and stage.heartbeat_at and (
+            (now - stage.heartbeat_at).total_seconds() < PACKAGE_STALE_HEARTBEAT_SECONDS
+        ):
+            return False
+        if stage.status == StageStatus.FAILED and stage.attempts >= PACKAGE_MAX_AUTO_ATTEMPTS:
+            return False
+        dispatched_raw = (stage.checkpoint or {}).get("dispatched_at")
+        if dispatched_raw:
+            try:
+                age = (now - datetime.fromisoformat(str(dispatched_raw))).total_seconds()
+            except (TypeError, ValueError):
+                age = None
+            if age is not None and 0 <= age < PACKAGE_DISPATCH_THROTTLE_SECONDS:
+                return False
+    if stage is None:
+        stage = RunStage.objects.create(run=run, name="packaging", sequence=30)
+    stage.checkpoint = {**(stage.checkpoint or {}), "dispatched_at": now.isoformat()}
+    stage.save(update_fields=["checkpoint", "updated_at"])
+    try:
+        from exporters.tasks import build_audit_package
+
+        build_audit_package.delay(str(run.pk), str(actor.pk) if actor else None)
+    except Exception:
+        record_event(event_type="package.queue_failed", run=run, object_instance=run)
+        return False
+    return True
+
+
 @login_required
 @require_GET
 def project_progress_view(request, project_id):
     project = _project_for_user(request, project_id)
-    return JsonResponse(_audit_progress_payload(project.audit_runs.first()))
+    run = project.audit_runs.first()
+    if run is not None and getattr(settings, "AUTO_BUILD_PACKAGE", False):
+        _dispatch_package_build(run)
+    return JsonResponse(_audit_progress_payload(run))
+
+
+@login_required
+@require_POST
+def project_package_build_view(request, project_id):
+    project = _project_for_user(request, project_id)
+    _require_manage(request.user, project)
+    run = project.audit_runs.first()
+    if not run or run.state not in PACKAGEABLE_STATES:
+        messages.error(
+            request, "A completed audit run is required before a package can be built."
+        )
+        return redirect("project-detail", project_id=project.pk)
+    if _package_artifact_exists(run):
+        messages.info(
+            request, "The deliverable package for this run version is already built."
+        )
+        return redirect("project-detail", project_id=project.pk)
+    if _dispatch_package_build(run, actor=request.user, force=True):
+        record_event(
+            event_type="package.build_requested",
+            actor=request.user,
+            request=request,
+            run=run,
+            object_instance=run,
+        )
+        messages.success(
+            request,
+            "Package build queued. The progress card updates as each deliverable renders.",
+        )
+    else:
+        messages.error(
+            request,
+            "The package build could not be queued. Check worker availability and retry.",
+        )
+    return redirect("project-detail", project_id=project.pk)
 
 
 @login_required
 @require_GET
 def project_detail_view(request, project_id):
     project = _project_for_user(request, project_id)
+    latest = project.audit_runs.first()
+    if latest is not None and getattr(settings, "AUTO_BUILD_PACKAGE", False):
+        _dispatch_package_build(latest, actor=request.user)
     context = _project_detail_context(project)
     context["audit_download_available"] = _audit_download_available(
         request.user, project, context["latest_run"]
+    )
+    context["can_build_package"] = bool(
+        latest
+        and latest.state in PACKAGEABLE_STATES
+        and can_manage_project(request.user, project)
+        and not _package_artifact_exists(latest)
     )
     return render(request, "app/project_detail.html", context)
 

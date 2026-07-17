@@ -139,6 +139,10 @@ def repair_text(value: str | None) -> str | None:
         if candidate == repaired:
             break
         repaired = candidate
+    # Replacement characters come from lossy charset decodes during the crawl;
+    # they cannot be repaired and would fail the package mojibake gate.
+    if "�" in repaired:
+        repaired = " ".join(repaired.replace("�", " ").split())
     return repaired
 
 

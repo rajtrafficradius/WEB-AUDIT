@@ -503,9 +503,13 @@ class RobotsCache:
                     parser.set_url(robots_url)
                     parser.parse(response.body.decode("utf-8", errors="replace").splitlines())
                     self._policies[origin] = parser
-                elif response.status_code in {401, 403, 429} or response.status_code >= 500:
+                elif response.status_code == 429 or response.status_code >= 500:
+                    # Temporary refusal or server trouble: stay conservative.
                     self._policies[origin] = False
                 else:
+                    # 401/403 robots.txt responses usually come from bot
+                    # challenges on sites whose owners commissioned the audit;
+                    # treating them as a total crawl ban blanks the whole run.
                     self._policies[origin] = True
         policy = self._policies[origin]
         if isinstance(policy, bool):
