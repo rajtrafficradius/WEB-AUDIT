@@ -621,6 +621,7 @@ class PDFReportBuilder:
         """Render a self-contained PDF slide derivative independent of office software."""
         output.parent.mkdir(parents=True, exist_ok=True)
         width, height = landscape(A4)
+        client_name = str(data.get("client", {}).get("name") or "Client").strip() or "Client"
         doc = BaseDocTemplate(
             str(output),
             pagesize=(width, height),
@@ -628,11 +629,12 @@ class PDFReportBuilder:
             rightMargin=20 * mm,
             topMargin=18 * mm,
             bottomMargin=16 * mm,
-            title="Kakawa Enterprise SEO Executive Deck",
+            title=f"{client_name} Enterprise SEO Executive Deck",
             author="Traffic Radius",
             subject="Evidence-led SEO approval deck",
         )
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="slide")
+        footer_brand = f"TRAFFIC RADIUS · {client_name.upper()}"
 
         def background(canvas: Any, document: BaseDocTemplate) -> None:
             canvas.saveState()
@@ -640,7 +642,7 @@ class PDFReportBuilder:
             canvas.rect(0, 0, width, height, fill=1, stroke=0)
             canvas.setFont(self.body_font, 7)
             canvas.setFillColor(_c(MUTED))
-            canvas.drawString(20 * mm, 8 * mm, "TRAFFIC RADIUS · KAKAWA CHOCOLATES")
+            canvas.drawString(20 * mm, 8 * mm, footer_brand)
             canvas.drawRightString(width - 20 * mm, 8 * mm, str(document.page))
             canvas.restoreState()
 

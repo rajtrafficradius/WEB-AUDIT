@@ -257,6 +257,22 @@ class PageSnapshot:
     content_type: str | None = None
     body_sha256: str | None = None
     links: tuple[str, ...] = ()
+    word_count: int | None = None
+    body_bytes: int = 0
+    response_ms: int | None = None
+    images_total: int = 0
+    images_missing_alt: int = 0
+    schema_types: tuple[str, ...] = ()
+    h2: tuple[str, ...] = ()
+    external_links: tuple[str, ...] = ()
+    og_title: bool = False
+    og_description: bool = False
+    lang: str | None = None
+    viewport: bool = False
+    hreflang_count: int = 0
+    analytics_tags: tuple[str, ...] = ()
+    url_depth: int = 0
+    redirect_chain: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _uuid(self.id, "id")
@@ -274,6 +290,16 @@ class PageSnapshot:
                 raise ContractError(f"{name} must be an absolute HTTP(S) URL")
         if self.body_sha256 is not None and len(self.body_sha256) != 64:
             raise ContractError("body_sha256 must be a SHA-256 hexadecimal digest")
+        for name in ("body_bytes", "images_total", "images_missing_alt", "hreflang_count",
+                     "url_depth"):
+            if getattr(self, name) < 0:
+                raise ContractError(f"{name} cannot be negative")
+        for name in ("word_count", "response_ms"):
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ContractError(f"{name} cannot be negative")
+        if self.images_missing_alt > self.images_total:
+            raise ContractError("images_missing_alt cannot exceed images_total")
 
 
 @dataclass(frozen=True, slots=True)

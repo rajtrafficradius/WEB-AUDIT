@@ -13,6 +13,7 @@ htmlcov/
 
 # Runtime and secrets
 .env
+.env.*
 *.sqlite3
 media/
 private_media/

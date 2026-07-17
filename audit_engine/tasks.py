@@ -20,12 +20,31 @@ from app.domain.models import (
 )
 
 from .crawler import BoundedCrawler, CrawlConfig
-from .models import BusinessProfile
+from .models import RUN_LIMITS, BusinessProfile, RunProfile
 from .models import PageSnapshot as EnginePage
 from .rules import RULESET_VERSION, AuditContext, run_rules
+from .scoring import CATEGORY_WEIGHTS, scorecard
 
 IMPACT = {"critical": 95, "high": 80, "medium": 60, "low": 35, "info": 15}
 PENALTY = {"critical": 18, "high": 10, "medium": 5, "low": 2, "info": 0}
+SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+FINDING_EVIDENCE_CAP = 25
+
+# Honest per-category evidence coverage for a crawl-only automatic audit.  Categories
+# that the crawler cannot observe at all (paid tools, backlink indexes, CRO research)
+# stay at 0 so the scorecard withholds rather than fabricates their scores.
+CATEGORY_COVERAGE = {
+    "technical": 1.0,
+    "on_page": 1.0,
+    "performance": 0.5,
+    "analytics": 0.7,
+    "geo_aeo": 0.8,
+    "keyword_architecture": 0.5,
+    "ecommerce": 0.7,
+    "local": 0.6,
+    "cro": 0.0,
+    "authority": 0.0,
+}
 
 
 def _stage(run, name, status, **data):
@@ -48,6 +67,14 @@ def _business_profile(value):
             "hybrid": BusinessProfile.HYBRID}.get(value, BusinessProfile.SERVICE_SAAS)
 
 
+def _page_budget(run):
+    try:
+        profile = RunProfile(run.profile)
+    except ValueError:
+        profile = RunProfile.QUICK
+    return max(1, min(RUN_LIMITS[profile].page_budget, settings.AUTO_AUDIT_PAGE_LIMIT))
+
+
 def _advice(code):
     return {
         "technical.http_status": ("Repair the failing URL", "Restore the URL or propose one relevant approved-domain redirect."),
@@ -56,7 +83,37 @@ def _advice(code):
         "on_page.h1": ("Correct the primary heading", "Use one clear H1 and lower-level headings for supporting sections."),
         "technical.canonical_boundary": ("Review the unsafe canonical", "Propose an approved-domain canonical for administrator review."),
         "technical.robots_directive": ("Confirm indexation intent", "Compare the directive with the page purpose before changing it."),
+        "technical.redirect_chain_length": ("Flatten the redirect chain", "Point every internal link and redirect rule directly at the final destination URL so each request resolves in a single hop."),
+        "technical.canonical_missing": ("Add a self-referencing canonical", "Declare a rel=\"canonical\" link on each page pointing at its own preferred URL to neutralise parameter and duplicate variants."),
+        "technical.duplicate_content": ("Consolidate duplicate pages", "Select one canonical URL per duplicated body, 301-redirect or canonicalise the copies, and repoint internal links at the surviving URL."),
+        "technical.insecure_internal_links": ("Upgrade internal links to HTTPS", "Rewrite internal hrefs that still use http:// to their https:// equivalents so no navigation path passes through an insecure hop."),
+        "technical.broken_internal_link": ("Fix broken internal links", "Update or remove every link that targets a 4xx/5xx URL: restore the destination, or point the link at the closest live equivalent."),
+        "technical.url_hygiene": ("Standardise URL formatting", "Adopt short, lowercase, hyphen-separated paths for new URLs and plan 301 redirects before renaming any live URL."),
+        "technical.deep_page": ("Reduce click depth", "Surface deep pages through hub pages, category listings or contextual links so they sit within four clicks of the homepage."),
+        "technical.orphan_page": ("Link to orphaned pages", "Add at least one crawlable internal link from a relevant indexed page to each orphan, or deliberately retire pages that no longer serve a purpose."),
+        "on_page.title_duplicate": ("Differentiate duplicate titles", "Rewrite each affected title so it names that page's unique topic and intent; never reuse one title across URLs."),
+        "on_page.meta_description_duplicate": ("Differentiate duplicate meta descriptions", "Write a page-specific summary for each affected URL that reflects its own content and call to action."),
+        "on_page.h1_duplicate": ("Differentiate duplicate H1 headings", "Give each affected page a primary heading that states its own topic instead of repeating a shared heading."),
+        "on_page.title_short": ("Expand the short title", "Extend the title into a descriptive 15-60 character phrase that pairs the page topic with its differentiator."),
+        "on_page.thin_content": ("Strengthen thin content", "Expand the page until it fully answers its target intent, or consolidate it into a stronger related page with a 301 redirect."),
+        "on_page.image_alt_missing": ("Add missing image alt text", "Write concise, descriptive alt attributes for every informative image and use empty alt only for purely decorative images."),
+        "on_page.h2_missing": ("Structure long copy with H2 subheadings", "Break the page into scannable sections with descriptive H2 subheadings that reflect the questions the copy answers."),
+        "performance.slow_response": ("Improve server response time", "Profile the slow endpoint, enable caching or a CDN, and reduce server work until HTML responds well under 1.2 seconds."),
+        "performance.heavy_page": ("Reduce page weight", "Compress and lazy-load images, remove unused scripts and defer non-critical assets to bring the document under 1.5 MB."),
+        "analytics.tracking_missing": ("Install site-wide analytics", "Deploy GA4, ideally via Google Tag Manager, across every template and verify events in DebugView before relying on the data."),
+        "analytics.tracking_partial": ("Complete the analytics rollout", "Add the existing analytics container to every template that lacks it so measurement covers the whole site consistently."),
+        "geo_aeo.structured_data_missing": ("Roll out structured data", "Implement JSON-LD appropriate to each template (Organization, WebSite, breadcrumbs, content types) and validate with the Rich Results test."),
+        "geo_aeo.organization_schema_missing": ("Publish Organization schema", "Add a site-wide Organization or LocalBusiness JSON-LD block with legal name, logo, and sameAs links to verified profiles."),
+        "geo_aeo.html_lang_missing": ("Declare the document language", "Set the html lang attribute (for example lang=\"en-AU\") in the base template of every page."),
+        "keyword_architecture.title_cannibalization": ("Resolve title cannibalisation", "Assign each competing page a distinct primary keyword and rewrite its title, or consolidate overlapping pages into one authoritative URL."),
+        "keyword_architecture.generic_title": ("Replace the generic title", "Write a title that leads with the page's primary topic and ends with the brand, instead of the brand name alone."),
+        "ecommerce.product_schema_missing": ("Add Product structured data", "Emit Product JSON-LD with name, image, price, availability and review fields on every product template, then validate a sample."),
+        "local.localbusiness_schema_missing": ("Publish LocalBusiness schema", "Add LocalBusiness JSON-LD with NAP details, geo coordinates and opening hours that match the Google Business Profile exactly."),
     }.get(code, ("Resolve the evidence-backed issue", "Apply the smallest safe correction and verify it in a new crawl."))
+
+
+def _url_depth(url):
+    return len([segment for segment in urlsplit(url).path.split("/") if segment])
 
 
 def _collect(run, result, captured):
@@ -76,6 +133,7 @@ def _collect(run, result, captured):
         if item.final_url in seen or not any(host == v or host.endswith("." + v) for v in allowed):
             continue
         seen.add(item.final_url)
+        depth = _url_depth(item.final_url)
         page = PageSnapshot.objects.create(
             run=run, source_snapshot=source, original_url=item.requested_url,
             normalized_url=item.final_url, domain=host, approved_domain=True,
@@ -85,9 +143,29 @@ def _collect(run, result, captured):
             robots_indexable=not bool({"noindex", "none"}.intersection(item.robots_directives)),
             title=item.title or "", meta_description=item.meta_description or "",
             h1=" | ".join(item.h1), content_sha256=item.body_sha256,
+            response_ms=item.response_ms,
             captured_at=captured, locale=run.project.locale, scope="approved-domain crawl",
             rule_version=RULESET_VERSION, confidence=Decimal("1"),
-            facts={"h1_values": list(item.h1), "robots_directives": list(item.robots_directives), "links": list(item.links)},
+            facts={
+                "h1_values": list(item.h1),
+                "robots_directives": list(item.robots_directives),
+                "links": list(item.links),
+                "external_links": list(item.external_links),
+                "word_count": int(item.word_count or 0),
+                "body_bytes": int(item.body_bytes),
+                "response_ms": item.response_ms,
+                "images_total": int(item.images_total),
+                "images_missing_alt": int(item.images_missing_alt),
+                "schema_types": list(item.schema_types),
+                "h2_values": list(item.h2),
+                "og_title": bool(item.og_title),
+                "og_description": bool(item.og_description),
+                "lang": item.lang,
+                "viewport": bool(item.viewport),
+                "hreflang_count": int(item.hreflang_count),
+                "analytics_tags": list(item.analytics_tags),
+                "url_depth": depth,
+            },
         )
         evidence = Evidence.objects.create(
             run=run, source_snapshot=source, page=page, evidence_type="website_crawl_page",
@@ -104,48 +182,85 @@ def _collect(run, result, captured):
             evidence_id=str(evidence.pk), title=item.title, meta_description=item.meta_description,
             h1=item.h1, canonical_url=item.canonical_url, robots_directives=item.robots_directives,
             content_type=item.content_type, body_sha256=item.body_sha256, links=item.links,
+            word_count=item.word_count, body_bytes=item.body_bytes, response_ms=item.response_ms,
+            images_total=item.images_total, images_missing_alt=item.images_missing_alt,
+            schema_types=item.schema_types, h2=item.h2, external_links=item.external_links,
+            og_title=item.og_title, og_description=item.og_description, lang=item.lang,
+            viewport=item.viewport, hreflang_count=item.hreflang_count,
+            analytics_tags=item.analytics_tags, url_depth=depth,
+            redirect_chain=item.redirect_chain,
         ))
     return pages, evidence_map
 
 
 def _create_findings(run, pages, evidence_map):
+    """Evaluate rules, then persist ONE grouped Finding/Recommendation/Action per rule."""
+
     context = AuditContext(
         project_id=str(run.project_id), pages=tuple(pages),
         allowed_domains=tuple(run.project.approved_domains),
         business_profile=_business_profile(run.project.business_type),
     )
+    engine_findings = run_rules(context)
     page_map = {v.normalized_url: v for v in run.pages.all()}
-    for item in run_rules(context):
+    grouped = {}
+    for item in engine_findings:
+        grouped.setdefault(item.rule_id, []).append(item)
+    total_pages = max(1, len(pages))
+    medium_index = low_index = 0
+    for rule_id in sorted(grouped):
+        group = grouped[rule_id]
+        lead = min(group, key=lambda entry: SEVERITY_RANK[entry.severity.value])
+        severity = lead.severity.value
+        urls = list(dict.fromkeys(url for entry in group for url in entry.affected_urls))
+        share = min(1.0, sum(entry.affected_share for entry in group))
+        affected_count = max(1, len(urls), round(share * total_pages))
+        confidence = min(entry.confidence for entry in group)
+        evidence_ids = list(dict.fromkeys(
+            evidence_id for entry in group for evidence_id in entry.evidence_ids
+        ))[:FINDING_EVIDENCE_CAP]
+        description = lead.description
+        if len(group) > 1:
+            description = f"{description} Observed on {affected_count} crawled pages."
         finding = Finding.objects.create(
-            run=run, page=page_map.get(item.affected_urls[0]) if item.affected_urls else None,
-            category=item.category, code=item.rule_id, title=item.title,
-            description=item.description, severity=item.severity.value,
-            affected_count=max(1, len(item.affected_urls)),
-            affected_share=Decimal(str(round(item.affected_share, 4))),
-            score_penalty=PENALTY[item.severity.value], confidence=item.confidence,
-            rule_version=item.rule_version,
+            run=run, page=page_map.get(urls[0]) if urls else None,
+            category=lead.category, code=rule_id, title=lead.title,
+            description=description, severity=severity,
+            affected_count=affected_count,
+            affected_share=Decimal(str(round(share, 4))),
+            score_penalty=PENALTY[severity],
+            confidence=Decimal(str(round(confidence, 4))),
+            rule_version=lead.rule_version,
         )
-        finding.evidence.add(*[evidence_map[v] for v in item.evidence_ids if v in evidence_map])
-        title, implementation = _advice(item.rule_id)
-        impact = IMPACT[item.severity.value]
-        risk = "medium" if item.risk.value == "moderate" else item.risk.value
+        finding.evidence.add(*[evidence_map[v] for v in evidence_ids if v in evidence_map])
+        title, implementation = _advice(rule_id)
+        impact = IMPACT[severity]
+        risk = "medium" if lead.risk.value == "moderate" else lead.risk.value
         recommendation = Recommendation.objects.create(
-            finding=finding, title=title, rationale=item.description,
+            finding=finding, title=title, rationale=description,
             implementation=implementation, impact=max(1, min(5, round(impact / 20))),
             effort=2 if impact >= 60 else 1, risk_class=risk,
         )
-        score = min(100, round(impact * .42 + item.confidence * 23 + item.affected_share * 15 + 12))
+        if severity in {"critical", "high"}:
+            week = 1
+        elif severity == "medium":
+            week = 2 + medium_index % 3
+            medium_index += 1
+        else:
+            week = 5 + low_index % 4
+            low_index += 1
+        score = min(100, round(impact * .42 + confidence * 23 + share * 15 + 12))
         ActionItem.objects.create(
             run=run, recommendation=recommendation, title=title, description=implementation,
-            week=1 if impact >= 80 else (2 if impact >= 60 else 4),
-            owner_label="SEO / web team", impact=impact,
-            evidence_confidence=round(item.confidence * 100, 2),
-            reach=round(item.affected_share * 100, 2), business_criticality=impact,
+            week=week, owner_label="SEO / web team", impact=impact,
+            evidence_confidence=round(confidence * 100, 2),
+            reach=round(share * 100, 2), business_criticality=impact,
             dependency_urgency=70 if impact >= 80 else 40, effort=40 if impact >= 60 else 20,
             priority_score=score,
             priority_tier="P1" if score >= 75 else ("P2" if score >= 55 else ("P3" if score >= 35 else "P4")),
             risk_class=risk,
         )
+    return engine_findings
 
 
 @shared_task(bind=True, name="audit_engine.tasks.run_website_audit", queue="analysis",
@@ -160,7 +275,7 @@ def run_website_audit(self, run_id):
         _stage(run, "collecting", StageStatus.RUNNING, message="Discovering pages")
         result = BoundedCrawler(CrawlConfig(
             allowed_domains=tuple(run.project.approved_domains),
-            max_pages=settings.AUTO_AUDIT_PAGE_LIMIT, max_depth=4,
+            max_pages=_page_budget(run), max_depth=5,
             max_duration_seconds=settings.AUTO_AUDIT_DURATION_SECONDS,
             request_timeout_seconds=12, min_host_delay_seconds=.2,
         )).crawl((f"https://{run.project.primary_domain}/",))
@@ -172,16 +287,42 @@ def run_website_audit(self, run_id):
         run.state, run.source_cutoff_at = RunState.AUDITING, captured
         run.save(update_fields=["state", "source_cutoff_at", "updated_at"])
         _stage(run, "auditing", StageStatus.RUNNING, message="Applying evidence rules")
-        _create_findings(run, pages, evidence)
-        coverage = min(100, round(len(pages) * 100 / max(1, result.discovered_count), 2))
-        penalty = sum(float(v) for v in run.findings.values_list("score_penalty", flat=True))
-        run.evidence_coverage, run.confidence = Decimal(str(coverage)), Decimal("1")
-        run.health_score = Decimal(str(max(0, round(100 - penalty, 2)))) if coverage >= 70 else None
+        engine_findings = _create_findings(run, pages, evidence)
+        profile = _business_profile(run.project.business_type)
+        card = scorecard(profile, engine_findings, CATEGORY_COVERAGE)
+        run.evidence_coverage = Decimal(str(round(card.weighted_coverage * 100, 2)))
+        run.confidence = Decimal("1")
+        run.health_score = (
+            Decimal(str(card.overall_score))
+            if card.overall_score is not None and card.weighted_coverage >= 0.70
+            else None
+        )
         run.state, run.version = RunState.GATE_1_REVIEW, run.version + 1
         run.save(update_fields=["evidence_coverage", "confidence", "health_score", "state", "version", "updated_at"])
-        _stage(run, "auditing", StageStatus.SUCCEEDED, output_count=run.findings.count())
+        weights = CATEGORY_WEIGHTS[profile]
+        _stage(
+            run, "auditing", StageStatus.SUCCEEDED, output_count=run.findings.count(),
+            scorecard=[
+                {"category": item.category, "score": item.score,
+                 "coverage": item.evidence_coverage,
+                 "weight": float(weights.get(item.category, 0.0)),
+                 "finding_count": item.finding_count}
+                for item in card.categories
+            ],
+            stopped_reason=result.stopped_reason, discovered=result.discovered_count,
+        )
         record_event(event_type="audit.ready_for_review", run=run, object_instance=run,
                      payload={"pages": len(pages), "findings": run.findings.count()})
+        if getattr(settings, "AUTO_BUILD_PACKAGE", False):
+            try:
+                from exporters.tasks import build_audit_package
+
+                RunStage.objects.get_or_create(
+                    run=run, name="packaging", defaults={"sequence": 30}
+                )
+                build_audit_package.delay(str(run.pk))
+            except Exception:
+                record_event(event_type="package.queue_failed", run=run, object_instance=run)
         return {"run_id": run_id, "state": run.state, "pages": len(pages), "findings": run.findings.count()}
     except Exception as exc:
         active = run.stages.filter(status=StageStatus.RUNNING).order_by("-sequence").first()

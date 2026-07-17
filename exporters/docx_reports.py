@@ -265,14 +265,15 @@ class DOCXReportBuilder:
     def strategy_report(self, data: dict[str, Any], output: Path) -> Path:
         output.parent.mkdir(parents=True, exist_ok=True)
         run = data["run"]
+        client_name = data["client"]["name"]
         doc = self._base_document(
-            title="Kakawa Chocolates Enterprise SEO Strategy",
+            title=f"{client_name} Enterprise SEO Strategy",
             subject="Evidence-led 16-week enterprise SEO strategy",
         )
         self._cover(
             doc,
             title="Enterprise SEO Strategy",
-            subtitle="A disciplined, evidence-linked operating strategy for Kakawa Chocolates.",
+            subtitle=f"A disciplined, evidence-linked operating strategy for {client_name}.",
             client=data["client"]["name"],
             as_of=run["evidence_as_of"],
             run_id=run["id"],

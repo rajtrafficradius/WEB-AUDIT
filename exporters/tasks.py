@@ -2,19 +2,28 @@
 
 from __future__ import annotations
 
+import logging
 from html import escape
 from typing import Any
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 
 from app.domain.audit import record_event
-from app.domain.models import AuditRun
+from app.domain.constants import StageStatus
+from app.domain.models import AuditRun, RunStage
 from app.domain.permissions import can_access_project
 from app.domain.storage import save_artifact_bytes
 
+from .run_package import build_package_for_run
+
+logger = logging.getLogger(__name__)
+
 MAX_SUMMARY_ROWS = 100
+PACKAGING_STAGE_NAME = "packaging"
+PACKAGING_STAGE_SEQUENCE = 30
 
 
 def _text(value: Any) -> str:
@@ -207,3 +216,105 @@ def render_run_summary_html(
             "sha256": artifact.sha256,
             "idempotent": False,
         }
+
+
+@shared_task(
+    bind=True,
+    name="exporters.tasks.build_audit_package",
+    queue="render",
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
+def build_audit_package(
+    self,
+    run_id: str,
+    requested_by_id: str | None = None,
+) -> dict[str, Any]:
+    """Build the full deliverable package for a run, once per run version.
+
+    A failed package build must never poison the audit run, so failures are
+    recorded on the packaging stage and returned as data instead of re-raised.
+    """
+    run = AuditRun.objects.select_related("project__client", "created_by").get(pk=run_id)
+    existing = (
+        run.artifacts.filter(artifact_type="package", metadata__run_version=run.version)
+        .order_by("-created_at")
+        .first()
+    )
+    if existing:
+        return {
+            "run_id": str(run.pk),
+            "artifact_id": str(existing.pk),
+            "sha256": existing.sha256,
+            "idempotent": True,
+        }
+
+    stage, _ = RunStage.objects.get_or_create(
+        run=run,
+        name=PACKAGING_STAGE_NAME,
+        defaults={"sequence": PACKAGING_STAGE_SEQUENCE},
+    )
+    now = timezone.now()
+    stage.status = StageStatus.RUNNING
+    stage.attempts += 1
+    stage.started_at = stage.started_at or now
+    stage.heartbeat_at = now
+    stage.error_code = ""
+    stage.error_summary = ""
+    stage.checkpoint = {**(stage.checkpoint or {}), "message": "Preparing the deliverable package"}
+    stage.save()
+
+    def _progress(message: str) -> None:
+        stage.checkpoint = {**(stage.checkpoint or {}), "message": str(message)[:500]}
+        stage.heartbeat_at = timezone.now()
+        stage.save(update_fields=["checkpoint", "heartbeat_at", "updated_at"])
+
+    actor = run.created_by
+    if requested_by_id:
+        candidate = get_user_model().objects.filter(pk=requested_by_id).first()
+        if candidate is not None and can_access_project(candidate, run.project):
+            actor = candidate
+
+    try:
+        # The build runs outside any long transaction; artifact persistence
+        # manages its own atomic block inside save_artifact_bytes.
+        artifact, _manifest_row = build_package_for_run(run, actor=actor, progress=_progress)
+    except Exception as exc:
+        logger.exception("Package build failed for run %s", run_id)
+        stage.status = StageStatus.FAILED
+        stage.error_code = "package_build_failed"
+        stage.error_summary = str(exc)[:1000]
+        stage.finished_at = timezone.now()
+        stage.heartbeat_at = stage.finished_at
+        stage.save()
+        record_event(
+            event_type="package.failed",
+            actor=actor,
+            run=run,
+            object_instance=run,
+            payload={"error": str(exc)[:500]},
+        )
+        return {
+            "run_id": str(run.pk),
+            "artifact_id": None,
+            "sha256": None,
+            "idempotent": False,
+            "failed": True,
+            "error": str(exc)[:500],
+        }
+
+    stage.status = StageStatus.SUCCEEDED
+    stage.finished_at = timezone.now()
+    stage.heartbeat_at = stage.finished_at
+    stage.checkpoint = {
+        **(stage.checkpoint or {}),
+        "message": "Package ready",
+        "artifact_id": str(artifact.pk),
+    }
+    stage.save()
+    return {
+        "run_id": str(run.pk),
+        "artifact_id": str(artifact.pk),
+        "sha256": artifact.sha256,
+        "idempotent": False,
+    }

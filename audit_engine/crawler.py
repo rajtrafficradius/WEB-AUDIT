@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import http.client
+import json
 import socket
 import ssl
 import time
@@ -17,7 +18,7 @@ from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 
@@ -194,6 +195,20 @@ class CrawledPage:
     robots_directives: tuple[str, ...]
     links: tuple[str, ...]
     redirect_chain: tuple[str, ...]
+    word_count: int | None = None
+    body_bytes: int = 0
+    response_ms: int | None = None
+    images_total: int = 0
+    images_missing_alt: int = 0
+    schema_types: tuple[str, ...] = ()
+    h2: tuple[str, ...] = ()
+    external_links: tuple[str, ...] = ()
+    og_title: bool = False
+    og_description: bool = False
+    lang: str | None = None
+    viewport: bool = False
+    hreflang_count: int = 0
+    analytics_tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,27 +226,141 @@ class CrawlResult:
     stopped_reason: str
 
 
+_ANALYTICS_SIGNATURES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("ga4", ("gtag(", "googletagmanager.com/gtag")),
+    ("gtm", ("googletagmanager.com/gtm.js", "GTM-")),
+    ("ua", ("google-analytics.com/analytics.js",)),
+    ("meta_pixel", ("connect.facebook.net",)),
+    ("hotjar", ("static.hotjar.com",)),
+    ("segment", ("cdn.segment.com",)),
+)
+_MAX_SCHEMA_TYPES = 20
+_MAX_H2 = 40
+_MAX_EXTERNAL_LINKS = 200
+
+
+def detect_analytics_tags(html_text: str) -> tuple[str, ...]:
+    """Detect well-known analytics signatures in raw HTML text (deterministic)."""
+
+    lowered = html_text.casefold()
+    detected: list[str] = []
+    for tag, needles in _ANALYTICS_SIGNATURES:
+        for needle in needles:
+            # GTM container ids are uppercase by convention; match them case-sensitively.
+            hit = (needle in html_text) if needle == "GTM-" else (needle.casefold() in lowered)
+            if hit:
+                detected.append(tag)
+                break
+    return tuple(detected)
+
+
+def _collect_schema_types(node: Any, out: list[str]) -> None:
+    """Collect @type values from a JSON-LD document, including nested @graph."""
+
+    if isinstance(node, dict):
+        declared = node.get("@type")
+        if isinstance(declared, str) and declared.strip():
+            out.append(declared.strip())
+        elif isinstance(declared, list):
+            out.extend(item.strip() for item in declared if isinstance(item, str) and item.strip())
+        for value in node.values():
+            _collect_schema_types(value, out)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_schema_types(value, out)
+
+
+def _itemtype_tail(token: str) -> str:
+    tail = token.strip().rstrip("/")
+    if "#" in tail:
+        tail = tail.rsplit("#", 1)[-1]
+    if "/" in tail:
+        tail = tail.rsplit("/", 1)[-1]
+    return tail
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedDocument:
+    title: str | None = None
+    meta_description: str | None = None
+    h1: tuple[str, ...] = ()
+    canonical_url: str | None = None
+    robots_directives: tuple[str, ...] = ()
+    links: tuple[str, ...] = ()
+    word_count: int = 0
+    images_total: int = 0
+    images_missing_alt: int = 0
+    schema_types: tuple[str, ...] = ()
+    h2: tuple[str, ...] = ()
+    external_links: tuple[str, ...] = ()
+    og_title: bool = False
+    og_description: bool = False
+    lang: str | None = None
+    viewport: bool = False
+    hreflang_count: int = 0
+
+
 class _DocumentParser(HTMLParser):
+    _SKIPPED = frozenset({"script", "style", "noscript"})
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.links: list[str] = []
         self.canonical: str | None = None
         self.title_parts: list[str] = []
         self.h1_parts: list[list[str]] = []
+        self.h2_parts: list[list[str]] = []
         self.meta_description: str | None = None
         self.robots: list[str] = []
+        self.text_parts: list[str] = []
+        self.images_total = 0
+        self.images_missing_alt = 0
+        self.schema_type_values: list[str] = []
+        self.og_title = False
+        self.og_description = False
+        self.lang: str | None = None
+        self.viewport = False
+        self.hreflang_count = 0
         self._in_title = False
         self._in_h1 = False
+        self._in_h2 = False
+        self._skip_depth = 0
+        self._in_ldjson = False
+        self._ldjson_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {name.casefold(): (value or "") for name, value in attrs}
         lowered = tag.casefold()
-        if lowered == "a" and values.get("href"):
+        if lowered in self._SKIPPED:
+            self._skip_depth += 1
+            if lowered == "script":
+                media = values.get("type", "").split(";", 1)[0].strip().casefold()
+                if media == "application/ld+json":
+                    self._in_ldjson = True
+                    self._ldjson_parts = []
+        itemtype = values.get("itemtype", "")
+        if itemtype:
+            for token in itemtype.split():
+                tail = _itemtype_tail(token)
+                if tail:
+                    self.schema_type_values.append(tail)
+        if lowered == "html" and self.lang is None:
+            self.lang = values.get("lang", "").strip() or None
+        elif lowered == "a" and values.get("href"):
             self.links.append(values["href"])
-        elif lowered == "link" and "canonical" in values.get("rel", "").casefold().split():
-            self.canonical = values.get("href") or self.canonical
+        elif lowered == "link":
+            rel = values.get("rel", "").casefold().split()
+            if "canonical" in rel:
+                self.canonical = values.get("href") or self.canonical
+            if "alternate" in rel and values.get("hreflang", "").strip():
+                self.hreflang_count += 1
+        elif lowered == "img":
+            self.images_total += 1
+            if not values.get("alt", "").strip():
+                self.images_missing_alt += 1
         elif lowered == "meta":
             name = values.get("name", "").casefold()
+            prop = values.get("property", "").casefold()
             if name == "description" and self.meta_description is None:
                 self.meta_description = values.get("content", "").strip() or None
             elif name in {"robots", "googlebot"}:
@@ -240,32 +369,64 @@ class _DocumentParser(HTMLParser):
                     for item in values.get("content", "").split(",")
                     if item.strip()
                 )
+            elif name == "viewport":
+                self.viewport = True
+            if prop == "og:title" and values.get("content", "").strip():
+                self.og_title = True
+            elif prop == "og:description" and values.get("content", "").strip():
+                self.og_description = True
         elif lowered == "title":
             self._in_title = True
         elif lowered == "h1":
             self._in_h1 = True
             self.h1_parts.append([])
+        elif lowered == "h2":
+            self._in_h2 = True
+            if len(self.h2_parts) < _MAX_H2:
+                self.h2_parts.append([])
 
     def handle_endtag(self, tag: str) -> None:
         lowered = tag.casefold()
-        if lowered == "title":
+        if lowered in self._SKIPPED:
+            self._skip_depth = max(0, self._skip_depth - 1)
+            if lowered == "script" and self._in_ldjson:
+                self._in_ldjson = False
+                payload = "".join(self._ldjson_parts).strip()
+                self._ldjson_parts = []
+                if payload:
+                    try:
+                        document = json.loads(payload)
+                        _collect_schema_types(document, self.schema_type_values)
+                    except (ValueError, TypeError, RecursionError):
+                        pass  # Malformed structured data is ignored, never fabricated.
+        elif lowered == "title":
             self._in_title = False
         elif lowered == "h1":
             self._in_h1 = False
+        elif lowered == "h2":
+            self._in_h2 = False
 
     def handle_data(self, data: str) -> None:
+        if self._in_ldjson:
+            self._ldjson_parts.append(data)
+            return
+        if self._skip_depth == 0 and data.strip():
+            self.text_parts.append(data)
         if self._in_title:
             self.title_parts.append(data)
         if self._in_h1 and self.h1_parts:
             self.h1_parts[-1].append(data)
+        if self._in_h2 and self.h2_parts:
+            self.h2_parts[-1].append(data)
 
-    def result(
-        self, base_url: str, allowed_domains: tuple[str, ...]
-    ) -> tuple[
-        str | None, str | None, tuple[str, ...], str | None, tuple[str, ...], tuple[str, ...]
-    ]:
+    def result(self, base_url: str, allowed_domains: tuple[str, ...]) -> ParsedDocument:
         title = " ".join("".join(self.title_parts).split()) or None
         h1 = tuple(" ".join("".join(parts).split()) for parts in self.h1_parts)
+        h2 = tuple(
+            heading
+            for heading in (" ".join("".join(parts).split()) for parts in self.h2_parts)
+            if heading
+        )[:_MAX_H2]
         canonical: str | None = None
         if self.canonical:
             try:
@@ -273,21 +434,35 @@ class _DocumentParser(HTMLParser):
             except URLValidationError:
                 canonical = None
         links: set[str] = set()
+        external: set[str] = set()
         for href in self.links:
             try:
-                normalized = require_allowed_url(
-                    normalize_url(href, base=base_url), allowed_domains
-                )
+                normalized = normalize_url(href, base=base_url)
             except URLValidationError:
                 continue
-            links.add(normalized)
-        return (
-            title,
-            self.meta_description,
-            h1,
-            canonical,
-            tuple(dict.fromkeys(self.robots)),
-            tuple(sorted(links)),
+            try:
+                links.add(require_allowed_url(normalized, allowed_domains))
+            except URLValidationError:
+                external.add(normalized)
+        schema_types = tuple(dict.fromkeys(self.schema_type_values))[:_MAX_SCHEMA_TYPES]
+        return ParsedDocument(
+            title=title,
+            meta_description=self.meta_description,
+            h1=h1,
+            canonical_url=canonical,
+            robots_directives=tuple(dict.fromkeys(self.robots)),
+            links=tuple(sorted(links)),
+            word_count=len(" ".join(self.text_parts).split()),
+            images_total=self.images_total,
+            images_missing_alt=self.images_missing_alt,
+            schema_types=schema_types,
+            h2=h2,
+            external_links=tuple(sorted(external))[:_MAX_EXTERNAL_LINKS],
+            og_title=self.og_title,
+            og_description=self.og_description,
+            lang=self.lang,
+            viewport=self.viewport,
+            hreflang_count=self.hreflang_count,
         )
 
 
@@ -366,21 +541,25 @@ class BoundedCrawler:
                 self.sleep(remaining)
         self._last_request[host] = self.monotonic()
 
-    def _fetch_following_redirects(self, url: str) -> tuple[FetchResponse, tuple[str, ...]]:
+    def _fetch_following_redirects(
+        self, url: str
+    ) -> tuple[FetchResponse, tuple[str, ...], int]:
         current = url
         chain = [url]
         for hop in range(self.config.max_redirects + 1):
             if not self.robots.can_fetch(current):
                 raise CrawlError("robots.txt does not permit this URL")
             self._throttle(current)
+            fetch_started = self.monotonic()
             response = self.transport.fetch(
                 self.guard.validate(current),
                 headers={"User-Agent": self.config.user_agent},
                 timeout=self.config.request_timeout_seconds,
                 max_bytes=self.config.max_body_bytes,
             )
+            elapsed_ms = max(0, int(round((self.monotonic() - fetch_started) * 1000)))
             if response.status_code not in {301, 302, 303, 307, 308}:
-                return response, tuple(chain)
+                return response, tuple(chain), elapsed_ms
             location = response.headers.get("location")
             if not location:
                 raise CrawlError("Redirect response is missing Location")
@@ -415,16 +594,15 @@ class BoundedCrawler:
                 break
             requested, depth = queue.popleft()
             try:
-                response, redirects = self._fetch_following_redirects(requested)
+                response, redirects, response_ms = self._fetch_following_redirects(requested)
             except Exception as exc:  # boundary: convert provider details into safe crawl status
                 failures.append(CrawlFailure(requested, "fetch_failed", type(exc).__name__))
                 continue
             content_type = response.headers.get("content-type")
             media_type = (content_type or "").split(";", 1)[0].strip().casefold()
-            title = description = canonical = None
-            h1: tuple[str, ...] = ()
-            directives: tuple[str, ...] = ()
-            links: tuple[str, ...] = ()
+            document = ParsedDocument()
+            analytics: tuple[str, ...] = ()
+            word_count: int | None = None
             if media_type in {"text/html", "application/xhtml+xml"}:
                 charset = "utf-8"
                 if content_type and "charset=" in content_type.casefold():
@@ -442,13 +620,16 @@ class BoundedCrawler:
                 parser = _DocumentParser()
                 try:
                     parser.feed(text)
-                    title, description, h1, canonical, directives, links = parser.result(
-                        response.url, self.config.allowed_domains
-                    )
+                    document = parser.result(response.url, self.config.allowed_domains)
+                    word_count = document.word_count
                 except (TypeError, ValueError):
+                    document = ParsedDocument()
+                    word_count = None
                     failures.append(
                         CrawlFailure(requested, "html_parse_failed", "HTML parse failed safely")
                     )
+                analytics = detect_analytics_tags(text)
+            links = document.links
             pages.append(
                 CrawledPage(
                     requested_url=requested,
@@ -456,13 +637,27 @@ class BoundedCrawler:
                     status_code=response.status_code,
                     content_type=content_type,
                     body_sha256=hashlib.sha256(response.body).hexdigest(),
-                    title=title,
-                    meta_description=description,
-                    h1=h1,
-                    canonical_url=canonical,
-                    robots_directives=directives,
+                    title=document.title,
+                    meta_description=document.meta_description,
+                    h1=document.h1,
+                    canonical_url=document.canonical_url,
+                    robots_directives=document.robots_directives,
                     links=links,
                     redirect_chain=redirects,
+                    word_count=word_count,
+                    body_bytes=len(response.body),
+                    response_ms=response_ms,
+                    images_total=document.images_total,
+                    images_missing_alt=document.images_missing_alt,
+                    schema_types=document.schema_types,
+                    h2=document.h2,
+                    external_links=document.external_links,
+                    og_title=document.og_title,
+                    og_description=document.og_description,
+                    lang=document.lang,
+                    viewport=document.viewport,
+                    hreflang_count=document.hreflang_count,
+                    analytics_tags=analytics,
                 )
             )
             if depth < self.config.max_depth:

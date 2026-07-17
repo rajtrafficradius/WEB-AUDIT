@@ -1068,13 +1068,26 @@ def _audit_progress_payload(run):
         RunState.FAILED: "Audit needs attention", RunState.CANCELLED: "Audit cancelled",
     }.get(run.state, run.get_state_display())
     stage = run.stages.filter(status=StageStatus.RUNNING).order_by("-sequence").first()
+    active = run.state in {RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING}
+    message = run.error_summary or ((stage.checkpoint or {}).get("message") if stage else "")
+    if run.state == RunState.GATE_1_REVIEW:
+        packaging = run.stages.filter(name="packaging").first()
+        if packaging and packaging.status in {StageStatus.PENDING, StageStatus.RUNNING}:
+            percent, label, active = 90, "Building the deliverable package", True
+            message = (packaging.checkpoint or {}).get("message") or message
+        elif packaging and packaging.status == StageStatus.FAILED:
+            label, active = "Audit ready — package build needs attention", False
+            message = packaging.error_summary or message
+        elif packaging and packaging.status == StageStatus.SUCCEEDED:
+            percent, label, active = 100, "Audit complete — package ready to download", False
+            message = (packaging.checkpoint or {}).get("message") or message
     return {
         "state": run.state, "label": label, "percent": percent,
         "pages": run.pages.count(), "findings": run.findings.count(),
         "recommendations": Recommendation.objects.filter(finding__run=run).count(),
-        "active": run.state in {RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING},
+        "active": active,
         "failed": run.state == RunState.FAILED,
-        "message": run.error_summary or ((stage.checkpoint or {}).get("message") if stage else ""),
+        "message": message,
     }
 
 

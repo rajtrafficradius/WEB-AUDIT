@@ -44,3 +44,30 @@ def test_automatic_audit_persists_pages_findings_and_actions(db, monkeypatch):
     assert run.findings.count() >= 3
     assert run.actions.count() == run.findings.count()
     assert set(run.stages.values_list("status", flat=True)) == {StageStatus.SUCCEEDED}
+
+    # Findings are grouped: exactly one persisted row per rule code.
+    codes = list(run.findings.values_list("code", flat=True))
+    assert len(codes) == len(set(codes))
+
+    # New crawl facts are persisted per the shared PageSnapshot.facts contract.
+    facts = run.pages.get().facts
+    for key in (
+        "h1_values", "robots_directives", "links", "external_links", "word_count",
+        "body_bytes", "response_ms", "images_total", "images_missing_alt", "schema_types",
+        "h2_values", "og_title", "og_description", "lang", "viewport", "hreflang_count",
+        "analytics_tags", "url_depth",
+    ):
+        assert key in facts
+
+    # Crawl-only coverage for the ecommerce profile is 63% weighted, so the overall
+    # health score is withheld (never coalesced to 0) per the DB constraint.
+    assert float(run.evidence_coverage) == 63.0
+    assert run.health_score is None
+
+    # The per-category scorecard is checkpointed on the auditing stage.
+    checkpoint = run.stages.get(name="auditing").checkpoint
+    assert {entry["category"] for entry in checkpoint["scorecard"]} == {
+        "technical", "on_page", "performance", "analytics", "keyword_architecture",
+        "authority", "cro", "ecommerce", "geo_aeo",
+    }
+    assert checkpoint["stopped_reason"] == "queue_exhausted"
