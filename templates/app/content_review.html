@@ -10,47 +10,69 @@
 {% url 'content-revision' project.pk content.pk as revision_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li><a href="{{ content_list_url|default:'#' }}">Content</a></li><li aria-current="page">{{ content.title|default:"Draft review" }}</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Content {{ content.reference|default:"draft" }} · Version {{ content.version|default:"1" }}</span>
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · Content {{ content.reference|default:"draft" }} · Version {{ content.version|default:"1" }}</span>
       <h1>{{ content.title|default:"Untitled content draft" }}</h1>
-      <p class="lede">Target: {{ content.target_url|default:"URL pending" }} · Intent: {{ content.search_intent|default:"Not classified" }}</p>
+      <p class="lede">Target: {{ content.target_url|default:"URL pending" }} · Intent: {{ content.search_intent|default:"Not classified" }} — review this exact draft version, check every factual claim against its source, then approve it or send it back with notes. Approving does not publish anything to the client website.</p>
     </div>
     <div class="page-heading__actions"><span class="status status--{{ content.status|default:'review'|slugify }}">{{ content.get_status_display|default:content.status|default:"Review" }}</span></div>
   </header>
 
-  <dl class="metric-ledger" aria-label="Content quality summary">
-    <div><dt>Supported claims</dt><dd>{{ content.supported_claim_count|default:"0" }}</dd><small>Of {{ content.claim_count|default:"0" }} factual claims</small></div>
-    <div><dt>Distinct intent</dt><dd>{{ content.intent_score|default:"—" }}</dd><small>Cannibalisation threshold checked</small></div>
-    <div><dt>Internal links</dt><dd>{{ content.valid_internal_link_count|default:"0" }}</dd><small>{{ content.invalid_internal_link_count|default:"0" }} unresolved</small></div>
-    <div><dt>Editorial words</dt><dd>{{ content.word_count|default:"0" }}</dd><small>{{ content.locale|default:project.locale|default:"en-AU" }}</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 1" aria-labelledby="content-quality-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy"><span class="section-index">Summary</span><h2 id="content-quality-heading">Draft quality checks</h2></div>
+      <span class="fine-print">A claim is "supported" only when it is tied to an evidence record or a verified business fact.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">Supported claims</span>
+        <strong class="stat__value num">{{ content.supported_claim_count|default:"0" }}</strong>
+        <span class="stat__note">Of {{ content.claim_count|default:"0" }} factual claims</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Distinct intent</span>
+        <strong class="stat__value num">{{ content.intent_score|default:"—" }}</strong>
+        <span class="stat__note">{% if content.intent_score %}Checked against the cannibalisation threshold{% else %}Withheld until the draft is compared with existing ranking pages{% endif %}</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Internal links</span>
+        <strong class="stat__value num">{{ content.valid_internal_link_count|default:"0" }}</strong>
+        <span class="stat__note">{{ content.invalid_internal_link_count|default:"0" }} unresolved</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Editorial words</span>
+        <strong class="stat__value num">{{ content.word_count|default:"0" }}</strong>
+        <span class="stat__note">{{ content.locale|default:project.locale|default:"en-AU" }}</span>
+      </article>
+    </div>
+  </section>
 
-  <div class="split-layout split-layout--wide-aside">
+  <div class="split-layout split-layout--wide-aside reveal" style="--reveal-index: 2">
     <article class="section" aria-labelledby="draft-heading">
-      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Draft</span><h2 id="draft-heading">Reader-facing copy</h2></div><span class="fine-print">Generated {{ content.generated_at|date:"j M Y, H:i"|default:"date unavailable" }}</span></div>
-      <section class="editorial-panel">
+      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Draft</span><h2 id="draft-heading">Reader-facing copy</h2><p class="fine-print">Exactly what a visitor would read. Edits create a new version rather than changing this one.</p></div><span class="fine-print">Generated {{ content.generated_at|date:"j M Y, H:i"|default:"date unavailable" }}</span></div>
+      <section class="editorial-panel surface">
         {% if content.meta_title %}<p class="eyebrow">Meta title</p><p>{{ content.meta_title }}</p>{% endif %}
         {% if content.meta_description %}<p class="eyebrow">Meta description</p><p>{{ content.meta_description }}</p>{% endif %}
         <hr>
-        {% if content.body %}{{ content.body|linebreaks }}{% else %}<div class="empty-state"><h3>Draft body is not available</h3><p class="muted">Generation may be pending, unavailable, or withheld after validation.</p></div>{% endif %}
+        {% if content.body %}{{ content.body|linebreaks }}{% else %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8L18.5 8v12.5H6Z"/><path d="M13.5 3.5V8.5h5"/><path d="M9 13h6M9 16.5h4"/></svg></span><h3 class="empty-state__title">Draft body is not available</h3><p class="empty-state__body">Generation is still pending, the model was unavailable, or the draft was withheld because validation could not support its claims. Nothing partial is shown to reviewers.</p></div>{% endif %}
       </section>
 
       <section class="section" aria-labelledby="comments-heading">
-        <div class="section-heading__copy"><span class="section-index">02 / Discussion</span><h2 id="comments-heading">Review notes</h2></div>
-        <div class="comment-thread">{% for comment in comments %}<article class="comment"><div class="comment__avatar" aria-hidden="true">{{ comment.author_initials|default:"TR" }}</div><div class="comment__body"><strong>{{ comment.author_name|default:"Reviewer" }}</strong><span class="comment__meta">{{ comment.created_at|date:"j M Y, H:i"|default:"Time unavailable" }}</span><p>{{ comment.body|default:"No comment text." }}</p></div></article>{% empty %}<p class="muted">No review notes have been added.</p>{% endfor %}</div>
-        <form class="fields" method="post" action="{{ revision_url|default:'#' }}">{% csrf_token %}<div class="field field--wide"><label for="review-note">Add a review note</label><textarea id="review-note" name="comment" rows="4" required></textarea></div><div class="form-actions field--wide"><button class="button button--secondary" type="submit">Add note and request revision</button></div></form>
+        <div class="section-heading__copy"><span class="section-index">02 / Discussion</span><h2 id="comments-heading">Review notes</h2><p class="fine-print">Notes are permanent and travel with this version's revision request.</p></div>
+        <div class="comment-thread">{% for comment in comments %}<article class="comment surface"><div class="comment__avatar" aria-hidden="true">{{ comment.author_initials|default:"TR" }}</div><div class="comment__body"><strong>{{ comment.author_name|default:"Reviewer" }}</strong><span class="comment__meta">{{ comment.created_at|date:"j M Y, H:i"|default:"Time unavailable" }}</span><p>{{ comment.body|default:"No comment text." }}</p></div></article>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg></span><h3 class="empty-state__title">No review notes yet</h3><p class="empty-state__body">Add the first note below to tell the writer precisely what must change before this version can be approved.</p></div>{% endfor %}</div>
+        <form class="fields surface" method="post" action="{{ revision_url|default:'#' }}">{% csrf_token %}<div class="field field--wide"><label for="review-note">Add a review note</label><textarea id="review-note" name="comment" rows="4" required aria-describedby="review-note-help"></textarea><span class="field-help" id="review-note-help">Submitting returns the draft to the writer as a revision request.</span></div><div class="form-actions field--wide"><button class="button button--secondary" type="submit">Add note and request revision</button></div></form>
       </section>
     </article>
 
     <aside class="rail" aria-label="Content evidence and validation">
-      <section class="editorial-panel rail-section"><span class="section-index">03 / Brief</span><h2 class="app-title">Editorial contract</h2><dl class="definition-list"><dt>Primary topic</dt><dd>{{ content.primary_keyword|default:"Not assigned" }}</dd><dt>Audience</dt><dd>{{ content.audience|default:"Not defined" }}</dd><dt>Conversion</dt><dd>{{ content.conversion_goal|default:"Not defined" }}</dd><dt>Model</dt><dd class="data-value">{{ content.generation.model_id|default:"Not recorded" }}</dd><dt>Prompt</dt><dd class="data-value">{{ content.generation.prompt_version|default:"Not recorded" }}</dd></dl></section>
+      <section class="editorial-panel rail-section surface"><span class="section-index">03 / Brief</span><h2 class="app-title">Editorial contract</h2><p class="fine-print">The instructions and model settings this draft was written against.</p><dl class="definition-list kv"><dt class="kv__key">Primary topic</dt><dd class="kv__value">{{ content.primary_keyword|default:"Not assigned" }}</dd><dt class="kv__key">Audience</dt><dd class="kv__value">{{ content.audience|default:"Not defined" }}</dd><dt class="kv__key">Conversion</dt><dd class="kv__value">{{ content.conversion_goal|default:"Not defined" }}</dd><dt class="kv__key">Model</dt><dd class="kv__value data-value">{{ content.generation.model_id|default:"Not recorded" }}</dd><dt class="kv__key">Prompt</dt><dd class="kv__value data-value">{{ content.generation.prompt_version|default:"Not recorded" }}</dd></dl></section>
 
-      <section class="rail-section"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / Claims</span><h2 class="app-title">Claim ledger</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="claim-ledger" data-disclosure-button>Toggle</button></div><div id="claim-ledger">{% for claim in claims %}<div class="rail-section"><div class="section-heading"><strong>{{ claim.text|truncatechars:90 }}</strong><span class="status status--{% if claim.is_supported %}approved{% else %}failed{% endif %}">{% if claim.is_supported %}Supported{% else %}Blocked{% endif %}</span></div><p class="fine-print">{{ claim.source_label|default:claim.unavailable_reason|default:"No source attached" }}{% if claim.as_of_date %} · {{ claim.as_of_date|date:"j M Y" }}{% endif %}</p></div>{% empty %}<p class="muted">No factual claims have been extracted.</p>{% endfor %}</div></section>
+      <section class="rail-section surface"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / Claims</span><h2 class="app-title">Claim ledger</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="claim-ledger" data-disclosure-button>Toggle</button></div><p class="fine-print">Blocked claims must be removed or evidenced before this version can be approved.</p><div id="claim-ledger" class="disclosure">{% for claim in claims %}<div class="rail-section"><div class="section-heading"><strong>{{ claim.text|truncatechars:90 }}</strong><span class="badge badge--{% if claim.is_supported %}positive{% else %}critical{% endif %}">{% if claim.is_supported %}Supported{% else %}Blocked{% endif %}</span></div><p class="fine-print">{{ claim.source_label|default:claim.unavailable_reason|default:"No source attached" }}{% if claim.as_of_date %} · {{ claim.as_of_date|date:"j M Y" }}{% endif %}</p></div>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20 7v6c0 4-3.4 6.8-8 7.5-4.6-.7-8-3.5-8-7.5V7Z"/></svg></span><h3 class="empty-state__title">No factual claims extracted</h3><p class="empty-state__body">Either the draft makes no checkable factual statements, or claim extraction has not run for this version.</p></div>{% endfor %}</div></section>
 
-      <section class="rail-section"><span class="section-index">05 / Links</span><h2 class="app-title">Internal link validation</h2>{% for link in internal_links %}<div class="rail-section"><a href="{{ link.target_url|default:'#' }}">{{ link.anchor_text|default:"Internal link" }}</a><span class="status status--{% if link.is_valid %}approved{% else %}failed{% endif %}">{% if link.is_valid %}Valid{% else %}Blocked{% endif %}</span><span class="fine-print data-value">{{ link.target_url|default:"Target missing" }}</span></div>{% empty %}<p class="muted">No internal links are proposed.</p>{% endfor %}</section>
+      <section class="rail-section surface"><span class="section-index">05 / Links</span><h2 class="app-title">Internal link validation</h2><p class="fine-print">Every proposed internal link is resolved against the crawled site before approval.</p>{% for link in internal_links %}<div class="rail-section"><a href="{{ link.target_url|default:'#' }}">{{ link.anchor_text|default:"Internal link" }}</a><span class="badge badge--{% if link.is_valid %}positive{% else %}critical{% endif %}">{% if link.is_valid %}Valid{% else %}Blocked{% endif %}</span><span class="fine-print data-value">{{ link.target_url|default:"Target missing" }}</span></div>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 6 .5l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10.5a4 4 0 0 0-6-.5l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></svg></span><h3 class="empty-state__title">No internal links proposed</h3><p class="empty-state__body">This draft does not yet link to other pages on the site, so there is nothing to validate.</p></div>{% endfor %}</section>
 
-      {% if can_approve %}<form class="sticky-actions" method="post" action="{{ approve_url|default:'#' }}" data-confirm-message="Approve this exact content version? Later edits will create a new version.">{% csrf_token %}<button class="button" type="submit">Approve version {{ content.version|default:"1" }}</button></form>{% endif %}
+      {% if can_approve %}<form class="sticky-actions surface" method="post" action="{{ approve_url|default:'#' }}" data-confirm-message="Approve this exact content version? Later edits will create a new version.">{% csrf_token %}<button class="button" type="submit">Approve version {{ content.version|default:"1" }}</button><span class="fine-print">Approval records who accepted this version. It does not publish the page.</span></form>{% endif %}
     </aside>
   </div>
 </div>

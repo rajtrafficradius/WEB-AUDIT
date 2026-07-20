@@ -7,32 +7,32 @@
 {% url 'project-detail' project.pk as project_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Setup</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Project setup</span>
+      <span class="eyebrow">{% if project.client.name %}{{ project.client.name }} · {% endif %}Project setup</span>
       <h1>{% if is_create %}Start with the essentials.{% else %}Refine the project brief.{% endif %}</h1>
-      <p class="lede">{% if is_create %}The AI engine turns these inputs into an evidence-bounded audit brief. Everything else can be added later.{% else %}Update targeting, evidence and brand rules when verified information becomes available.{% endif %}</p>
+      <p class="lede">{% if is_create %}The AI engine turns these inputs into an evidence-bounded audit brief. Everything else can be added later.{% else %}Update targeting, evidence and brand rules when verified information becomes available.{% endif %} Nothing you enter here is published anywhere; it only shapes what the audit looks at and what the studio is allowed to claim.</p>
     </div>
     <div class="page-heading__actions"><a class="button button--quiet" href="{{ project_url|default:dashboard_url }}">Cancel</a></div>
   </header>
   {% if form.errors %}
-  <section class="error-summary" role="alert" aria-labelledby="form-errors" tabindex="-1"><h2 id="form-errors">Check the highlighted fields</h2><p>Your information is still here. Correct the highlighted fields and save again.</p></section>
+  <section class="error-summary surface reveal" style="--reveal-index: 1" role="alert" aria-labelledby="form-errors" tabindex="-1"><h2 id="form-errors">Check the highlighted fields</h2><p>Your information is still here. Correct the highlighted fields and save again.</p></section>
   {% endif %}
-  <form class="form-layout intake-form" method="post" enctype="multipart/form-data" novalidate>
+  <form class="form-layout intake-form reveal" style="--reveal-index: 2" method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
-    <section class="form-section form-section--compact" aria-labelledby="essentials-heading">
+    <section class="form-section form-section--compact surface" aria-labelledby="essentials-heading">
       <div class="form-section__intro"><span class="section-index">01</span><h2 id="essentials-heading" class="app-title">Essential setup</h2><p class="muted">{% if is_create %}Four details are required; the crawl-data upload is optional.{% else %}Core project identity and crawl boundary.{% endif %}</p></div>
       <div class="fields fields--single intake-core">
         <div class="field"><label for="id_client_name">Client or business name <span class="required" aria-hidden="true">*</span></label><input id="id_client_name" name="client_name" value="{{ form.client_name.value|default:project.client.name|default:'' }}" required>{% if form.client_name.errors %}<span class="field-error">{{ form.client_name.errors|striptags }}</span>{% endif %}</div>
         {% if not is_create %}<div class="field"><label for="id_project_name">Project name</label><input id="id_project_name" name="name" value="{{ form.name.value|default:project.name|default:'' }}">{% if form.name.errors %}<span class="field-error">{{ form.name.errors|striptags }}</span>{% endif %}</div>{% endif %}
         <div class="field"><label for="id_primary_domain">Website <span class="required" aria-hidden="true">*</span></label><input id="id_primary_domain" name="primary_domain" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com.au" value="{{ form.primary_domain.value|default:project.primary_domain|default:'' }}" required aria-describedby="domain-help"><span class="field-help" id="domain-help">The crawler stays within this approved domain.</span>{% if form.primary_domain.errors %}<span class="field-error">{{ form.primary_domain.errors|striptags }}</span>{% endif %}</div>
-        <div class="field"><label for="id_business_type">Business type <span class="required" aria-hidden="true">*</span></label><select id="id_business_type" name="business_type" required><option value="ecommerce" {% if form.business_type.value == "ecommerce" or not form.business_type.value %}selected{% endif %}>Online store</option><option value="local" {% if form.business_type.value == "local" %}selected{% endif %}>Local business</option><option value="service" {% if form.business_type.value == "service" %}selected{% endif %}>Service or SaaS</option><option value="hybrid" {% if form.business_type.value == "hybrid" %}selected{% endif %}>Mixed business</option></select></div>
+        <div class="field"><label for="id_business_type">Business type <span class="required" aria-hidden="true">*</span></label><select id="id_business_type" name="business_type" required><option value="ecommerce" {% if form.business_type.value == "ecommerce" or not form.business_type.value %}selected{% endif %}>Online store</option><option value="local" {% if form.business_type.value == "local" %}selected{% endif %}>Local business</option><option value="service" {% if form.business_type.value == "service" %}selected{% endif %}>Service or SaaS</option><option value="hybrid" {% if form.business_type.value == "hybrid" %}selected{% endif %}>Mixed business</option></select><span class="field-help" id="business-type-help">This selects the audit profile: which checks run and how findings are weighted.</span></div>
         <div class="field"><label for="id_business_summary">What does the business do? <span class="required" aria-hidden="true">*</span></label><textarea id="id_business_summary" name="business_summary" required aria-describedby="business-summary-help" placeholder="What you sell, who you serve and where you operate.">{{ form.business_summary.value|default:project.business_summary|default:'' }}</textarea><span class="field-help" id="business-summary-help">Two or three sentences are enough.</span>{% if form.business_summary.errors %}<span class="field-error">{{ form.business_summary.errors|striptags }}</span>{% endif %}</div>
         {% if is_create %}<div class="field field--wide"><label for="{{ form.crawl_data_file.id_for_label }}">Upload CDX / CDD / XML file here</label><span class="field-help" id="crawl-data-help">Optional. Upload existing crawl data now and it will be securely validated and linked to this project. Maximum 50 MB.</span>{{ form.crawl_data_file }}{% if form.crawl_data_file.errors %}<span id="id_crawl_data_file_error" class="field-error" role="alert">{{ form.crawl_data_file.errors|striptags }}</span>{% endif %}</div>{% endif %}
       </div>
     </section>
     {% if not is_create %}
-    <details class="advanced-intake" {% if form.errors %}open{% endif %}>
+    <details class="advanced-intake surface" {% if form.errors %}open{% endif %}>
       <summary class="advanced-intake__summary"><span>Optional details</span><small>Add only verified information that improves targeting or content safety.</small></summary>
       <div class="advanced-intake__content">
         <div class="form-section__intro"><span class="section-index">02</span><h2 class="app-title">Optional controls</h2><p class="muted">These are not required to start or run an audit.</p></div>
@@ -40,18 +40,19 @@
           <div class="field"><label for="id_goals">Specific SEO goals</label><textarea id="id_goals" name="conversion_goals">{{ form.conversion_goals.value|default:project.conversion_goals|default:'' }}</textarea></div>
           <div class="field"><label for="id_locale">Language and market</label><select id="id_locale" name="locale"><option value="en-AU" {% if form.locale.value == "en-AU" or not form.locale.value %}selected{% endif %}>English (Australia)</option><option value="en-GB" {% if form.locale.value == "en-GB" %}selected{% endif %}>English (United Kingdom)</option><option value="en-US" {% if form.locale.value == "en-US" %}selected{% endif %}>English (United States)</option></select></div>
           <div class="field"><label for="id_cms">Website platform</label><input id="id_cms" name="cms_platform" value="{{ form.cms_platform.value|default:project.cms_platform|default:'' }}"></div>
-          <div class="field field--wide"><label for="id_approved_domains">Other approved domains</label><textarea id="id_approved_domains" name="approved_domains" rows="3">{{ form.approved_domains.value|default:'' }}</textarea></div>
+          <div class="field field--wide"><label for="id_approved_domains">Other approved domains</label><span class="field-help" id="approved-domains-help">One per line. The crawler will never request a URL outside this allowlist.</span><textarea id="id_approved_domains" name="approved_domains" rows="3" aria-describedby="approved-domains-help">{{ form.approved_domains.value|default:'' }}</textarea></div>
           <div class="field"><label for="id_market">Primary market</label><input id="id_market" name="primary_market" value="{{ form.primary_market.value|default:project.primary_market|default:'' }}"></div>
           <div class="field"><label for="id_voice">Brand voice</label><input id="id_voice" name="brand_voice" value="{{ form.brand_voice.value|default:project.brand_voice|default:'' }}"></div>
           <div class="field field--wide"><label for="id_offerings">Priority offerings</label><textarea id="id_offerings" name="priority_offerings">{{ form.priority_offerings.value|default:project.priority_offerings|default:'' }}</textarea></div>
           <div class="field field--wide"><label for="id_competitors">Known competitors</label><textarea id="id_competitors" name="competitors" rows="3">{{ form.competitors.value|default:'' }}</textarea></div>
-          <div class="field field--wide"><label for="id_verified_facts">Verified business facts</label><textarea id="id_verified_facts" name="verified_facts">{{ form.verified_facts.value|default:project.verified_facts|default:'' }}</textarea></div>
-          <div class="field field--wide"><label for="id_prohibited_claims">Prohibited claims</label><textarea id="id_prohibited_claims" name="prohibited_claims">{{ form.prohibited_claims.value|default:project.prohibited_claims|default:'' }}</textarea></div>
+          <div class="field field--wide"><label for="id_verified_facts">Verified business facts</label><span class="field-help" id="verified-facts-help">Only facts you can evidence. Anything listed here may be repeated in generated copy.</span><textarea id="id_verified_facts" name="verified_facts" aria-describedby="verified-facts-help">{{ form.verified_facts.value|default:project.verified_facts|default:'' }}</textarea></div>
+          <div class="field field--wide"><label for="id_prohibited_claims">Prohibited claims</label><span class="field-help" id="prohibited-claims-help">Wording the studio must never generate, such as unverified superlatives or regulated guarantees.</span><textarea id="id_prohibited_claims" name="prohibited_claims" aria-describedby="prohibited-claims-help">{{ form.prohibited_claims.value|default:project.prohibited_claims|default:'' }}</textarea></div>
           <div class="field"><label for="id_stakeholder">Review owner</label><input id="id_stakeholder" name="review_owner" value="{{ form.review_owner.value|default:'' }}"></div>
         </div>
       </div>
     </details>
     {% endif %}
+    <p class="fine-print">Saving does not start a crawl. The audit begins once the project has at least its approved domain and business profile.</p>
     <div class="form-actions">
       <button class="button button--secondary" type="submit" name="continue" value="project">{% if is_create %}Create project{% else %}Save project{% endif %}</button>
       <button class="button" type="submit" name="continue" value="sources">{% if is_create %}Create and add data sources{% else %}Save and add data sources{% endif %}</button>

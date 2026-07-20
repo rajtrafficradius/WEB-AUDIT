@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 445 150" role="img" aria-labelledby="traffic-radius-logo-light-title">
+  <title id="traffic-radius-logo-light-title">Traffic Radius — Growing Your Business the Smart Way!</title>
+
+  <!-- Reversed lockup for dark surfaces: the black bar lifts to near-white -->
+  <g>
+    <rect x="10" y="64" width="18" height="36" rx="2.5" fill="#F7FAFC"/>
+    <rect x="33" y="44" width="18" height="56" rx="2.5" fill="#35B0E3"/>
+    <rect x="56" y="22" width="18" height="78" rx="2.5" fill="#8CC63F"/>
+  </g>
+
+  <text x="92" y="100"
+        font-family="Avenir Next, Corbel, Optima, Gill Sans, system-ui, sans-serif"
+        font-size="54" letter-spacing="-0.5" fill="#F7FAFC">
+    <tspan font-weight="700">Traffic </tspan><tspan font-weight="300">Radius</tspan>
+  </text>
+
+  <circle cx="333.7" cy="65" r="6" fill="#35B0E3"/>
+
+  <text x="94" y="132"
+        font-family="Avenir Next, Corbel, Optima, Gill Sans, system-ui, sans-serif"
+        font-size="22" font-style="italic" font-weight="400" fill="#C7D2DA">
+    Growing Your Business the Smart Way!
+  </text>
+</svg>

@@ -5,11 +5,11 @@
 {% block content %}
 {% url 'project-create' as project_create_url %}
 <div class="page-shell">
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
       <span class="eyebrow">Agency portfolio · {{ today|date:"j F Y"|default:"Current view" }}</span>
       <h1>All clients, one evidence ledger.</h1>
-      <p class="lede">Monitor collection coverage, approvals and package quality across every active engagement.</p>
+      <p class="lede">This is the portfolio overview. Track evidence coverage, outstanding approvals and package quality across every active engagement, then open a project to work on its audit.</p>
     </div>
     {% if request.user.role == 'agency_admin' or request.user.is_superuser %}
     <div class="page-heading__actions">
@@ -18,19 +18,45 @@
     {% endif %}
   </header>
 
-  <dl class="metric-ledger" aria-label="Portfolio summary">
-    <div><dt>Active projects</dt><dd>{{ active_project_count|default:"0" }}</dd><small>Across {{ client_count|default:"0" }} clients</small></div>
-    <div><dt>Evidence coverage</dt><dd>{{ average_coverage|default:"—" }}{% if average_coverage != None %}%{% endif %}</dd><small>Weighted portfolio average</small></div>
-    <div><dt>Awaiting review</dt><dd>{{ pending_approval_count|default:"0" }}</dd><small>Gate decisions requiring attention</small></div>
-    <div><dt>QA exceptions</dt><dd>{{ qa_exception_count|default:"0" }}</dd><small>Critical or high items only</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 1" aria-labelledby="portfolio-summary-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Summary</span>
+        <h2 id="portfolio-summary-heading">Portfolio at a glance</h2>
+      </div>
+      <span class="fine-print">Evidence coverage is the share of expected data sources that returned usable, in-date data.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">Active projects</span>
+        <strong class="stat__value num">{{ active_project_count|default:"0" }}</strong>
+        <span class="stat__note">Across {{ client_count|default:"0" }} clients</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Evidence coverage</span>
+        <strong class="stat__value num">{{ average_coverage|default:"—" }}{% if average_coverage != None %}%{% endif %}</strong>
+        <span class="stat__note">{% if average_coverage != None %}Weighted portfolio average{% else %}No project has recorded enough sources to average yet{% endif %}</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Awaiting review</span>
+        <strong class="stat__value num">{{ pending_approval_count|default:"0" }}</strong>
+        <span class="stat__note">Gate decisions requiring a named person</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">QA exceptions</span>
+        <strong class="stat__value num">{{ qa_exception_count|default:"0" }}</strong>
+        <span class="stat__note">Critical or high items only</span>
+      </article>
+    </div>
+  </section>
 
-  <div class="split-layout split-layout--wide-aside">
+  <div class="split-layout split-layout--wide-aside reveal" style="--reveal-index: 2">
     <section class="section" aria-labelledby="projects-heading">
-      <div class="section-heading">
+      <div class="section-heading toolbar">
         <div class="section-heading__copy">
           <span class="section-index">01 / Portfolio</span>
           <h2 id="projects-heading">Projects in motion</h2>
+          <p class="fine-print">Each row shows the current workflow stage and how much of the expected evidence has been collected.</p>
         </div>
         <label class="field" for="project-filter">
           <span class="sr-only">Filter projects</span>
@@ -39,7 +65,7 @@
       </div>
 
       {% if projects %}
-      <div class="project-index" id="project-index">
+      <div class="project-index surface surface--flush" id="project-index">
         {% for project in projects %}
           {% url 'project-detail' project.pk as project_url %}
           <article class="project-row" data-filter-row>
@@ -48,25 +74,28 @@
               <span class="muted">{{ project.client.name|default:"Unassigned client" }} · {{ project.primary_domain|default:"Domain pending" }}</span>
             </div>
             <div class="project-row__metric"><span>Current stage</span><strong>{{ project.get_status_display|default:project.status|default:"Draft" }}</strong></div>
-            <div class="project-row__metric"><span>Coverage</span><strong>{{ project.evidence_coverage|default:"—" }}{% if project.evidence_coverage != None %}%{% endif %}</strong></div>
+            <div class="project-row__metric"><span>Coverage</span><strong class="num">{{ project.evidence_coverage|default:"—" }}{% if project.evidence_coverage != None %}%{% endif %}</strong></div>
             <span class="status status--{{ project.status|default:'review'|slugify }}">{{ project.get_status_display|default:project.status|default:"Draft" }}</span>
           </article>
         {% endfor %}
       </div>
       {% else %}
-      <div class="empty-state">
-        <span class="empty-state__number" aria-hidden="true">01</span>
-        <h3>No projects are visible yet</h3>
-        <p class="muted">An agency administrator can create the first engagement, define its approved domains and assign the delivery team.</p>
-        {% if request.user.role == 'agency_admin' or request.user.is_superuser %}<a class="button" href="{{ project_create_url|default:'#' }}">Create the first project</a>{% endif %}
+      <div class="empty-state surface">
+        <span class="empty-state__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 3 17.5Z"/><path d="M11 15h4"/></svg>
+        </span>
+        <h3 class="empty-state__title">No projects are visible yet</h3>
+        <p class="empty-state__body">You are not a member of any engagement that has been created yet. An agency administrator creates the first project, defines its approved domains and assigns the delivery team — projects appear here immediately afterwards.</p>
+        {% if request.user.role == 'agency_admin' or request.user.is_superuser %}<span class="empty-state__action"><a class="button" href="{{ project_create_url|default:'#' }}">Create the first project</a></span>{% endif %}
       </div>
       {% endif %}
     </section>
 
     <aside class="rail" aria-label="Portfolio attention queue">
-      <section class="editorial-panel rail-section">
+      <section class="editorial-panel rail-section surface">
         <span class="section-index">02 / Decisions</span>
         <h2 class="app-title">Attention queue</h2>
+        <p class="fine-print">Open approval gates and critical QA exceptions. Everything listed here is blocking a workflow.</p>
         {% if attention_items %}
           {% for item in attention_items %}
             {% url 'project-approvals' item.project.pk as approval_url %}
@@ -78,17 +107,24 @@
             </div>
           {% endfor %}
         {% else %}
-          <p class="muted">No gate decisions or critical QA exceptions are waiting.</p>
+          <div class="empty-state">
+            <span class="empty-state__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <h3 class="empty-state__title">Nothing is waiting on you</h3>
+            <p class="empty-state__body">No gate decisions or critical QA exceptions are open. Items appear here the moment a workflow stage requests a human decision.</p>
+          </div>
         {% endif %}
       </section>
 
-      <section class="rail-section">
+      <section class="rail-section surface">
         <span class="section-index">03 / System</span>
         <h2 class="app-title">Collection health</h2>
-        <dl class="definition-list">
-          <dt>Workers</dt><dd>{{ worker_health|default:"Status unavailable" }}</dd>
-          <dt>Last heartbeat</dt><dd>{{ last_heartbeat|date:"j M, H:i"|default:"Not recorded" }}</dd>
-          <dt>Exports</dt><dd>{{ export_queue_count|default:"0" }} queued</dd>
+        <p class="fine-print">State of the background workers that crawl sites, run rules and build packages.</p>
+        <dl class="definition-list kv">
+          <dt class="kv__key">Workers</dt><dd class="kv__value">{{ worker_health|default:"Status unavailable" }}</dd>
+          <dt class="kv__key">Last heartbeat</dt><dd class="kv__value">{{ last_heartbeat|date:"j M, H:i"|default:"Not recorded" }}</dd>
+          <dt class="kv__key">Exports</dt><dd class="kv__value num">{{ export_queue_count|default:"0" }} queued</dd>
         </dl>
       </section>
     </aside>

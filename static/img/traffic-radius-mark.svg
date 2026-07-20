@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">Traffic Radius</title>
-  <rect width="64" height="64" rx="7" fill="#173451"/>
-  <circle cx="32" cy="32" r="19" fill="none" stroke="#f4f0e8" stroke-width="3"/>
-  <circle cx="32" cy="32" r="10" fill="none" stroke="#ed6a2c" stroke-width="3"/>
-  <path d="M32 8v12M32 44v12M8 32h12M44 32h12" stroke="#74a7c2" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="32" cy="32" r="3.5" fill="#f4f0e8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="traffic-radius-mark-title">
+  <title id="traffic-radius-mark-title">Traffic Radius</title>
+  <rect x="8" y="34" width="11" height="22" rx="1.5" fill="#14171A"/>
+  <rect x="25" y="21.5" width="11" height="34.5" rx="1.5" fill="#35B0E3"/>
+  <rect x="42" y="8" width="11" height="48" rx="1.5" fill="#8CC63F"/>
 </svg>

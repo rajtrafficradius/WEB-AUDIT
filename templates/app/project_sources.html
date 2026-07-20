@@ -10,24 +10,49 @@
 {% url 'source-upload' project.pk as upload_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Sources</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Evidence collection · Read only</span>
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · Evidence collection · Read only</span>
       <h1>Know what is present—and what is not.</h1>
-      <p class="lede">Connections and imports preserve source dates, scopes and explicit unavailable states. No missing source is treated as a pass.</p>
+      <p class="lede">Connect or import the data this audit is allowed to reason from, and see exactly what is missing. Connections and imports preserve source dates, scopes and explicit unavailable states — no missing source is ever treated as a pass.</p>
     </div>
     <div class="page-heading__actions"><a class="button button--quiet" href="{{ intake_url|default:'#' }}">Review intake</a><a class="button" href="{{ connect_url|default:'#' }}">Add source</a></div>
   </header>
 
-  <dl class="metric-ledger" aria-label="Source coverage summary">
-    <div><dt>Available</dt><dd>{{ available_source_count|default:"0" }}</dd><small>Fresh and valid sources</small></div>
-    <div><dt>Partial</dt><dd>{{ partial_source_count|default:"0" }}</dd><small>Scope or date limitations</small></div>
-    <div><dt>Unavailable</dt><dd>{{ unavailable_source_count|default:"0" }}</dd><small>Reason must be recorded</small></div>
-    <div><dt>Coverage</dt><dd>{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</dd><small>Weighted for project profile</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 1" aria-labelledby="coverage-summary-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Summary</span>
+        <h2 id="coverage-summary-heading">Source coverage</h2>
+      </div>
+      <span class="fine-print">Coverage weights each expected source by how much this audit profile relies on it.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">Available</span>
+        <strong class="stat__value num">{{ available_source_count|default:"0" }}</strong>
+        <span class="stat__note">Fresh, in-scope and usable</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Partial</span>
+        <strong class="stat__value num">{{ partial_source_count|default:"0" }}</strong>
+        <span class="stat__note">Usable, but scope or date is limited</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Unavailable</span>
+        <strong class="stat__value num">{{ unavailable_source_count|default:"0" }}</strong>
+        <span class="stat__note">A written reason is required for each</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Coverage</span>
+        <strong class="stat__value num">{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</strong>
+        <span class="stat__note">{% if evidence_coverage != None %}Weighted for this project profile{% else %}Not calculable until at least one source reports a status{% endif %}</span>
+      </article>
+    </div>
+  </section>
 
   {% if show_upload_form %}
-  <section class="form-section" aria-labelledby="upload-heading">
+  <section class="form-section surface reveal" style="--reveal-index: 2" aria-labelledby="upload-heading">
     <div class="form-section__intro">
       <span class="section-index">Import / Quarantine</span>
       <h2 id="upload-heading" class="app-title">Upload evidence safely</h2>
@@ -39,11 +64,13 @@
       <div class="field">
         <label for="{{ upload_form.source_type.id_for_label }}">Evidence source <span class="required" aria-hidden="true">*</span></label>
         {{ upload_form.source_type }}
+        <span class="field-help">Choosing the correct tool lets the studio map columns and record provenance.</span>
         {% if upload_form.source_type.errors %}<span id="id_source_type_error" class="field-error" role="alert">{{ upload_form.source_type.errors|striptags }}</span>{% endif %}
       </div>
       <div class="field">
         <label for="{{ upload_form.as_of_date.id_for_label }}">Evidence as-of date</label>
         {{ upload_form.as_of_date }}
+        <span class="field-help">The date the export was captured, not the date you are uploading it.</span>
         {% if upload_form.as_of_date.errors %}<span id="id_as_of_date_error" class="field-error" role="alert">{{ upload_form.as_of_date.errors|striptags }}</span>{% endif %}
       </div>
       <div class="field field--wide">
@@ -60,29 +87,29 @@
   </section>
   {% endif %}
 
-  <section class="section" aria-labelledby="live-heading">
-    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Connected</span><h2 id="live-heading">Live evidence sources</h2></div><span class="fine-print">Credentials are encrypted and never displayed</span></div>
+  <section class="section reveal" style="--reveal-index: 3" aria-labelledby="live-heading">
+    <div class="section-heading toolbar"><div class="section-heading__copy"><span class="section-index">01 / Connected</span><h2 id="live-heading">Live evidence sources</h2><p class="fine-print">Authenticated integrations that the studio can re-read on demand.</p></div><span class="fine-print">Credentials are encrypted and never displayed</span></div>
     <div class="source-ledger">
       {% for source in live_sources %}
-      <article class="source-row">
+      <article class="source-row surface">
         <div class="source-row__identity"><div class="section-heading"><h3>{{ source.get_source_type_display|default:source.label|default:"Live source" }}</h3><span class="status status--{{ source.status|default:'unavailable'|slugify }}">{{ source.get_status_display|default:source.status|default:"Unavailable" }}</span></div><span class="fine-print">Last capture {{ source.last_captured_at|date:"j M Y, H:i"|default:"never" }}</span></div>
         <div class="source-row__detail">{{ source.scope_summary|default:source.unavailable_reason|default:"Scope has not been verified." }}</div>
         <div class="source-row__actions">{% url 'source-refresh' project.pk source.pk as refresh_url %}<form method="post" action="{{ refresh_url|default:'#' }}">{% csrf_token %}<button class="button button--quiet" type="submit">Refresh</button></form>{% url 'source-detail' project.pk source.pk as source_url %}<a class="button button--secondary" href="{{ source_url|default:'#' }}">Inspect</a></div>
       </article>
-      {% empty %}<div class="empty-state"><h3>No live sources are connected</h3><p class="muted">The website crawler can run independently. Connect analytics and search data to strengthen coverage and confidence.</p><a class="button" href="{{ connect_url|default:'#' }}">Connect a source</a></div>{% endfor %}
+      {% empty %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 6 .5l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10.5a4 4 0 0 0-6-.5l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></svg></span><h3 class="empty-state__title">No live sources are connected</h3><p class="empty-state__body">Nobody has authorised an analytics or search integration for this project yet. The website crawler still runs on its own; connecting Search Console, analytics or rank data raises coverage and finding confidence.</p><span class="empty-state__action"><a class="button" href="{{ connect_url|default:'#' }}">Connect a source</a></span></div>{% endfor %}
     </div>
   </section>
 
-  <section class="section" aria-labelledby="imports-heading">
-    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Imported</span><h2 id="imports-heading">Validated evidence imports</h2></div><a class="button button--secondary" href="{{ upload_url|default:'#' }}">Upload evidence</a></div>
+  <section class="section reveal" style="--reveal-index: 4" aria-labelledby="imports-heading">
+    <div class="section-heading toolbar"><div class="section-heading__copy"><span class="section-index">02 / Imported</span><h2 id="imports-heading">Validated evidence imports</h2><p class="fine-print">{% if imports %}{{ imports|length }} file{{ imports|length|pluralize }} accepted after quarantine and validation.{% else %}Files uploaded when a live integration is not available.{% endif %}</p></div><a class="button button--secondary" href="{{ upload_url|default:'#' }}">Upload evidence</a></div>
     {% if imports %}
-    <div class="table-wrap"><table class="data-table"><caption>Uploaded Ahrefs, Screaming Frog, BrightLocal, GBP, CSV, XLSX, CDX, CDD and XML sources</caption><thead><tr><th scope="col">Import</th><th scope="col">Format</th><th scope="col">Captured</th><th scope="col">Rows</th><th scope="col">Validation</th><th scope="col">Action</th></tr></thead><tbody>{% for item in imports %}{% url 'source-import-detail' project.pk item.pk as import_url %}<tr><td><strong>{{ item.display_name|default:item.filename|default:"Import" }}</strong><br><span class="fine-print data-value">{{ item.sha256|default:"Hash pending"|truncatechars:18 }}</span></td><td>{{ item.get_source_type_display|default:item.source_type|default:"Mapped data" }}</td><td>{{ item.captured_at|date:"j M Y"|default:"Unknown" }}</td><td class="data-value">{{ item.row_count|default:"—" }}</td><td><span class="status status--{{ item.status|default:'review'|slugify }}">{{ item.get_status_display|default:item.status|default:"Review" }}</span></td><td><a href="{{ import_url|default:'#' }}">Inspect mapping</a></td></tr>{% endfor %}</tbody></table></div>
-    {% else %}<div class="empty-state"><h3>No validated imports</h3><p class="muted">Upload source exports when a live integration is unavailable. Files are quarantined and validated before analysis.</p></div>{% endif %}
+    <div class="table-wrap surface surface--flush"><table class="data-table"><caption>Uploaded Ahrefs, Screaming Frog, BrightLocal, GBP, CSV, XLSX, CDX, CDD and XML sources</caption><thead><tr><th scope="col">Import</th><th scope="col">Format</th><th scope="col">Captured</th><th scope="col" class="num">Rows</th><th scope="col">Validation</th><th scope="col">Action</th></tr></thead><tbody>{% for item in imports %}{% url 'source-import-detail' project.pk item.pk as import_url %}<tr><td><strong>{{ item.display_name|default:item.filename|default:"Import" }}</strong><br><span class="fine-print data-value">{{ item.sha256|default:"Hash pending"|truncatechars:18 }}</span></td><td><span class="tag">{{ item.get_source_type_display|default:item.source_type|default:"Mapped data" }}</span></td><td>{{ item.captured_at|date:"j M Y"|default:"Unknown" }}</td><td class="num data-value">{{ item.row_count|default:"—" }}</td><td><span class="status status--{{ item.status|default:'review'|slugify }}">{{ item.get_status_display|default:item.status|default:"Review" }}</span></td><td><a href="{{ import_url|default:'#' }}">Inspect mapping</a></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15"/></svg></span><h3 class="empty-state__title">No validated imports</h3><p class="empty-state__body">No evidence files have been accepted for this project. Upload tool exports when a live integration is unavailable — each file is quarantined, checked for unsafe content and column-mapped before any analysis reads it.</p><span class="empty-state__action"><a class="button" href="{{ upload_url|default:'#' }}">Upload evidence</a></span></div>{% endif %}
   </section>
 
-  <aside class="editorial-panel" aria-labelledby="unavailable-heading">
-    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">03 / Disclosure</span><h2 id="unavailable-heading" class="app-title">Unavailable evidence</h2></div></div>
-    {% if unavailable_sources %}<dl class="definition-list">{% for source in unavailable_sources %}<dt>{{ source.label|default:"Source" }}</dt><dd>{{ source.unavailable_reason|default:"No reason recorded" }}{% if source.as_of_date %} · As of {{ source.as_of_date|date:"j M Y" }}{% endif %}</dd>{% endfor %}</dl>{% else %}<p class="muted">Every expected source is available or has a partial-data declaration.</p>{% endif %}
+  <aside class="editorial-panel surface reveal" style="--reveal-index: 5" aria-labelledby="unavailable-heading">
+    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">03 / Disclosure</span><h2 id="unavailable-heading" class="app-title">Unavailable evidence</h2><p class="fine-print">Gaps are published in the client deliverable rather than quietly excluded, so nobody reads a silence as a pass.</p></div></div>
+    {% if unavailable_sources %}<dl class="definition-list kv">{% for source in unavailable_sources %}<dt class="kv__key">{{ source.label|default:"Source" }}</dt><dd class="kv__value">{{ source.unavailable_reason|default:"No reason recorded" }}{% if source.as_of_date %} · As of {{ source.as_of_date|date:"j M Y" }}{% endif %}</dd>{% endfor %}</dl>{% else %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><h3 class="empty-state__title">Nothing is undisclosed</h3><p class="empty-state__body">Every expected source is either available or carries a partial-data declaration, so there is no unexplained gap to report.</p></div>{% endif %}
   </aside>
 </div>
 {% endblock %}

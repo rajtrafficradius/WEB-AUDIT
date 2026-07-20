@@ -10,11 +10,11 @@
 {% url 'audit-results-download' project.pk as audit_download_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Export &amp; QA</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Package control · Deterministic manifest</span>
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · Package control · Deterministic manifest</span>
       <h1>Ship only what reconciles.</h1>
-      <p class="lede">Every artifact is rendered, validated and hashed against one canonical run. Critical or high failures stop packaging.</p>
+      <p class="lede">This is the final gate before anything reaches the client. Every artifact is rendered, validated and hashed against one canonical run — critical or high QA failures stop packaging outright, so a deliverable can never contain work that failed a check.</p>
     </div>
     <div class="page-heading__actions">
       {% if can_build %}<form method="post" action="{{ build_url|default:'#' }}">{% csrf_token %}<button class="button" type="submit">Build verified package</button></form>{% endif %}
@@ -22,41 +22,63 @@
     </div>
   </header>
 
-  <section class="editorial-panel" aria-labelledby="short-summary-heading">
+  <section class="editorial-panel surface reveal" style="--reveal-index: 1" aria-labelledby="short-summary-heading">
     <span class="section-index">Summary</span>
     <h2 id="short-summary-heading" class="app-title">Short summary below.</h2>
     <p>{{ short_summary }}</p>
   </section>
 
-  <dl class="metric-ledger" aria-label="Package quality summary">
-    <div><dt>QA passed</dt><dd>{{ qa_counts.passed|default:"0" }}</dd><small>Deterministic and render checks</small></div>
-    <div><dt>Warnings</dt><dd>{{ qa_counts.warning|default:"0" }}</dd><small>Must be explicitly accepted</small></div>
-    <div><dt>Blocking</dt><dd>{{ qa_counts.blocking|default:"0" }}</dd><small>Critical or high failures</small></div>
-    <div><dt>Artifacts</dt><dd>{{ artifact_count|default:"0" }}</dd><small>{{ total_package_size|filesizeformat|default:"Size pending" }}</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 2" aria-labelledby="qa-summary-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy"><span class="section-index">Summary</span><h2 id="qa-summary-heading">Quality position</h2></div>
+      <span class="fine-print">Warnings do not stop a build, but each must be knowingly accepted. Blocking items must be resolved.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">QA passed</span>
+        <strong class="stat__value num">{{ qa_counts.passed|default:"0" }}</strong>
+        <span class="stat__note">Deterministic render and reconciliation checks</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Warnings</span>
+        <strong class="stat__value num">{{ qa_counts.warning|default:"0" }}</strong>
+        <span class="stat__note">Must be explicitly accepted before shipping</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Blocking</span>
+        <strong class="stat__value num">{{ qa_counts.blocking|default:"0" }}</strong>
+        <span class="stat__note">Critical or high failures; packaging is refused</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Artifacts</span>
+        <strong class="stat__value num">{{ artifact_count|default:"0" }}</strong>
+        <span class="stat__note">{{ total_package_size|filesizeformat|default:"Size pending" }}</span>
+      </article>
+    </div>
+  </section>
 
-  <section class="section" aria-labelledby="readiness-heading">
-    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Readiness</span><h2 id="readiness-heading">Final package gate</h2></div><span class="status status--{% if package_ready %}approved{% else %}failed{% endif %}">{% if package_ready %}Ready to package{% else %}Blocked{% endif %}</span></div>
+  <section class="section surface reveal" style="--reveal-index: 3" aria-labelledby="readiness-heading">
+    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / Readiness</span><h2 id="readiness-heading">Final package gate</h2><p class="fine-print">The bar below is the share of quality checks currently passing.</p></div><span class="badge badge--{% if package_ready %}positive{% else %}critical{% endif %}">{% if package_ready %}Ready to package{% else %}Blocked{% endif %}</span></div>
     <div class="progress-track progress-track--quality" role="progressbar" aria-label="Quality checks passed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ qa_pass_percent|default:'0' }}" style="--progress: {{ qa_pass_percent|default:'0' }}%"><span></span></div>
     {% if blocking_summary %}<div class="danger-zone"><h3>Resolve the blocking exceptions</h3><p>{{ blocking_summary }}</p></div>{% endif %}
   </section>
 
-  <div class="split-layout split-layout--wide-aside">
+  <div class="split-layout split-layout--wide-aside reveal" style="--reveal-index: 4">
     <section class="section" aria-labelledby="artifact-heading">
-      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Artifacts</span><h2 id="artifact-heading">Package inventory</h2></div><span class="fine-print">No unexplained duplicate hashes</span></div>
+      <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Artifacts</span><h2 id="artifact-heading">Package inventory</h2><p class="fine-print">Every file destined for the client ZIP, with its render status and content hash. Deployment assets marked withheld pending approval exist but are held back until a gate decision releases them.</p></div><span class="fine-print">No unexplained duplicate hashes</span></div>
       {% if artifact_groups %}
         {% for group in artifact_groups %}
-        <section class="rail-section" aria-labelledby="group-{{ forloop.counter }}"><div class="section-heading"><h3 id="group-{{ forloop.counter }}">{{ group.label|default:"Package section" }}</h3><span class="fine-print">{{ group.artifacts|length }} files</span></div><div class="table-wrap"><table class="data-table"><caption>{{ group.label|default:"Package" }} artifacts</caption><thead><tr><th scope="col">Artifact</th><th scope="col">Format</th><th scope="col">Version</th><th scope="col">Render</th><th scope="col">Size</th><th scope="col">Hash</th></tr></thead><tbody>{% for artifact in group.artifacts %}<tr><td><strong>{{ artifact.display_name|default:artifact.filename|default:"Artifact" }}</strong><br><span class="fine-print">{{ artifact.relative_path|default:"Path pending" }}</span></td><td>{{ artifact.format|default:"—"|upper }}</td><td class="data-value">{{ artifact.version|default:"—" }}</td><td><span class="status status--{{ artifact.render_status|default:'review'|slugify }}">{{ artifact.get_render_status_display|default:artifact.render_status|default:"Pending" }}</span></td><td class="data-value">{{ artifact.size_bytes|filesizeformat|default:"—" }}</td><td class="fine-print data-value">{{ artifact.sha256|default:"Pending"|truncatechars:18 }}</td></tr>{% endfor %}</tbody></table></div></section>
+        <section class="rail-section" aria-labelledby="group-{{ forloop.counter }}"><div class="section-heading"><h3 id="group-{{ forloop.counter }}">{{ group.label|default:"Package section" }}</h3><span class="fine-print">{{ group.artifacts|length }} files</span></div><div class="table-wrap surface surface--flush"><table class="data-table"><caption>{{ group.label|default:"Package" }} artifacts</caption><thead><tr><th scope="col">Artifact</th><th scope="col">Format</th><th scope="col" class="num">Version</th><th scope="col">Render</th><th scope="col" class="num">Size</th><th scope="col">Hash</th></tr></thead><tbody>{% for artifact in group.artifacts %}<tr><td><strong>{{ artifact.display_name|default:artifact.filename|default:"Artifact" }}</strong><br><span class="fine-print">{{ artifact.relative_path|default:"Path pending" }}</span></td><td><span class="tag">{{ artifact.format|default:"—"|upper }}</span></td><td class="num data-value">{{ artifact.version|default:"—" }}</td><td><span class="status status--{{ artifact.render_status|default:'review'|slugify }}">{{ artifact.get_render_status_display|default:artifact.render_status|default:"Pending" }}</span></td><td class="num data-value">{{ artifact.size_bytes|filesizeformat|default:"—" }}</td><td class="fine-print data-value">{{ artifact.sha256|default:"Pending"|truncatechars:18 }}</td></tr>{% endfor %}</tbody></table></div></section>
         {% endfor %}
-      {% else %}<div class="empty-state"><h3>No package artifacts have been built</h3><p class="muted">Gate 2 approval and a passing final QA run are required before export.</p></div>{% endif %}
+      {% else %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4.5l8 4v7l-8 4-8-4Z"/><path d="M4 8.5 12 12.5l8-4M12 12.5v7"/></svg></span><h3 class="empty-state__title">No package artifacts have been built</h3><p class="empty-state__body">Nothing has been rendered for this project yet. A package can only be built after Gate 2 approval and a final QA run with no blocking failures — until then there is deliberately nothing to download.</p><span class="empty-state__action"><a class="button button--secondary" href="{{ project_url|default:'#' }}">Back to project overview</a></span></div>{% endif %}
     </section>
 
     <aside class="rail" aria-label="QA results and package provenance">
-      <section class="editorial-panel rail-section"><span class="section-index">03 / Manifest</span><h2 class="app-title">Package provenance</h2><dl class="definition-list"><dt>Run</dt><dd class="data-value">{{ latest_package.run.reference|default:"—" }}</dd><dt>Ruleset</dt><dd class="data-value">{{ latest_package.ruleset_version|default:"—" }}</dd><dt>Template</dt><dd class="data-value">{{ latest_package.template_version|default:"—" }}</dd><dt>Built</dt><dd>{{ latest_package.created_at|date:"j M Y, H:i"|default:"Not built" }}</dd><dt>ZIP SHA-256</dt><dd class="fine-print data-value">{{ latest_package.sha256|default:"Pending" }}</dd></dl></section>
-      <section class="rail-section"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / QA</span><h2 class="app-title">Authoritative checks</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="qa-results" data-disclosure-button>Toggle</button></div><div class="qa-ledger" id="qa-results">{% for result in qa_results %}<div class="qa-row"><span class="qa-marker{% if result.status == 'failed' %} qa-marker--fail{% elif result.status == 'warning' %} qa-marker--warn{% endif %}" aria-hidden="true">{% if result.status == 'passed' %}✓{% elif result.status == 'failed' %}×{% else %}!{% endif %}</span><div class="qa-row__copy"><strong>{{ result.label|default:"Quality check" }}</strong><small>{{ result.detail|default:"No exception detail." }}</small></div><span class="fine-print">{{ result.category|default:"QA" }}</span></div>{% empty %}<p class="muted">Quality checks have not run.</p>{% endfor %}</div></section>
+      <section class="editorial-panel rail-section surface"><span class="section-index">03 / Manifest</span><h2 class="app-title">Package provenance</h2><p class="fine-print">The exact run, ruleset and template versions this package was produced from.</p><dl class="definition-list kv"><dt class="kv__key">Run</dt><dd class="kv__value data-value">{{ latest_package.run.reference|default:"—" }}</dd><dt class="kv__key">Ruleset</dt><dd class="kv__value data-value">{{ latest_package.ruleset_version|default:"—" }}</dd><dt class="kv__key">Template</dt><dd class="kv__value data-value">{{ latest_package.template_version|default:"—" }}</dd><dt class="kv__key">Built</dt><dd class="kv__value">{{ latest_package.created_at|date:"j M Y, H:i"|default:"Not built" }}</dd><dt class="kv__key">ZIP SHA-256</dt><dd class="kv__value fine-print data-value">{{ latest_package.sha256|default:"Pending" }}</dd></dl></section>
+      <section class="rail-section surface"><div class="section-heading"><div class="section-heading__copy"><span class="section-index">04 / QA</span><h2 class="app-title">Authoritative checks</h2></div><button class="text-action" type="button" aria-expanded="true" aria-controls="qa-results" data-disclosure-button>Toggle</button></div><div class="qa-ledger disclosure" id="qa-results">{% for result in qa_results %}<div class="qa-row"><span class="qa-marker{% if result.status == 'failed' %} qa-marker--fail{% elif result.status == 'warning' %} qa-marker--warn{% endif %}" aria-hidden="true">{% if result.status == 'passed' %}✓{% elif result.status == 'failed' %}×{% else %}!{% endif %}</span><div class="qa-row__copy"><strong>{{ result.label|default:"Quality check" }}</strong><small>{{ result.detail|default:"No exception detail." }}</small></div><span class="fine-print tag">{{ result.category|default:"QA" }}</span></div>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20 7v6c0 4-3.4 6.8-8 7.5-4.6-.7-8-3.5-8-7.5V7Z"/><path d="m9 12 2 2 4-4"/></svg></span><h3 class="empty-state__title">Quality checks have not run</h3><p class="empty-state__body">Checks execute as part of a package build. Start a build to see render, reconciliation and domain-safety results here.</p></div>{% endfor %}</div></section>
     </aside>
   </div>
 
-  {% if latest_package.is_downloadable %}<section class="editorial-panel" aria-labelledby="download-integrity"><span class="section-index">05 / Integrity</span><h2 id="download-integrity" class="app-title">Verify after download</h2><p>Compare the ZIP with <code>{{ latest_package.checksum_filename|default:"package.zip.sha256" }}</code>. The internal manifest hashes every package file except itself and the adjacent ZIP checksum.</p></section>{% endif %}
+  {% if latest_package.is_downloadable %}<section class="editorial-panel surface reveal" style="--reveal-index: 5" aria-labelledby="download-integrity"><span class="section-index">05 / Integrity</span><h2 id="download-integrity" class="app-title">Verify after download</h2><p>Compare the ZIP with <code>{{ latest_package.checksum_filename|default:"package.zip.sha256" }}</code>. The internal manifest hashes every package file except itself and the adjacent ZIP checksum.</p><p class="fine-print">If the hashes differ, the file was altered or truncated in transit — rebuild rather than sending it on.</p></section>{% endif %}
 </div>
 {% endblock %}

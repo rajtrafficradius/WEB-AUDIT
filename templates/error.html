@@ -2,13 +2,24 @@
 {% block title %}{{ error_title|default:"Request could not be completed" }}{% endblock %}
 {% block content %}
 {% url 'dashboard' as dashboard_url %}
-<section class="error-page" aria-labelledby="error-heading">
+<section class="page-shell error-page reveal" style="--reveal-index: 0" aria-labelledby="error-heading">
   <div class="error-code" aria-hidden="true">{{ status_code|default:"!" }}</div>
-  <div class="error-copy">
+  <div class="error-copy surface">
     <span class="eyebrow">{{ error_label|default:"Studio notice" }}</span>
     <h1 id="error-heading">{{ error_title|default:"That request could not be completed." }}</h1>
     <p class="lede">{{ error_message|default:"Your work has been preserved. Return to the portfolio and try again, or share the request ID with an administrator." }}</p>
-    {% if retry_url %}<div class="page-heading__actions"><a class="button" href="{{ retry_url }}">Try again</a><a class="button button--secondary" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a></div>{% else %}<div class="page-heading__actions"><a class="button" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a></div>{% endif %}
+    <div class="kv">
+      <span class="kv__key">Your data</span>
+      <span class="kv__value">Nothing has been discarded. Completed checkpoints remain available for a safe retry.</span>
+    </div>
+    <div class="page-heading__actions">
+      {% if retry_url %}
+        <a class="button" href="{{ retry_url }}">Try again</a>
+        <a class="button button--secondary" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a>
+      {% else %}
+        <a class="button" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a>
+      {% endif %}
+    </div>
     <p class="fine-print">Request ID: <span class="data-value">{{ request_id|default:"not available" }}</span></p>
   </div>
 </section>

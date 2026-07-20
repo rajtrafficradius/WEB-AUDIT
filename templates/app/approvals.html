@@ -8,30 +8,30 @@
 {% url 'approval-decide' project.pk current_approval.pk as decide_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Approvals</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Human governance · Immutable decisions</span>
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · Human governance · Immutable decisions</span>
       <h1>Nothing risky moves without a named decision.</h1>
-      <p class="lede">Review the exact evidence, strategy or asset version in scope. Approval never publishes to the client website.</p>
+      <p class="lede">An approval gate pauses the workflow until a named person accepts a specific, version-locked piece of work. Review the exact evidence, strategy or asset in scope and record your decision — approval never publishes anything to the client website.</p>
     </div>
     <div class="page-heading__actions"><span class="status status--{{ current_approval.status|default:'review'|slugify }}">{{ current_approval.get_status_display|default:current_approval.status|default:"No decision pending" }}</span></div>
   </header>
 
-  <div class="split-layout split-layout--wide-aside">
+  <div class="split-layout split-layout--wide-aside reveal" style="--reveal-index: 1">
     <section class="section" aria-labelledby="current-decision">
-      <div class="section-heading__copy"><span class="section-index">01 / Current gate</span><h2 id="current-decision">{{ current_approval.title|default:"No approval gate is open" }}</h2></div>
+      <div class="section-heading__copy"><span class="section-index">01 / Current gate</span><h2 id="current-decision">{{ current_approval.title|default:"No approval gate is open" }}</h2><p class="fine-print">Gate 1 accepts the evidence and strategic direction; Gate 2 accepts the action plan and any risky changes before packaging.</p></div>
       {% if current_approval %}
-      <article class="editorial-panel section">
+      <article class="editorial-panel section surface">
         <p class="lede">{{ current_approval.summary|default:"Review the attached evidence and record a decision." }}</p>
-        <dl class="definition-list"><dt>Gate</dt><dd>{{ current_approval.get_gate_display|default:current_approval.gate|default:"Review" }}</dd><dt>Version</dt><dd>{{ current_approval.subject_version|default:"—" }}</dd><dt>Submitted</dt><dd>{{ current_approval.submitted_at|date:"j M Y, H:i"|default:"—" }}</dd><dt>Submitted by</dt><dd>{{ current_approval.submitted_by_name|default:"—" }}</dd><dt>Due</dt><dd>{{ current_approval.due_at|date:"j M Y"|default:"No due date" }}</dd></dl>
+        <dl class="definition-list kv"><dt class="kv__key">Gate</dt><dd class="kv__value">{{ current_approval.get_gate_display|default:current_approval.gate|default:"Review" }}</dd><dt class="kv__key">Version</dt><dd class="kv__value data-value">{{ current_approval.subject_version|default:"—" }}</dd><dt class="kv__key">Submitted</dt><dd class="kv__value">{{ current_approval.submitted_at|date:"j M Y, H:i"|default:"—" }}</dd><dt class="kv__key">Submitted by</dt><dd class="kv__value">{{ current_approval.submitted_by_name|default:"—" }}</dd><dt class="kv__key">Due</dt><dd class="kv__value">{{ current_approval.due_at|date:"j M Y"|default:"No due date" }}</dd></dl>
       </article>
 
       {% if approval_evidence %}
-      <section class="section" aria-labelledby="approval-evidence"><div class="section-heading__copy"><span class="section-index">02 / In scope</span><h3 id="approval-evidence">Material under review</h3></div><div class="table-wrap"><table class="data-table"><caption>Version-locked records included in this decision</caption><thead><tr><th scope="col">Item</th><th scope="col">Version</th><th scope="col">Evidence</th><th scope="col">Risk</th><th scope="col">Inspect</th></tr></thead><tbody>{% for item in approval_evidence %}<tr><td><strong>{{ item.label|default:"Review item" }}</strong><br><span class="fine-print">{{ item.summary|default:"" }}</span></td><td class="data-value">{{ item.version|default:"—" }}</td><td>{{ item.evidence_count|default:"0" }} records</td><td><span class="status status--{{ item.risk_class|default:'review'|slugify }}">{{ item.get_risk_class_display|default:item.risk_class|default:"Standard" }}</span></td><td><a href="{{ item.detail_url|default:'#' }}">Inspect</a></td></tr>{% endfor %}</tbody></table></div></section>
+      <section class="section" aria-labelledby="approval-evidence"><div class="section-heading__copy"><span class="section-index">02 / In scope</span><h3 id="approval-evidence">Material under review · {{ approval_evidence|length }}</h3><p class="fine-print">Only these exact versions are covered by your decision. Anything changed afterwards returns for a fresh review.</p></div><div class="table-wrap surface surface--flush"><table class="data-table"><caption>Version-locked records included in this decision</caption><thead><tr><th scope="col">Item</th><th scope="col" class="num">Version</th><th scope="col" class="num">Evidence</th><th scope="col">Risk</th><th scope="col">Inspect</th></tr></thead><tbody>{% for item in approval_evidence %}<tr><td><strong>{{ item.label|default:"Review item" }}</strong><br><span class="fine-print">{{ item.summary|default:"" }}</span></td><td class="num data-value">{{ item.version|default:"—" }}</td><td class="num">{{ item.evidence_count|default:"0" }} records</td><td><span class="status status--{{ item.risk_class|default:'review'|slugify }}">{{ item.get_risk_class_display|default:item.risk_class|default:"Standard" }}</span></td><td><a href="{{ item.detail_url|default:'#' }}">Inspect</a></td></tr>{% endfor %}</tbody></table></div></section>
       {% endif %}
 
       {% if can_decide %}
-      <form class="form-layout editorial-panel" method="post" action="{{ decide_url|default:'#' }}" novalidate>
+      <form class="form-layout editorial-panel surface" method="post" action="{{ decide_url|default:'#' }}" novalidate>
         {% csrf_token %}
         <fieldset class="choice-list">
           <legend><strong>Record your decision</strong></legend>
@@ -40,17 +40,18 @@
             <label class="decision-option"><input type="radio" name="decision" value="revision_requested" required><strong>Request revisions</strong><span class="muted">Return the workflow with specific, traceable review notes.</span></label>
           </div>
         </fieldset>
-        <div class="field"><label for="decision-note">Decision note <span class="required" aria-hidden="true">*</span></label><textarea id="decision-note" name="note" required aria-describedby="decision-note-help"></textarea><span class="field-help" id="decision-note-help">State the basis for approval or the exact revision required.</span></div>
+        <div class="field"><label for="decision-note">Decision note <span class="required" aria-hidden="true">*</span></label><textarea id="decision-note" name="note" required aria-describedby="decision-note-help"></textarea><span class="field-help" id="decision-note-help">State the basis for approval or the exact revision required. The note is permanent and appears in the client audit trail.</span></div>
         <label class="choice"><input type="checkbox" name="acknowledge_no_publish" value="yes" required><span><strong>I understand this approval does not publish changes.</strong><br><span class="field-help">The studio exports implementation-ready assets only.</span></span></label>
         <div class="form-actions"><button class="button" type="submit">Record immutable decision</button></div>
+        <p class="fine-print">Decisions cannot be edited or deleted. To change course, request revisions on the next version.</p>
       </form>
       {% endif %}
-      {% else %}<div class="empty-state"><span class="empty-state__number" aria-hidden="true">✓</span><h3>No decision is currently waiting</h3><p class="muted">The workflow will open a gate when its versioned review material is ready.</p></div>{% endif %}
+      {% else %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><h3 class="empty-state__title">No decision is currently waiting</h3><p class="empty-state__body">Nothing on this project is blocked on a human right now. A gate opens automatically when the workflow has version-locked material ready for review, and it will appear here and in the portfolio attention queue.</p><span class="empty-state__action"><a class="button button--secondary" href="{{ project_url|default:'#' }}">Back to project overview</a></span></div>{% endif %}
     </section>
 
     <aside class="rail" aria-label="Approval context and history">
-      <section class="editorial-panel rail-section"><span class="section-index">03 / Authority</span><h2 class="app-title">Decision authority</h2><dl class="definition-list"><dt>Your role</dt><dd>{{ request.user.get_role_display|default:request.user.role|default:"Reviewer" }}</dd><dt>Allowed</dt><dd>{{ approval_capability|default:"View and comment" }}</dd><dt>High risk</dt><dd>Agency administrator only</dd></dl></section>
-      <section class="rail-section"><span class="section-index">04 / History</span><h2 class="app-title">Approval ledger</h2>{% for approval in approval_history %}<article class="rail-section"><div class="section-heading"><strong>{{ approval.title|default:"Decision" }}</strong><span class="status status--{{ approval.status|default:'review'|slugify }}">{{ approval.get_status_display|default:approval.status|default:"Recorded" }}</span></div><p class="muted">{{ approval.note|default:"No decision note." }}</p><span class="fine-print">{{ approval.decided_by_name|default:"Reviewer" }} · {{ approval.decided_at|date:"j M Y, H:i"|default:"Pending" }} · v{{ approval.subject_version|default:"—" }}</span></article>{% empty %}<p class="muted">No previous decisions have been recorded.</p>{% endfor %}</section>
+      <section class="editorial-panel rail-section surface"><span class="section-index">03 / Authority</span><h2 class="app-title">Decision authority</h2><p class="fine-print">What your role is permitted to decide on this project.</p><dl class="definition-list kv"><dt class="kv__key">Your role</dt><dd class="kv__value">{{ request.user.get_role_display|default:request.user.role|default:"Reviewer" }}</dd><dt class="kv__key">Allowed</dt><dd class="kv__value">{{ approval_capability|default:"View and comment" }}</dd><dt class="kv__key">High risk</dt><dd class="kv__value">Agency administrator only</dd></dl></section>
+      <section class="rail-section surface"><span class="section-index">04 / History</span><h2 class="app-title">Approval ledger</h2><p class="fine-print">Every decision ever recorded on this project, with the version it applied to.</p>{% for approval in approval_history %}<article class="rail-section"><div class="section-heading"><strong>{{ approval.title|default:"Decision" }}</strong><span class="status status--{{ approval.status|default:'review'|slugify }}">{{ approval.get_status_display|default:approval.status|default:"Recorded" }}</span></div><p class="muted">{{ approval.note|default:"No decision note." }}</p><span class="fine-print">{{ approval.decided_by_name|default:"Reviewer" }} · {{ approval.decided_at|date:"j M Y, H:i"|default:"Pending" }} · v{{ approval.subject_version|default:"—" }}</span></article>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8L18.5 8v12.5H6Z"/><path d="M13.5 3.5V8.5h5"/><path d="M9 13h6M9 16.5h4"/></svg></span><h3 class="empty-state__title">No decisions recorded</h3><p class="empty-state__body">This project has not reached its first gate. Approvals appear here permanently once recorded.</p></div>{% endfor %}</section>
     </aside>
   </div>
 </div>

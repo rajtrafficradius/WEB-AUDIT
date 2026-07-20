@@ -9,11 +9,11 @@
 {% url 'run-resume' run.pk as resume_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ run.project.name|default:"Project" }}</a></li><li aria-current="page">Run {{ run.reference|default:run.pk|default:"pending" }}</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">{{ run.get_profile_display|default:run.profile|default:"Audit" }} run · Created {{ run.created_at|date:"j M Y, H:i"|default:"not recorded" }}</span>
+      <span class="eyebrow">{{ run.project.client.name|default:run.project.name|default:"Client" }} · {{ run.get_profile_display|default:run.profile|default:"Audit" }} run · Created {{ run.created_at|date:"j M Y, H:i"|default:"not recorded" }}</span>
       <h1>Run {{ run.reference|default:run.pk|default:"not started" }}</h1>
-      <p class="lede">{{ run.project.name|default:"Project" }} · Ruleset {{ run.ruleset_version|default:"current" }} · Snapshot {{ run.snapshot_version|default:"pending" }}</p>
+      <p class="lede">{{ run.project.name|default:"Project" }} · Ruleset {{ run.ruleset_version|default:"current" }} · Snapshot {{ run.snapshot_version|default:"pending" }} — the technical record of one audit execution. Use it to see which stages ran, how long they took and exactly why anything stopped.</p>
     </div>
     <div class="page-heading__actions">
       {% if run.can_resume %}<form method="post" action="{{ resume_url|default:'#' }}">{% csrf_token %}<button class="button" type="submit">Resume from checkpoint</button></form>{% endif %}
@@ -21,29 +21,51 @@
     </div>
   </header>
 
-  <section class="section" aria-labelledby="run-progress">
-    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / State machine</span><h2 id="run-progress">{{ run.get_status_display|default:run.status|default:"Draft" }}</h2></div><span class="status status--{{ run.status|default:'review'|slugify }}">{{ run.progress_percent|default:"0" }}% complete</span></div>
+  <section class="section surface reveal" style="--reveal-index: 1" aria-labelledby="run-progress">
+    <div class="section-heading"><div class="section-heading__copy"><span class="section-index">01 / State machine</span><h2 id="run-progress">{{ run.get_status_display|default:run.status|default:"Draft" }}</h2><p class="fine-print">Stages are idempotent: resuming re-enters at the last checkpoint instead of recrawling everything.</p></div><span class="status status--{{ run.status|default:'review'|slugify }}"><span class="num">{{ run.progress_percent|default:"0" }}%</span> complete</span></div>
     <div class="progress-track" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ run.progress_percent|default:'0' }}" style="--progress: {{ run.progress_percent|default:'0' }}%"><span></span></div>
-    {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}" {% if stage.current %}aria-current="step"{% endif %}><strong>{{ forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% endif %}
+    {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}" {% if stage.current %}aria-current="step"{% endif %}><strong class="num">{{ forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% endif %}
   </section>
 
-  <dl class="metric-ledger" aria-label="Run metrics">
-    <div><dt>Pages discovered</dt><dd>{{ run.pages_discovered|default:"0" }}</dd><small>{{ run.pages_audited|default:"0" }} audited</small></div>
-    <div><dt>Evidence records</dt><dd>{{ run.evidence_count|default:"0" }}</dd><small>{{ run.source_snapshot_count|default:"0" }} source snapshots</small></div>
-    <div><dt>Findings</dt><dd>{{ run.findings_count|default:"0" }}</dd><small>{{ run.critical_high_count|default:"0" }} critical or high</small></div>
-    <div><dt>Elapsed</dt><dd>{{ run.elapsed_display|default:"—" }}</dd><small>Last heartbeat {{ run.last_heartbeat_at|timesince|default:"unknown" }} ago</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 2" aria-labelledby="run-metrics-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy"><span class="section-index">Volume</span><h2 id="run-metrics-heading">What this run collected</h2></div>
+      <span class="fine-print">Discovered pages are URLs the crawler found; audited pages are those it successfully fetched and assessed.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">Pages discovered</span>
+        <strong class="stat__value num">{{ run.pages_discovered|default:"0" }}</strong>
+        <span class="stat__note">{{ run.pages_audited|default:"0" }} audited</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Evidence records</span>
+        <strong class="stat__value num">{{ run.evidence_count|default:"0" }}</strong>
+        <span class="stat__note">{{ run.source_snapshot_count|default:"0" }} source snapshots</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Findings</span>
+        <strong class="stat__value num">{{ run.findings_count|default:"0" }}</strong>
+        <span class="stat__note">{{ run.critical_high_count|default:"0" }} critical or high</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Elapsed</span>
+        <strong class="stat__value num">{{ run.elapsed_display|default:"—" }}</strong>
+        <span class="stat__note">{% if run.elapsed_display %}Last heartbeat {{ run.last_heartbeat_at|timesince|default:"unknown" }} ago{% else %}No elapsed time yet: the run has not started executing{% endif %}</span>
+      </article>
+    </div>
+  </section>
 
-  <div class="split-layout">
+  <div class="split-layout reveal" style="--reveal-index: 3">
     <section class="section" aria-labelledby="stage-ledger">
-      <div class="section-heading__copy"><span class="section-index">02 / Execution</span><h2 id="stage-ledger">Stage ledger</h2></div>
-      <div class="table-wrap"><table class="data-table"><caption>Idempotent run stages and checkpoint state</caption><thead><tr><th scope="col">Stage</th><th scope="col">Status</th><th scope="col">Started</th><th scope="col">Duration</th><th scope="col">Records</th><th scope="col">Detail</th></tr></thead><tbody>{% for stage in run_stages %}<tr><td><strong>{{ stage.label|default:stage.name|default:"Stage" }}</strong><br><span class="fine-print data-value">{{ stage.idempotency_key|default:"Key pending"|truncatechars:20 }}</span></td><td><span class="status status--{{ stage.status|default:'review'|slugify }}">{{ stage.get_status_display|default:stage.status|default:"Pending" }}</span></td><td>{{ stage.started_at|date:"j M, H:i"|default:"—" }}</td><td class="data-value">{{ stage.duration_display|default:"—" }}</td><td class="data-value">{{ stage.output_count|default:"0" }}</td><td>{% if stage.unavailable_reason %}{{ stage.unavailable_reason }}{% elif stage.error_summary %}<span class="field-error">{{ stage.error_summary }}</span>{% else %}{{ stage.summary|default:"No exceptions" }}{% endif %}</td></tr>{% empty %}<tr><td colspan="6">No stage activity has been recorded.</td></tr>{% endfor %}</tbody></table></div>
+      <div class="section-heading__copy"><span class="section-index">02 / Execution</span><h2 id="stage-ledger">Stage ledger</h2><p class="fine-print">One row per stage, with its checkpoint key, duration and any recorded exception.</p></div>
+      <div class="table-wrap surface surface--flush"><table class="data-table"><caption>Idempotent run stages and checkpoint state</caption><thead><tr><th scope="col">Stage</th><th scope="col">Status</th><th scope="col">Started</th><th scope="col" class="num">Duration</th><th scope="col" class="num">Records</th><th scope="col">Detail</th></tr></thead><tbody>{% for stage in run_stages %}<tr><td><strong>{{ stage.label|default:stage.name|default:"Stage" }}</strong><br><span class="fine-print data-value">{{ stage.idempotency_key|default:"Key pending"|truncatechars:20 }}</span></td><td><span class="status status--{{ stage.status|default:'review'|slugify }}">{{ stage.get_status_display|default:stage.status|default:"Pending" }}</span></td><td>{{ stage.started_at|date:"j M, H:i"|default:"—" }}</td><td class="num data-value">{{ stage.duration_display|default:"—" }}</td><td class="num data-value">{{ stage.output_count|default:"0" }}</td><td>{% if stage.unavailable_reason %}{{ stage.unavailable_reason }}{% elif stage.error_summary %}<span class="field-error">{{ stage.error_summary }}</span>{% else %}{{ stage.summary|default:"No exceptions" }}{% endif %}</td></tr>{% empty %}<tr><td colspan="6">No stage activity has been recorded yet. Rows appear as soon as a worker claims the run and starts the first stage.</td></tr>{% endfor %}</tbody></table></div>
     </section>
 
     <aside class="rail">
-      <section class="editorial-panel rail-section"><span class="section-index">03 / Runtime</span><h2 class="app-title">Worker state</h2><dl class="definition-list"><dt>Queue</dt><dd>{{ run.queue_name|default:"analysis" }}</dd><dt>Worker</dt><dd>{{ run.worker_id|default:"Not assigned" }}</dd><dt>Heartbeat</dt><dd>{{ run.last_heartbeat_at|date:"j M, H:i:s"|default:"Not recorded" }}</dd><dt>Retries</dt><dd>{{ run.retry_count|default:"0" }}</dd></dl></section>
-      {% if run.failure_message %}<section class="danger-zone"><h2 class="app-title">Run needs attention</h2><p>{{ run.failure_message }}</p><p class="fine-print">Request ID: <span class="data-value">{{ request_id|default:"Unavailable" }}</span></p></section>{% endif %}
-      <section class="rail-section"><span class="section-index">04 / Events</span><h2 class="app-title">Recent events</h2>{% for event in recent_events %}<div class="rail-section"><strong>{{ event.label|default:event.event_type|default:"Event" }}</strong><span class="fine-print">{{ event.created_at|date:"j M, H:i:s"|default:"Time unavailable" }}</span><p class="muted">{{ event.summary|default:"No additional detail." }}</p></div>{% empty %}<p class="muted">No events have been recorded.</p>{% endfor %}</section>
+      <section class="editorial-panel rail-section surface"><span class="section-index">03 / Runtime</span><h2 class="app-title">Worker state</h2><p class="fine-print">Which background worker owns this run and when it last reported in.</p><dl class="definition-list kv"><dt class="kv__key">Queue</dt><dd class="kv__value">{{ run.queue_name|default:"analysis" }}</dd><dt class="kv__key">Worker</dt><dd class="kv__value">{{ run.worker_id|default:"Not assigned" }}</dd><dt class="kv__key">Heartbeat</dt><dd class="kv__value">{{ run.last_heartbeat_at|date:"j M, H:i:s"|default:"Not recorded" }}</dd><dt class="kv__key">Retries</dt><dd class="kv__value num">{{ run.retry_count|default:"0" }}</dd></dl></section>
+      {% if run.failure_message %}<section class="danger-zone surface"><h2 class="app-title">Run needs attention</h2><p>{{ run.failure_message }}</p><p class="fine-print">Quote this request ID when reporting the problem: <span class="data-value">{{ request_id|default:"Unavailable" }}</span></p></section>{% endif %}
+      <section class="rail-section surface"><span class="section-index">04 / Events</span><h2 class="app-title">Recent events</h2>{% for event in recent_events %}<div class="rail-section"><strong>{{ event.label|default:event.event_type|default:"Event" }}</strong><span class="fine-print">{{ event.created_at|date:"j M, H:i:s"|default:"Time unavailable" }}</span><p class="muted">{{ event.summary|default:"No additional detail." }}</p></div>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><h3 class="empty-state__title">No events recorded</h3><p class="empty-state__body">The audit trail fills in as stages start, finish or raise exceptions.</p></div>{% endfor %}</section>
     </aside>
   </div>
 </div>

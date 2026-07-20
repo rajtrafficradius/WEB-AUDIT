@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load studio_format %}
 
 {% block title %}Findings{% endblock %}
 
@@ -8,25 +9,50 @@
 {% url 'action-plan' project.pk as action_plan_url %}
 <div class="page-shell">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url|default:'#' }}">Portfolio</a></li><li><a href="{{ project_url|default:'#' }}">{{ project.name|default:"Project" }}</a></li><li aria-current="page">Findings</li></ol></nav>
-  <header class="page-heading">
+  <header class="page-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
-      <span class="eyebrow">Audit findings · Ruleset {{ ruleset_version|default:"current" }}</span>
+      <span class="eyebrow">{{ project.client.name|default:"Client" }} · Audit findings · Ruleset {{ ruleset_version|default:"current" }}</span>
       <h1>Every issue returns to evidence.</h1>
-      <p class="lede">Severity, reach and confidence are distinct. Filter the register, inspect the proof, then promote supported recommendations into the canonical plan.</p>
+      <p class="lede">This is the full issue register for the audit. Severity, reach and confidence are kept separate on purpose — filter the register, inspect the proof behind any row, then promote supported recommendations into the canonical action plan.</p>
     </div>
     <div class="page-heading__actions"><a class="button button--secondary" href="{{ action_plan_url|default:'#' }}">Open action plan</a></div>
   </header>
 
-  <dl class="metric-ledger" aria-label="Finding summary">
-    <div><dt>Critical</dt><dd>{{ severity_counts.critical|default:"0" }}</dd><small>Immediate business or indexation risk</small></div>
-    <div><dt>High</dt><dd>{{ severity_counts.high|default:"0" }}</dd><small>Material opportunity or failure</small></div>
-    <div><dt>Evidence records</dt><dd>{{ evidence_count|default:"0" }}</dd><small>Immutable source references</small></div>
-    <div><dt>Coverage</dt><dd>{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</dd><small>{{ unavailable_category_count|default:"0" }} categories unavailable</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 1" aria-labelledby="finding-summary-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Summary</span>
+        <h2 id="finding-summary-heading">Register at a glance</h2>
+      </div>
+      <span class="fine-print">Severity is how bad the issue is; confidence is how sure the evidence makes us. They are never merged into one number.</span>
+    </div>
+    <div class="stat-grid">
+      <article class="stat surface">
+        <span class="stat__label">Critical</span>
+        <strong class="stat__value num">{{ severity_counts.critical|default:"0" }}</strong>
+        <span class="stat__note">Immediate business or indexation risk</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">High</span>
+        <strong class="stat__value num">{{ severity_counts.high|default:"0" }}</strong>
+        <span class="stat__note">Material opportunity or failure</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Evidence records</span>
+        <strong class="stat__value num">{{ evidence_count|default:"0" }}</strong>
+        <span class="stat__note">Immutable source references behind these findings</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Coverage</span>
+        <strong class="stat__value num">{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</strong>
+        <span class="stat__note">{{ unavailable_category_count|default:"0" }} categories could not be assessed{% if evidence_coverage == None %} · coverage cannot be calculated yet{% endif %}</span>
+      </article>
+    </div>
+  </section>
 
-  <section class="section" aria-labelledby="findings-register">
-    <div class="table-toolbar">
-      <div class="section-heading__copy"><span class="section-index">01 / Issue register</span><h2 id="findings-register">Audited findings</h2></div>
+  <section class="section reveal" style="--reveal-index: 2" aria-labelledby="findings-register">
+    <div class="table-toolbar toolbar">
+      <div class="section-heading__copy"><span class="section-index">01 / Issue register</span><h2 id="findings-register">Audited findings{% if findings %} · {{ findings|length }}{% endif %}</h2><p class="fine-print">P1 is urgent risk, P2 material, P3 worthwhile, P4 refinement.</p></div>
       <form class="table-toolbar__filters" method="get" aria-label="Filter findings">
         <div class="field"><label for="finding-search">Search</label><input class="filter-control" id="finding-search" name="q" type="search" value="{{ filters.q|default:'' }}" placeholder="URL, issue or evidence" data-filter-input data-filter-target="#finding-rows"></div>
         <div class="field"><label for="severity-filter">Severity</label><select class="filter-control" id="severity-filter" name="severity"><option value="">All severities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div>
@@ -36,19 +62,19 @@
     </div>
 
     {% if findings %}
-    <div class="table-wrap">
+    <div class="table-wrap surface surface--flush">
       <table class="data-table">
         <caption>{{ findings|length }} findings in the current filtered view</caption>
-        <thead><tr><th scope="col">Priority</th><th scope="col">Finding</th><th scope="col">Scope</th><th scope="col">Evidence</th><th scope="col">Confidence</th><th scope="col">State</th><th scope="col">Action</th></tr></thead>
+        <thead><tr><th scope="col">Priority</th><th scope="col">Finding</th><th scope="col" class="num">Scope</th><th scope="col" class="num">Evidence</th><th scope="col" class="num">Confidence</th><th scope="col">State</th><th scope="col">Action</th></tr></thead>
         <tbody id="finding-rows">
           {% for finding in findings %}
           {% url 'finding-detail' project.pk finding.pk as finding_url %}
           <tr data-filter-row>
             <td><span class="priority priority--{{ finding.priority|default:'p3'|lower }}">{{ finding.priority|default:"—" }}</span><br><span class="fine-print">{{ finding.get_severity_display|default:finding.severity|default:"Unrated" }}</span></td>
-            <td><strong>{{ finding.title|default:"Untitled finding" }}</strong><br><span class="muted">{{ finding.category|default:"Uncategorised" }}</span></td>
-            <td>{{ finding.affected_count|default:"0" }} / {{ finding.audited_count|default:"0" }}<br><span class="fine-print">{{ finding.affected_share|default:"—" }}{% if finding.affected_share != None %}% affected{% endif %}</span></td>
-            <td>{{ finding.evidence_count|default:"0" }} records<br><span class="fine-print">As of {{ finding.as_of_date|date:"j M Y"|default:"unknown" }}</span></td>
-            <td class="data-value">{{ finding.confidence|default:"—" }}</td>
+            <td><strong>{{ finding.title|default:"Untitled finding" }}</strong><br><span class="tag">{{ finding.category|humanise|default:"Uncategorised" }}</span></td>
+            <td class="num">{{ finding.affected_count|default:"0" }} / {{ finding.audited_count|default:"0" }}<br><span class="fine-print">{{ finding.affected_share|default:"—" }}{% if finding.affected_share != None %}% affected{% endif %}</span></td>
+            <td class="num">{{ finding.evidence_count|default:"0" }} records<br><span class="fine-print">As of {{ finding.as_of_date|date:"j M Y"|default:"unknown" }}</span></td>
+            <td class="num data-value">{{ finding.confidence|as_percent|default:"—" }}</td>
             <td><span class="status status--{{ finding.status|default:'review'|slugify }}">{{ finding.get_status_display|default:finding.status|default:"Open" }}</span></td>
             <td><a href="{{ finding_url|default:'#' }}">Inspect</a></td>
           </tr>
@@ -57,13 +83,20 @@
       </table>
     </div>
     {% else %}
-    <div class="empty-state"><span class="empty-state__number" aria-hidden="true">0</span><h3>No findings match this view</h3><p class="muted">Clear the filters or complete the audit stage. Missing evidence will appear as unavailable coverage, not as a clean bill of health.</p></div>
+    <div class="empty-state surface">
+      <span class="empty-state__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      </span>
+      <h3 class="empty-state__title">No findings match this view</h3>
+      <p class="empty-state__body">Either the filters above exclude everything, or the audit stage that writes findings has not finished. Clear the filters first. Remember that missing evidence appears as unavailable coverage, never as a clean bill of health.</p>
+      <span class="empty-state__action"><a class="button button--secondary" href="{{ project_url|default:'#' }}">Back to project overview</a></span>
+    </div>
     {% endif %}
   </section>
 
   {% if selected_finding %}
-  <section class="split-layout" aria-labelledby="finding-detail-heading">
-    <article class="section editorial-panel">
+  <section class="split-layout reveal" style="--reveal-index: 3" aria-labelledby="finding-detail-heading">
+    <article class="section editorial-panel surface">
       <div class="section-heading"><div class="section-heading__copy"><span class="section-index">02 / Finding {{ selected_finding.reference|default:selected_finding.pk }}</span><h2 id="finding-detail-heading">{{ selected_finding.title }}</h2></div><span class="status status--{{ selected_finding.severity|default:'warning'|slugify }}">{{ selected_finding.get_severity_display|default:selected_finding.severity }}</span></div>
       <p class="lede">{{ selected_finding.summary|default:"No explanatory summary has been recorded." }}</p>
       <h3>Why it matters</h3><p>{{ selected_finding.impact_statement|default:"Impact statement pending analyst review." }}</p>
@@ -71,8 +104,8 @@
       {% if selected_finding.evidence_excerpt %}<blockquote class="evidence-quote">{{ selected_finding.evidence_excerpt }}<cite>{{ selected_finding.evidence_source|default:"Evidence record" }} · {{ selected_finding.as_of_date|date:"j M Y"|default:"Date unavailable" }}</cite></blockquote>{% endif %}
     </article>
     <aside class="rail">
-      <section class="rail-section"><span class="section-index">03 / Provenance</span><h2 class="app-title">Calculation record</h2><dl class="definition-list"><dt>Rule</dt><dd>{{ selected_finding.rule_id|default:"—" }}</dd><dt>Version</dt><dd>{{ selected_finding.rule_version|default:"—" }}</dd><dt>Confidence</dt><dd>{{ selected_finding.confidence|default:"—" }}</dd><dt>Captured</dt><dd>{{ selected_finding.as_of_date|date:"j M Y"|default:"—" }}</dd></dl></section>
-      <section class="rail-section"><span class="section-index">04 / Evidence</span><h2 class="app-title">Referenced records</h2>{% for evidence in selected_finding.evidence_records %}<a href="{{ evidence.get_absolute_url|default:'#' }}">{{ evidence.reference|default:evidence.pk }} · {{ evidence.source_label|default:"Source" }}</a>{% empty %}<p class="muted">No evidence records are available to this user.</p>{% endfor %}</section>
+      <section class="rail-section surface"><span class="section-index">03 / Provenance</span><h2 class="app-title">Calculation record</h2><p class="fine-print">The exact rule and data snapshot that produced this finding, so it can be reproduced later.</p><dl class="definition-list kv"><dt class="kv__key">Rule</dt><dd class="kv__value data-value">{{ selected_finding.rule_id|default:"—" }}</dd><dt class="kv__key">Version</dt><dd class="kv__value data-value">{{ selected_finding.rule_version|default:"—" }}</dd><dt class="kv__key">Confidence</dt><dd class="kv__value num">{{ selected_finding.confidence|as_percent|default:"—" }}</dd><dt class="kv__key">Captured</dt><dd class="kv__value">{{ selected_finding.as_of_date|date:"j M Y"|default:"—" }}</dd></dl></section>
+      <section class="rail-section surface"><span class="section-index">04 / Evidence</span><h2 class="app-title">Referenced records</h2>{% for evidence in selected_finding.evidence_records %}<a href="{{ evidence.get_absolute_url|default:'#' }}">{{ evidence.reference|default:evidence.pk }} · {{ evidence.source_label|default:"Source" }}</a>{% empty %}<div class="empty-state"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8L18.5 8v12.5H6Z"/><path d="M13.5 3.5V8.5h5"/></svg></span><h3 class="empty-state__title">No evidence records are visible to you</h3><p class="empty-state__body">Records exist only where your role permits, or none were attached to this finding.</p></div>{% endfor %}</section>
     </aside>
   </section>
   {% endif %}

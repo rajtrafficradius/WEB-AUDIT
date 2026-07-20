@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load studio_format %}
 {% block title %}{{ project.name|default:"Project" }}{% endblock %}
 {% block content %}
 {% url 'dashboard' as dashboard_url %}
@@ -14,11 +15,11 @@
 <div class="page-shell project-workspace">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ dashboard_url }}">Portfolio</a></li><li aria-current="page">{{ project.name }}</li></ol></nav>
 
-  <header class="page-heading project-heading">
+  <header class="page-heading project-heading reveal" style="--reveal-index: 0">
     <div class="page-heading__copy">
       <span class="eyebrow">{{ project.client.name }} · {{ project.get_profile_display|default:project.profile }}</span>
       <h1>{{ project.name }}</h1>
-      <p class="lede">{{ project.primary_domain }} · {{ project.locale|default:"en-AU" }}</p>
+      <p class="lede">{{ project.primary_domain }} · {{ project.locale|default:"en-AU" }} — this is the project home. Watch the audit run, read the headline numbers, then work through findings, the action plan and approvals before exporting the package.</p>
     </div>
     <div class="page-heading__actions">
       <a class="button button--quiet" href="{{ intake_url }}">Edit setup</a>
@@ -28,7 +29,7 @@
     </div>
   </header>
 
-  <nav class="project-tabs" aria-label="Project sections">
+  <nav class="project-tabs reveal" style="--reveal-index: 1" aria-label="Project sections">
     <a href="{{ sources_url }}">Evidence sources</a>
     <a href="{{ findings_url }}">Findings</a>
     <a href="{{ action_plan_url }}">Action plan</a>
@@ -36,7 +37,7 @@
     <a href="{{ export_url }}">Reports &amp; QA</a>
   </nav>
 
-  <section class="audit-progress-card{% if audit_progress.failed %} audit-progress-card--failed{% endif %}" aria-labelledby="audit-status-heading"
+  <section class="audit-progress-card surface reveal{% if audit_progress.failed %} audit-progress-card--failed{% endif %}" style="--reveal-index: 2" aria-labelledby="audit-status-heading"
            data-audit-progress data-progress-url="{{ progress_url }}" data-active="{{ audit_progress.active|yesno:'true,false' }}">
     <div class="audit-progress-card__header">
       <div>
@@ -44,16 +45,17 @@
         <h2 id="audit-status-heading" data-progress-label>{{ audit_progress.label }}</h2>
         <p class="muted" data-progress-message>{{ audit_progress.message|default:"The audit uses approved-domain evidence only." }}</p>
       </div>
-      <strong class="audit-progress-card__percent" data-progress-percent>{{ audit_progress.percent }}%</strong>
+      <strong class="audit-progress-card__percent num" data-progress-percent>{{ audit_progress.percent }}%</strong>
     </div>
     <div class="progress-track progress-track--audit" role="progressbar" aria-label="Website audit progress"
          aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ audit_progress.percent }}"
          style="--progress: {{ audit_progress.percent }}%"><span></span></div>
     <div class="audit-live-metrics" aria-live="polite">
-      <span><strong data-progress-pages>{{ audit_progress.pages }}</strong> pages collected</span>
-      <span><strong data-progress-findings>{{ audit_progress.findings }}</strong> findings</span>
-      <span><strong data-progress-recommendations>{{ audit_progress.recommendations }}</strong> recommendations</span>
+      <span><strong class="num" data-progress-pages>{{ audit_progress.pages }}</strong> pages collected</span>
+      <span><strong class="num" data-progress-findings>{{ audit_progress.findings }}</strong> findings</span>
+      <span><strong class="num" data-progress-recommendations>{{ audit_progress.recommendations }}</strong> recommendations</span>
     </div>
+    <p class="fine-print">These counters refresh on their own while the run is active — there is no need to reload the page.</p>
     {% if audit_download_available %}
     <div class="audit-progress-card__cta">
       <a class="button" href="{{ audit_download_url }}">Download audit results</a>
@@ -69,49 +71,102 @@
     {% endif %}
   </section>
 
-  <dl class="metric-ledger project-metrics" aria-label="Audit results summary">
-    <div><dt>Evidence coverage</dt><dd>{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</dd><small>Score requires at least 70%</small></div>
-    <div><dt>Health score</dt><dd>{{ health_score|default:"—" }}</dd><small>{% if health_score != None %}Ruleset {{ ruleset_version }}{% else %}Withheld until coverage is sufficient{% endif %}</small></div>
-    <div><dt>Open findings</dt><dd>{{ open_findings_count }}</dd><small>{{ critical_high_count }} critical or high</small></div>
-    <div><dt>Action items</dt><dd>{{ action_count }}</dd><small>{{ approved_actions_count }} approved</small></div>
-  </dl>
+  <section class="section reveal" style="--reveal-index: 3" aria-labelledby="headline-metrics-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Headline results</span>
+        <h2 id="headline-metrics-heading">Where this audit stands</h2>
+      </div>
+      <span class="fine-print">Evidence coverage is how much of the expected source data was actually collected and is still in date.</span>
+    </div>
+    <div class="stat-grid project-metrics">
+      <article class="stat surface">
+        <span class="stat__label">Evidence coverage</span>
+        <strong class="stat__value num">{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</strong>
+        <span class="stat__note">A health score is only published at 70% coverage or above</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Health score</span>
+        <strong class="stat__value num">{{ health_score|default:"—" }}</strong>
+        <span class="stat__note">{% if health_score != None %}Ruleset {{ ruleset_version }}{% else %}Withheld: coverage is below the 70% threshold, so a score would overstate what the evidence supports{% endif %}</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Open findings</span>
+        <strong class="stat__value num">{{ open_findings_count }}</strong>
+        <span class="stat__note">{{ critical_high_count }} critical or high</span>
+      </article>
+      <article class="stat surface">
+        <span class="stat__label">Action items</span>
+        <strong class="stat__value num">{{ action_count }}</strong>
+        <span class="stat__note">{{ approved_actions_count }} approved</span>
+      </article>
+    </div>
+  </section>
 
-  <div class="project-overview-grid">
-    <section class="editorial-panel" aria-labelledby="short-summary-heading">
+  <div class="project-overview-grid split-layout reveal" style="--reveal-index: 4">
+    <section class="editorial-panel surface" aria-labelledby="short-summary-heading">
       <span class="section-index">Executive view</span>
       <h2 id="short-summary-heading" class="app-title">Short summary below.</h2>
       <p>{{ short_summary }}</p>
     </section>
-    <section class="editorial-panel" aria-labelledby="next-step-heading">
+    <section class="editorial-panel surface" aria-labelledby="next-step-heading">
       <span class="section-index">Next step</span>
       <h2 id="next-step-heading" class="app-title">{% if audit_progress.failed %}Review the run error{% elif audit_progress.active %}Audit in progress{% else %}Review the evidence{% endif %}</h2>
       <p class="muted">{% if audit_progress.failed %}Open Run details for the safe failure reason and retry path.{% elif audit_progress.active %}This page updates automatically while the crawler and audit rules run.{% else %}Open Findings, confirm priority, then review the Action plan.{% endif %}</p>
+      <p class="fine-print">The full sequence is: collect evidence, review findings, agree the action plan, record approvals, then export the package.</p>
     </section>
   </div>
 
-  <section class="section results-section" aria-labelledby="findings-heading">
+  <section class="section results-section reveal" style="--reveal-index: 5" aria-labelledby="findings-heading">
     <div class="section-heading">
-      <div class="section-heading__copy"><span class="section-index">Priority results</span><h2 id="findings-heading">Highest-priority findings</h2></div>
+      <div class="section-heading__copy">
+        <span class="section-index">Priority results</span>
+        <h2 id="findings-heading">Highest-priority findings</h2>
+        <p class="fine-print">P1 is urgent business or indexation risk; P4 is a low-impact refinement. Every finding links back to the evidence records that produced it.</p>
+      </div>
       <a href="{{ findings_url }}">View all findings</a>
     </div>
     {% if priority_findings %}
-    <div class="table-wrap"><table class="data-table">
+    <div class="table-wrap surface surface--flush"><table class="data-table">
       <caption>Highest-priority open findings</caption>
-      <thead><tr><th>Priority</th><th>Finding</th><th>Evidence</th><th>Confidence</th></tr></thead>
+      <thead><tr><th scope="col">Priority</th><th scope="col">Finding</th><th scope="col" class="num">Evidence</th><th scope="col" class="num">Confidence</th></tr></thead>
       <tbody>{% for finding in priority_findings %}<tr>
         <td><span class="priority priority--{{ finding.priority|lower }}">{{ finding.priority }}</span></td>
-        <td><strong>{{ finding.title }}</strong><br><span class="muted">{{ finding.category }}</span></td>
-        <td>{{ finding.evidence_count }} records</td><td>{{ finding.confidence }}</td>
+        <td><strong>{{ finding.title }}</strong><br><span class="tag">{{ finding.category|humanise }}</span></td>
+        <td class="num">{{ finding.evidence_count }} records</td><td class="num">{{ finding.confidence|as_percent }}</td>
       </tr>{% endfor %}</tbody>
     </table></div>
     {% else %}
-    <div class="empty-state"><h3>{% if audit_progress.active %}Analysis is still running{% else %}No open findings recorded{% endif %}</h3><p class="muted">{% if audit_progress.active %}Findings will populate here as soon as evidence rules complete.{% else %}Check Run details for crawl coverage and unavailable evidence.{% endif %}</p></div>
+    <div class="empty-state surface">
+      <span class="empty-state__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      </span>
+      <h3 class="empty-state__title">{% if audit_progress.active %}Analysis is still running{% else %}No open findings recorded{% endif %}</h3>
+      <p class="empty-state__body">{% if audit_progress.active %}Findings will populate here as soon as evidence rules complete.{% else %}Check Run details for crawl coverage and unavailable evidence.{% endif %} An empty register is never treated as a clean bill of health: missing data is reported as unavailable coverage instead.</p>
+      <span class="empty-state__action"><a class="button button--secondary" href="{{ findings_url }}">Open the findings register</a></span>
+    </div>
     {% endif %}
   </section>
 
-  <section class="section" aria-labelledby="workflow-heading">
-    <div class="section-heading__copy"><span class="section-index">Governed workflow</span><h2 id="workflow-heading">Project progression</h2></div>
-    {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}"{% if stage.current %} aria-current="step"{% endif %}><strong>{{ stage.number|default:forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% else %}<p class="muted">The audit run is being prepared.</p>{% endif %}
+  <section class="section reveal" style="--reveal-index: 6" aria-labelledby="sources-summary-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Evidence base</span>
+        <h2 id="sources-summary-heading">Where the evidence comes from</h2>
+        <p class="fine-print">Connections and imports keep their capture dates and scope limits. Anything unavailable is disclosed with a reason rather than assumed to pass.</p>
+      </div>
+      <a href="{{ sources_url }}">Manage evidence sources</a>
+    </div>
+    <dl class="definition-list kv surface">
+      <dt class="kv__key">Approved crawl domain</dt><dd class="kv__value">{{ project.primary_domain|default:"Not set" }}</dd>
+      <dt class="kv__key">Market and language</dt><dd class="kv__value">{{ project.locale|default:"en-AU" }}</dd>
+      <dt class="kv__key">Evidence coverage</dt><dd class="kv__value num">{{ evidence_coverage|default:"—" }}{% if evidence_coverage != None %}%{% endif %}</dd>
+    </dl>
+  </section>
+
+  <section class="section reveal" style="--reveal-index: 7" aria-labelledby="workflow-heading">
+    <div class="section-heading__copy"><span class="section-index">Governed workflow</span><h2 id="workflow-heading">Project progression</h2><p class="fine-print">Each stage must finish before the next begins, so a package can never be built from partial or unapproved work.</p></div>
+    {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}"{% if stage.current %} aria-current="step"{% endif %}><strong class="num">{{ stage.number|default:forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% else %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><h3 class="empty-state__title">The audit run is being prepared</h3><p class="empty-state__body">Workflow stages appear once the run has been queued and a worker has picked it up.</p></div>{% endif %}
   </section>
 </div>
 {% endblock %}

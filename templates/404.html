@@ -2,13 +2,21 @@
 {% block title %}Page not found{% endblock %}
 {% block content %}
 {% url 'dashboard' as dashboard_url %}
-<section class="error-page" aria-labelledby="error-heading">
+{% url 'project-list' as project_list_url %}
+<section class="page-shell error-page reveal" style="--reveal-index: 0" aria-labelledby="error-heading">
   <div class="error-code" aria-hidden="true">404</div>
-  <div class="error-copy">
+  <div class="error-copy surface">
     <span class="eyebrow">Record not found</span>
     <h1 id="error-heading">This route no longer resolves.</h1>
-    <p class="lede">The record may have moved, been archived, or never belonged to your visible workspace. Check the address or continue from the portfolio.</p>
-    <div class="page-heading__actions"><a class="button" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a></div>
+    <p class="lede">The record may have moved, been archived, or it may never have belonged to the workspace your account can see. Check the address, or continue from the portfolio.</p>
+    <div class="kv">
+      <span class="kv__key">Common cause</span>
+      <span class="kv__value">A bookmarked link to a run or finding that has since been superseded by a newer audit run.</span>
+    </div>
+    <div class="page-heading__actions">
+      <a class="button" href="{{ dashboard_url|default:'/' }}">Return to the portfolio</a>
+      <a class="button button--secondary" href="{{ project_list_url|default:dashboard_url|default:'/' }}">Browse all projects</a>
+    </div>
     <p class="fine-print">Request ID: <span class="data-value">{{ request_id|default:"not available" }}</span></p>
   </div>
 </section>

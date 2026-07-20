@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#f4f0e8">
-  <meta name="description" content="Traffic Radius Enterprise SEO Studio">
-  <title>{% block title %}SEO Studio{% endblock %} | Traffic Radius</title>
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description" content="Traffic Radius SEO Audit Initialization — evidence-led SEO audits.">
+  <title>{% block title %}Portfolio{% endblock %} | Traffic Radius SEO Audit Initialization</title>
   <link rel="icon" href="{% static 'img/traffic-radius-mark.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/studio.css' %}">
   {% block extra_head %}{% endblock %}
@@ -22,11 +22,17 @@
 
   <header class="masthead" data-app-header>
     <div class="masthead__inner">
-      <a class="brand" href="{{ dashboard_url|default:'/' }}" aria-label="Traffic Radius SEO Studio home">
-        <img class="brand__mark" src="{% static 'img/traffic-radius-mark.svg' %}" alt="" width="38" height="38">
+      <a class="brand" href="{{ dashboard_url|default:'/' }}" aria-label="Traffic Radius SEO Audit Initialization home">
+        <span class="brand__mark brand__bars" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="34" height="34" focusable="false">
+            <rect x="8" y="34" width="11" height="22" rx="1.5" fill="#14171A"/>
+            <rect x="25" y="21.5" width="11" height="34.5" rx="1.5" fill="#35B0E3"/>
+            <rect x="42" y="8" width="11" height="48" rx="1.5" fill="#8CC63F"/>
+          </svg>
+        </span>
         <span class="brand__wordmark">
-          <strong>Traffic Radius</strong>
-          <span>Enterprise SEO Studio</span>
+          <strong><span class="brand__heavy">Traffic</span> <span class="brand__light">Radius</span></strong>
+          <span>SEO Audit Initialization</span>
         </span>
       </a>
 
@@ -36,16 +42,19 @@
         <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
       </button>
       <nav class="primary-nav" id="primary-navigation" aria-label="Primary navigation" data-primary-nav>
-        <a href="{{ dashboard_url|default:'#' }}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Portfolio</a>
-        <a href="{{ project_list_url|default:dashboard_url|default:'#' }}" {% if request.resolver_match.url_name == 'project-list' %}aria-current="page"{% endif %}>Projects</a>
+        <a href="{{ dashboard_url|default:'/' }}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Portfolio</a>
+        <a href="{{ project_list_url|default:dashboard_url|default:'/' }}" {% if request.resolver_match.url_name == 'project-list' %}aria-current="page"{% endif %}>Projects</a>
         {% if request.user.is_authenticated %}
-          <span class="account-label" title="Signed in user">{{ request.user.get_full_name|default:request.user.username|default:'Studio user' }}</span>
-          <form class="inline-form" method="post" action="{{ logout_url|default:'#' }}">
+          <span class="account-label" title="Signed in user">
+            <span class="account-label__initial" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|default:'Studio user'|slice:':1'|upper }}</span>
+            <span class="account-label__name">{{ request.user.get_full_name|default:request.user.username|default:'Studio user' }}</span>
+          </span>
+          <form class="inline-form" method="post" action="{{ logout_url|default:'/' }}">
             {% csrf_token %}
             <button class="text-action" type="submit">Sign out</button>
           </form>
         {% else %}
-          <a href="{{ login_url|default:'#' }}">Sign in</a>
+          <a href="{{ login_url|default:'/' }}">Sign in</a>
         {% endif %}
       </nav>
       {% endblock %}
@@ -63,13 +72,14 @@
   </div>
   {% endif %}
 
-  <main id="main-content" class="main" tabindex="-1">
+  <main id="main-content" class="main reveal" tabindex="-1" data-reveal-root>
     {% block content %}{% endblock %}
   </main>
 
   <footer class="site-footer">
     <div>
       <strong>Traffic Radius</strong>
+      <span class="tagline">Growing Your Business the Smart Way!</span>
       <span>Evidence before assertion.</span>
     </div>
     <div class="site-footer__meta">
