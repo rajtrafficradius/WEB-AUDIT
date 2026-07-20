@@ -51,6 +51,48 @@
     </div>
   </section>
 
+  {% if show_connection_form %}
+  <section class="form-section surface reveal" style="--reveal-index: 2" aria-labelledby="connect-heading">
+    <div class="form-section__intro">
+      <span class="section-index">Connect / Credentials</span>
+      <h2 id="connect-heading" class="app-title">Connect a data provider</h2>
+      <p class="muted">Add the provider's API key to let this project collect keyword, competitor and backlink evidence. Keys are encrypted before storage, never shown again and never written to logs or deliverables.</p>
+    </div>
+    <form method="post" action="{{ connect_url }}" class="fields" novalidate>
+      {% csrf_token %}
+      {% if connection_form.non_field_errors %}<div class="field field--wide field-error" role="alert" tabindex="-1">{{ connection_form.non_field_errors|striptags }}</div>{% endif %}
+      <div class="field">
+        <label for="{{ connection_form.provider.id_for_label }}">Provider <span class="required" aria-hidden="true">*</span></label>
+        {{ connection_form.provider }}
+        <span class="field-help">SEMrush supplies keyword volumes, competitors and backlink metrics.</span>
+        {% if connection_form.provider.errors %}<span class="field-error" role="alert">{{ connection_form.provider.errors|striptags }}</span>{% endif %}
+      </div>
+      <div class="field">
+        <label for="{{ connection_form.label.id_for_label }}">Label</label>
+        {{ connection_form.label }}
+        <span class="field-help">Optional. Use it when one project holds more than one account for a provider.</span>
+        {% if connection_form.label.errors %}<span class="field-error" role="alert">{{ connection_form.label.errors|striptags }}</span>{% endif %}
+      </div>
+      <div class="field field--wide">
+        <label for="{{ connection_form.api_key.id_for_label }}">API key</label>
+        {{ connection_form.api_key }}
+        <span class="field-help" id="api-key-help">Paste the key exactly as issued. Saving it marks the source available; the next audit spends up to the configured credit budget collecting its data. Leave blank if you only want to record why the source is missing.</span>
+        {% if connection_form.api_key.errors %}<span class="field-error" role="alert">{{ connection_form.api_key.errors|striptags }}</span>{% endif %}
+      </div>
+      <div class="field field--wide">
+        <label for="{{ connection_form.unavailable_reason.id_for_label }}">Why is it unavailable?</label>
+        {{ connection_form.unavailable_reason }}
+        <span class="field-help">Required only when no key is supplied, so the audit can state the gap honestly instead of treating a missing source as a pass.</span>
+        {% if connection_form.unavailable_reason.errors %}<span class="field-error" role="alert">{{ connection_form.unavailable_reason.errors|striptags }}</span>{% endif %}
+      </div>
+      <div class="form-actions field--wide">
+        <a class="button button--quiet" href="{% url 'project-sources' project.pk %}">Cancel</a>
+        <button class="button" type="submit">Save source</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
   {% if show_upload_form %}
   <section class="form-section surface reveal" style="--reveal-index: 2" aria-labelledby="upload-heading">
     <div class="form-section__intro">
@@ -93,8 +135,10 @@
       {% for source in live_sources %}
       <article class="source-row surface">
         <div class="source-row__identity"><div class="section-heading"><h3>{{ source.get_source_type_display|default:source.label|default:"Live source" }}</h3><span class="status status--{{ source.status|default:'unavailable'|slugify }}">{{ source.get_status_display|default:source.status|default:"Unavailable" }}</span></div><span class="fine-print">Last capture {{ source.last_captured_at|date:"j M Y, H:i"|default:"never" }}</span></div>
-        <div class="source-row__detail">{{ source.scope_summary|default:source.unavailable_reason|default:"Scope has not been verified." }}</div>
-        <div class="source-row__actions">{% url 'source-refresh' project.pk source.pk as refresh_url %}<form method="post" action="{{ refresh_url|default:'#' }}">{% csrf_token %}<button class="button button--quiet" type="submit">Refresh</button></form>{% url 'source-detail' project.pk source.pk as source_url %}<a class="button button--secondary" href="{{ source_url|default:'#' }}">Inspect</a></div>
+        <div class="source-row__detail">{{ source.scope_summary|default:source.unavailable_reason|default:"Scope has not been verified." }}
+          {% if source.has_credential %}<span class="tag">Key stored {{ source.credential_hint }}</span>{% endif %}
+        </div>
+        <div class="source-row__actions">{% url 'source-refresh' project.pk source.pk as refresh_url %}<form method="post" action="{{ refresh_url|default:'#' }}">{% csrf_token %}<button class="button button--quiet" type="submit">Refresh</button></form>{% if source.has_credential %}{% url 'source-disconnect' project.pk source.pk as disconnect_url %}<form method="post" action="{{ disconnect_url }}">{% csrf_token %}<button class="button button--quiet" type="submit" data-confirm-message="Remove the stored key for this source?">Remove key</button></form>{% endif %}{% url 'source-detail' project.pk source.pk as source_url %}<a class="button button--secondary" href="{{ source_url|default:'#' }}">Inspect</a></div>
       </article>
       {% empty %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 6 .5l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10.5a4 4 0 0 0-6-.5l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></svg></span><h3 class="empty-state__title">No live sources are connected</h3><p class="empty-state__body">Nobody has authorised an analytics or search integration for this project yet. The website crawler still runs on its own; connecting Search Console, analytics or rank data raises coverage and finding confidence.</p><span class="empty-state__action"><a class="button" href="{{ connect_url|default:'#' }}">Connect a source</a></span></div>{% endfor %}
     </div>

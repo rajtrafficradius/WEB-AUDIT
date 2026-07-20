@@ -53,6 +53,11 @@ urlpatterns = [
         name="source-refresh",
     ),
     path(
+        "projects/<uuid:project_id>/sources/<uuid:source_id>/disconnect/",
+        views.source_disconnect_view,
+        name="source-disconnect",
+    ),
+    path(
         "projects/<uuid:project_id>/imports/<uuid:import_id>/",
         views.source_import_detail_view,
         name="source-import-detail",

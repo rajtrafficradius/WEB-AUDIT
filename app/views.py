@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Max, Q
 from django.http import FileResponse, JsonResponse
@@ -47,6 +47,7 @@ from .domain.constants import (
     StageStatus,
     UserRole,
 )
+from .domain.crypto import encrypt_credentials
 from .domain.models import (
     ActionItem,
     Approval,
@@ -1265,9 +1266,46 @@ def project_detail_view(request, project_id):
 
 
 class SourceConnectionForm(forms.Form):
+    """Register a provider, optionally with the API credential that activates it."""
+
     provider = forms.ChoiceField(choices=Connection.Provider.choices)
     label = forms.CharField(required=False, max_length=120)
-    unavailable_reason = forms.CharField(max_length=2000)
+    api_key = forms.CharField(
+        required=False,
+        max_length=512,
+        strip=True,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "aria-describedby": "api-key-help",
+            },
+        ),
+    )
+    unavailable_reason = forms.CharField(required=False, max_length=2000)
+
+    def clean_api_key(self) -> str:
+        value = str(self.cleaned_data.get("api_key") or "").strip()
+        if value and (len(value) < 8 or any(char.isspace() for char in value)):
+            raise forms.ValidationError(
+                "That does not look like an API key. Paste it exactly as the provider issued it."
+            )
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        api_key = str(cleaned.get("api_key") or "").strip()
+        reason = str(cleaned.get("unavailable_reason") or "").strip()
+        # A source is either usable (a key was supplied) or explicitly unusable
+        # with a written reason. Silence must never be able to look like coverage.
+        if not api_key and not reason:
+            self.add_error(
+                "unavailable_reason",
+                "Add the API key, or record why this source is not available yet.",
+            )
+        cleaned["unavailable_reason"] = reason
+        return cleaned
 
 
 class EvidenceUploadForm(forms.Form):
@@ -1322,12 +1360,17 @@ def _source_context(
     selected_import=None,
     upload_form=None,
     show_upload_form: bool = False,
+    connection_form=None,
+    show_connection_form: bool = False,
 ) -> dict:
     live_sources = list(project.connections.all())
     for source in live_sources:
         source.status = source.availability
         source.last_captured_at = source.last_synced_at
         source.scope_summary = ", ".join(source.scopes or [])
+        # Never render a stored secret: only whether one exists and its hint.
+        source.has_credential = bool(source.encrypted_credentials)
+        source.credential_hint = (source.external_account_id or "").strip()
     imports = list(project.source_imports.all())
     for item in imports:
         item.display_name = item.original_filename
@@ -1365,6 +1408,8 @@ def _source_context(
         "selected_import": selected_import,
         "upload_form": upload_form,
         "show_upload_form": show_upload_form,
+        "connection_form": connection_form or SourceConnectionForm(),
+        "show_connection_form": show_connection_form,
     }
 
 
@@ -1381,40 +1426,133 @@ def source_connect_view(request, project_id):
     project = _project_for_user(request, project_id)
     _require_manage(request.user, project)
     if request.method == "GET":
-        messages.info(
-            request,
-            "Connections begin unavailable until encrypted credentials are supplied and verified.",
-        )
-        return render(request, "app/project_sources.html", _source_context(project))
-    form = SourceConnectionForm(request.POST)
-    if not form.is_valid():
-        messages.error(request, "Choose a provider and record why evidence is not yet available.")
         return render(
             request,
             "app/project_sources.html",
-            {**_source_context(project), "connection_form": form},
+            _source_context(project, show_connection_form=True),
+        )
+    form = SourceConnectionForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "The source was not saved. Correct the highlighted fields.")
+        return render(
+            request,
+            "app/project_sources.html",
+            _source_context(project, connection_form=form, show_connection_form=True),
             status=400,
         )
+
+    api_key = form.cleaned_data["api_key"]
+    reason = form.cleaned_data["unavailable_reason"]
     source, created = Connection.objects.get_or_create(
         project=project,
         provider=form.cleaned_data["provider"],
         label=form.cleaned_data["label"],
         defaults={
             "availability": AvailabilityStatus.UNAVAILABLE,
-            "unavailable_reason": form.cleaned_data["unavailable_reason"],
+            "unavailable_reason": reason or "Credentials have not been supplied yet.",
         },
     )
-    if not created:
-        messages.info(request, "That connection record already exists; no duplicate was created.")
-    else:
+
+    if not api_key:
+        source.unavailable_reason = reason or source.unavailable_reason
+        if not source.encrypted_credentials:
+            source.availability = AvailabilityStatus.UNAVAILABLE
+        source.save(update_fields=["availability", "unavailable_reason", "updated_at"])
         record_event(
-            event_type="connection.created_unavailable",
+            event_type="connection.created_unavailable" if created else "connection.updated",
             actor=request.user,
             request=request,
             project=project,
-            payload={"provider": source.provider},
+            payload={"provider": source.provider, "has_credential": bool(source.encrypted_credentials)},
         )
-        messages.success(request, "Connection record created with a truthful unavailable state.")
+        messages.success(
+            request,
+            "Source recorded with a written unavailable reason. Add its API key to activate it.",
+        )
+        return redirect("project-sources", project_id=project.pk)
+
+    try:
+        token, key_id = encrypt_credentials({"api_key": api_key})
+    except ImproperlyConfigured:
+        messages.error(
+            request,
+            "Credential encryption is not configured on this deployment, so the key was not "
+            "stored. Set CREDENTIAL_ENCRYPTION_KEYS and CREDENTIAL_ENCRYPTION_ACTIVE_KEY, then retry.",
+        )
+        return render(
+            request,
+            "app/project_sources.html",
+            _source_context(project, connection_form=form, show_connection_form=True),
+            status=503,
+        )
+
+    source.encrypted_credentials = token
+    source.encryption_key_id = key_id
+    # A four-character tail is enough for a human to recognise which key is
+    # stored, and useless to anyone who steals the page.
+    source.external_account_id = f"····{api_key[-4:]}"
+    source.availability = AvailabilityStatus.AVAILABLE
+    source.unavailable_reason = ""
+    source.save(
+        update_fields=[
+            "encrypted_credentials",
+            "encryption_key_id",
+            "external_account_id",
+            "availability",
+            "unavailable_reason",
+            "updated_at",
+        ]
+    )
+    record_event(
+        event_type="connection.credential_stored",
+        actor=request.user,
+        request=request,
+        project=project,
+        payload={
+            "provider": source.provider,
+            "encryption_key_id": key_id,
+            "hint": source.external_account_id,
+        },
+    )
+    messages.success(
+        request,
+        f"{source.get_provider_display()} is connected. The key is encrypted at rest and is "
+        "never displayed again. The next audit will collect this evidence.",
+    )
+    return redirect("project-sources", project_id=project.pk)
+
+
+@login_required
+@require_POST
+def source_disconnect_view(request, project_id, source_id):
+    """Erase a stored credential without deleting the source's history."""
+
+    project = _project_for_user(request, project_id)
+    _require_manage(request.user, project)
+    source = get_object_or_404(Connection, pk=source_id, project=project)
+    source.encrypted_credentials = ""
+    source.encryption_key_id = ""
+    source.external_account_id = ""
+    source.availability = AvailabilityStatus.UNAVAILABLE
+    source.unavailable_reason = "The stored credential was removed by an administrator."
+    source.save(
+        update_fields=[
+            "encrypted_credentials",
+            "encryption_key_id",
+            "external_account_id",
+            "availability",
+            "unavailable_reason",
+            "updated_at",
+        ]
+    )
+    record_event(
+        event_type="connection.credential_removed",
+        actor=request.user,
+        request=request,
+        project=project,
+        payload={"provider": source.provider},
+    )
+    messages.success(request, "The stored credential was removed and the source marked unavailable.")
     return redirect("project-sources", project_id=project.pk)
 
 

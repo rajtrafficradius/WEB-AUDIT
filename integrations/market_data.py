@@ -16,9 +16,11 @@ from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 from app.domain.constants import AvailabilityStatus
+from app.domain.crypto import decrypt_credentials
 from app.domain.models import AuditRun, Backlink, Keyword, MetricObservation, SourceSnapshot
 from audit_engine.urls import canonical_host
 
@@ -178,7 +180,7 @@ class MarketDataService:
     ) -> None:
         self.run = run
         self.transport = transport or PinnedSemrushTextTransport()
-        raw_key = api_key if api_key is not None else getattr(settings, "SEMRUSH_API_KEY", "")
+        raw_key = api_key if api_key is not None else self._project_api_key(run)
         self.api_key = (raw_key or "").strip()
         requested_tier = (tier or getattr(settings, "SEMRUSH_PLAN_TIER", "lite") or "lite").strip()
         self.tier = requested_tier if requested_tier in PLANS else "lite"
@@ -201,6 +203,38 @@ class MarketDataService:
         self._circuit_open_reason: str | None = None
 
     # -- configuration -------------------------------------------------
+
+    @staticmethod
+    def _project_api_key(run: AuditRun) -> str:
+        """Prefer the key an administrator stored against this project.
+
+        A per-project credential lets one deployment serve clients on separate
+        SEMrush subscriptions; the deployment-wide environment key remains the
+        fallback so existing installs keep working.
+        """
+
+        connection = (
+            run.project.connections.filter(provider="semrush")
+            .exclude(encrypted_credentials="")
+            .order_by("-updated_at")
+            .first()
+        )
+        if connection is not None:
+            try:
+                credentials = decrypt_credentials(
+                    connection.encrypted_credentials, connection.encryption_key_id
+                )
+            except (ImproperlyConfigured, ValueError):
+                logger.warning(
+                    "Stored SEMrush credential for project %s could not be decrypted; "
+                    "falling back to the environment key.",
+                    run.project_id,
+                )
+            else:
+                stored = str(credentials.get("api_key") or "").strip()
+                if stored:
+                    return stored
+        return str(getattr(settings, "SEMRUSH_API_KEY", "") or "")
 
     def _resolve_database(self, database: str | None) -> str:
         candidate = (database or "").strip().casefold()
