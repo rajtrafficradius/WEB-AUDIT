@@ -37,6 +37,36 @@ class UnsafeHTTPResponse(CrawlError):
     pass
 
 
+class ChallengeResponse(CrawlError):
+    """The origin answered with a bot challenge or access denial, not page content.
+
+    The response body is carried so the caller can quarantine the URL with real
+    provenance (status code, digest, byte count) instead of treating the
+    challenge interstitial as if it were the client's own page.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str,
+        response: FetchResponse | None = None,
+        retry_after: int | None = None,
+        redirect_chain: tuple[str, ...] = (),
+        response_ms: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.response = response
+        self.retry_after = retry_after
+        self.redirect_chain = redirect_chain
+        self.response_ms = response_ms
+
+
+class RateLimited(ChallengeResponse):
+    """The origin throttled us (429/503).  Our own throttling is never a client defect."""
+
+
 @dataclass(frozen=True, slots=True)
 class FetchResponse:
     status_code: int
@@ -161,6 +191,9 @@ class CrawlConfig:
     min_host_delay_seconds: float = 0.5
     user_agent: str = "TrafficRadiusEvidenceBot/1.0"
     obey_robots: bool = True
+    challenge_backoff_multiplier: float = 4.0
+    max_host_delay_seconds: float = 8.0
+    max_retry_after_seconds: float = 30.0
 
     def __post_init__(self) -> None:
         if not self.allowed_domains:
@@ -179,6 +212,12 @@ class CrawlConfig:
             raise ValueError("Crawler time and byte limits must be positive")
         if self.min_host_delay_seconds < 0:
             raise ValueError("Host delay cannot be negative")
+        if self.challenge_backoff_multiplier < 1:
+            raise ValueError("Challenge backoff multiplier must be at least 1")
+        if self.max_host_delay_seconds < self.min_host_delay_seconds:
+            raise ValueError("max_host_delay_seconds cannot be below min_host_delay_seconds")
+        if self.max_retry_after_seconds < 0:
+            raise ValueError("max_retry_after_seconds cannot be negative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,6 +248,9 @@ class CrawledPage:
     viewport: bool = False
     hreflang_count: int = 0
     analytics_tags: tuple[str, ...] = ()
+    challenge: bool = False
+    challenge_kind: str | None = None
+    retry_after: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,6 +258,9 @@ class CrawlFailure:
     url: str
     code: str
     message: str
+    challenge: bool = False
+    challenge_kind: str | None = None
+    retry_after: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,6 +269,91 @@ class CrawlResult:
     failures: tuple[CrawlFailure, ...]
     discovered_count: int
     stopped_reason: str
+    challenged_count: int = 0
+    rate_limited_count: int = 0
+
+
+CHALLENGE_BODY_MARKERS: tuple[str, ...] = (
+    "verifying your connection",
+    "just a moment",
+    "attention required",
+    "checking your browser",
+    "cf-browser-verification",
+    "cf_chl_opt",
+    "access denied",
+    "enable javascript and cookies to continue",
+    "ddos protection by",
+    "please verify you are a human",
+)
+_CHALLENGE_PREVIEW_BYTES = 8_192
+_RATE_LIMIT_KIND = "rate_limited"
+_BOT_CHALLENGE_KIND = "bot_challenge"
+_ACCESS_DENIED_KIND = "access_denied"
+
+
+@dataclass(frozen=True, slots=True)
+class ChallengeSignal:
+    """Deterministic classification of a response as a challenge / throttle page."""
+
+    challenge: bool
+    kind: str | None = None
+    retry_after: int | None = None
+    marker: str | None = None
+
+    @property
+    def rate_limited(self) -> bool:
+        return self.kind == _RATE_LIMIT_KIND
+
+
+def parse_retry_after(value: str | None) -> int | None:
+    """Parse a delta-seconds Retry-After header.  HTTP-date forms are not guessed."""
+
+    if not value:
+        return None
+    text = value.strip()
+    if not text.isdigit():
+        return None
+    try:
+        seconds = int(text)
+    except ValueError:
+        return None
+    return seconds if seconds >= 0 else None
+
+
+CHALLENGE_MAX_BODY_BYTES = 100_000
+
+
+def classify_challenge(
+    status_code: int,
+    headers: Mapping[str, str],
+    body_text: str = "",
+    body_bytes: int | None = None,
+) -> ChallengeSignal:
+    """Classify a fetched response as origin throttling / bot challenge, or not.
+
+    The crawler must never turn its own rate limiting into client findings, so
+    this classification is the single gate that quarantines such responses.
+    A 2xx response is only treated as a challenge when it is both marker-bearing
+    and small, so a real article that merely quotes a marker phrase is kept.
+    """
+
+    lookup = {str(name).casefold(): str(value) for name, value in (headers or {}).items()}
+    retry_after = parse_retry_after(lookup.get("retry-after"))
+    lowered = body_text.casefold()
+    marker = next((needle for needle in CHALLENGE_BODY_MARKERS if needle in lowered), None)
+    if status_code == 429:
+        return ChallengeSignal(True, _RATE_LIMIT_KIND, retry_after, marker)
+    if status_code == 503 and (retry_after is not None or marker is not None):
+        return ChallengeSignal(True, _RATE_LIMIT_KIND, retry_after, marker)
+    if status_code == 403 and marker is not None:
+        return ChallengeSignal(True, _ACCESS_DENIED_KIND, retry_after, marker)
+    if (
+        marker is not None
+        and 200 <= status_code < 300
+        and (body_bytes is None or body_bytes <= CHALLENGE_MAX_BODY_BYTES)
+    ):
+        return ChallengeSignal(True, _BOT_CHALLENGE_KIND, retry_after, marker)
+    return ChallengeSignal(False)
 
 
 _ANALYTICS_SIGNATURES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -466,6 +596,26 @@ class _DocumentParser(HTMLParser):
         )
 
 
+def _charset_of(content_type: str | None) -> str:
+    if content_type and "charset=" in content_type.casefold():
+        return (
+            content_type.casefold()
+            .split("charset=", 1)[1]
+            .split(";", 1)[0]
+            .strip()
+            .strip('"')
+        ) or "utf-8"
+    return "utf-8"
+
+
+def _decode_body(content_type: str | None, body: bytes) -> str:
+    charset = _charset_of(content_type)
+    try:
+        return body.decode(charset, errors="replace")
+    except LookupError:
+        return body.decode("utf-8", errors="replace")
+
+
 class RobotsCache:
     """Conservative robots policy cache scoped to one crawl run."""
 
@@ -534,16 +684,66 @@ class BoundedCrawler:
         self.sleep = sleep
         self.robots = RobotsCache(self.guard, self.transport, config)
         self._last_request: dict[str, float] = {}
+        self._host_delay: dict[str, float] = {}
+
+    @staticmethod
+    def _host_of(url: str) -> str:
+        return urlsplit(url).netloc.casefold()
+
+    def host_delay(self, host: str) -> float:
+        return self._host_delay.get(host, self.config.min_host_delay_seconds)
+
+    def _apply_backoff(self, host: str) -> float:
+        """Multiply the per-host delay after a throttle signal, capped by config."""
+
+        current = self.host_delay(host)
+        widened = max(current, self.config.min_host_delay_seconds) * (
+            self.config.challenge_backoff_multiplier
+        )
+        # A zero configured delay must still become a real delay once throttled.
+        if widened <= 0:
+            widened = min(1.0, self.config.max_host_delay_seconds)
+        delay = min(widened, self.config.max_host_delay_seconds)
+        self._host_delay[host] = delay
+        return delay
 
     def _throttle(self, url: str) -> None:
-        host = urlsplit(url).netloc.casefold()
+        host = self._host_of(url)
         now = self.monotonic()
         last = self._last_request.get(host)
         if last is not None:
-            remaining = self.config.min_host_delay_seconds - (now - last)
+            remaining = self.host_delay(host) - (now - last)
             if remaining > 0:
                 self.sleep(remaining)
         self._last_request[host] = self.monotonic()
+
+    def _raise_for_challenge(
+        self,
+        response: FetchResponse,
+        chain: tuple[str, ...],
+        elapsed_ms: int,
+    ) -> None:
+        """Convert throttle/challenge responses into a typed error, never page content."""
+
+        content_type = response.headers.get("content-type")
+        media_type = (content_type or "").split(";", 1)[0].strip().casefold()
+        preview = ""
+        if not media_type or media_type.startswith("text/") or "html" in media_type:
+            preview = _decode_body(content_type, response.body[:_CHALLENGE_PREVIEW_BYTES])
+        signal = classify_challenge(
+            response.status_code, response.headers, preview, len(response.body)
+        )
+        if not signal.challenge:
+            return
+        error_type = RateLimited if signal.rate_limited else ChallengeResponse
+        raise error_type(
+            f"HTTP {response.status_code} {signal.kind} response",
+            kind=signal.kind or _BOT_CHALLENGE_KIND,
+            response=response,
+            retry_after=signal.retry_after,
+            redirect_chain=chain,
+            response_ms=elapsed_ms,
+        )
 
     def _fetch_following_redirects(
         self, url: str
@@ -563,6 +763,7 @@ class BoundedCrawler:
             )
             elapsed_ms = max(0, int(round((self.monotonic() - fetch_started) * 1000)))
             if response.status_code not in {301, 302, 303, 307, 308}:
+                self._raise_for_challenge(response, tuple(chain), elapsed_ms)
                 return response, tuple(chain), elapsed_ms
             location = response.headers.get("location")
             if not location:
@@ -574,6 +775,64 @@ class BoundedCrawler:
                 raise CrawlError("Redirect loop detected")
             chain.append(current)
         raise CrawlError("Redirect limit exceeded")
+
+    def _requeue_after_challenge(
+        self,
+        url: str,
+        depth: int,
+        error: ChallengeResponse,
+        queue: deque[tuple[str, int]],
+        retried: set[str],
+        started: float,
+    ) -> bool:
+        """Back off this host and retry the URL once, inside the run's duration budget."""
+
+        self._apply_backoff(self._host_of(url))
+        if url in retried:
+            return False
+        wait = 0.0
+        if error.retry_after is not None:
+            wait = min(float(error.retry_after), self.config.max_retry_after_seconds)
+        remaining = self.config.max_duration_seconds - (self.monotonic() - started)
+        if remaining <= wait:
+            # Waiting would blow the run budget: quarantine instead of stalling.
+            return False
+        if wait > 0:
+            self.sleep(wait)
+            self._last_request[self._host_of(url)] = self.monotonic()
+        retried.add(url)
+        queue.append((url, depth))
+        return True
+
+    def _challenged_page(self, url: str, error: ChallengeResponse) -> CrawledPage:
+        """Record a challenge interstitial as quarantined evidence, never as page content.
+
+        Title, headings and word counts are deliberately left empty: the bytes we
+        received belong to the protection layer, not to the audited page.
+        """
+
+        response = error.response
+        body = response.body if response is not None else b""
+        return CrawledPage(
+            requested_url=url,
+            final_url=response.url if response is not None else url,
+            status_code=response.status_code if response is not None else 429,
+            content_type=(response.headers.get("content-type") if response is not None else None),
+            body_sha256=hashlib.sha256(body).hexdigest(),
+            title=None,
+            meta_description=None,
+            h1=(),
+            canonical_url=None,
+            robots_directives=(),
+            links=(),
+            redirect_chain=error.redirect_chain or (url,),
+            word_count=None,
+            body_bytes=len(body),
+            response_ms=error.response_ms,
+            challenge=True,
+            challenge_kind=error.kind,
+            retry_after=error.retry_after,
+        )
 
     def crawl(self, seeds: tuple[str, ...]) -> CrawlResult:
         if not seeds:
@@ -587,6 +846,7 @@ class BoundedCrawler:
                 queue.append((normalized, 0))
         pages: list[CrawledPage] = []
         failures: list[CrawlFailure] = []
+        retried: set[str] = set()
         started = self.monotonic()
         stopped_reason = "queue_exhausted"
         while queue:
@@ -599,6 +859,21 @@ class BoundedCrawler:
             requested, depth = queue.popleft()
             try:
                 response, redirects, response_ms = self._fetch_following_redirects(requested)
+            except ChallengeResponse as exc:
+                if self._requeue_after_challenge(requested, depth, exc, queue, retried, started):
+                    continue
+                pages.append(self._challenged_page(requested, exc))
+                failures.append(
+                    CrawlFailure(
+                        requested,
+                        "challenge_response",
+                        f"Origin returned a {exc.kind} response; the URL was quarantined.",
+                        challenge=True,
+                        challenge_kind=exc.kind,
+                        retry_after=exc.retry_after,
+                    )
+                )
+                continue
             except Exception as exc:  # boundary: convert provider details into safe crawl status
                 failures.append(CrawlFailure(requested, "fetch_failed", type(exc).__name__))
                 continue
@@ -608,19 +883,7 @@ class BoundedCrawler:
             analytics: tuple[str, ...] = ()
             word_count: int | None = None
             if media_type in {"text/html", "application/xhtml+xml"}:
-                charset = "utf-8"
-                if content_type and "charset=" in content_type.casefold():
-                    charset = (
-                        content_type.casefold()
-                        .split("charset=", 1)[1]
-                        .split(";", 1)[0]
-                        .strip()
-                        .strip('"')
-                    )
-                try:
-                    text = response.body.decode(charset, errors="replace")
-                except LookupError:
-                    text = response.body.decode("utf-8", errors="replace")
+                text = _decode_body(content_type, response.body)
                 parser = _DocumentParser()
                 try:
                     parser.feed(text)
@@ -669,4 +932,14 @@ class BoundedCrawler:
                     if link not in discovered:
                         discovered.add(link)
                         queue.append((link, depth + 1))
-        return CrawlResult(tuple(pages), tuple(failures), len(discovered), stopped_reason)
+        challenged = tuple(page for page in pages if page.challenge)
+        return CrawlResult(
+            tuple(pages),
+            tuple(failures),
+            len(discovered),
+            stopped_reason,
+            challenged_count=len(challenged),
+            rate_limited_count=sum(
+                1 for page in challenged if page.challenge_kind == _RATE_LIMIT_KIND
+            ),
+        )

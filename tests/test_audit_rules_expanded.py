@@ -11,11 +11,16 @@ from audit_engine.rules import (
     AuditContext,
     BrokenInternalLinkRule,
     CanonicalMissingRule,
+    CrawlDegradationRule,
+    CrawlIntegrity,
     DuplicateContentRule,
     GenericTitleRule,
+    H1Rule,
     H2MissingRule,
     HeavyPageRule,
+    HTTPStatusRule,
     ImageAltMissingRule,
+    MetaDescriptionRule,
     OrganizationSchemaMissingRule,
     OrphanPageRule,
     RedirectChainLengthRule,
@@ -23,6 +28,7 @@ from audit_engine.rules import (
     StructuredDataMissingRule,
     ThinContentRule,
     TitleCannibalizationRule,
+    TitleRule,
     TrackingCoverageRule,
     run_rules,
 )
@@ -346,3 +352,97 @@ def test_every_rule_category_is_a_scoring_key_and_findings_carry_evidence() -> N
         assert finding.evidence_ids
         assert finding.rule_version == "1.1.0"
         assert 0 <= finding.affected_share <= 1
+
+
+def test_quarantined_pages_are_invisible_to_every_rule() -> None:
+    """A challenged URL must never contribute a finding, a URL or a denominator."""
+
+    healthy = make_page("https://example.com/", word_count=900, url_depth=0)
+    # Two shapes seen in the real incident: an HTTP 429 throttle and a 200
+    # interstitial with no title, heading or copy of its own.
+    throttled = make_page("https://example.com/throttled", status=429)
+    interstitial = make_page(
+        "https://example.com/blocked", status=200, title=None, description=None,
+        h1=(), canonical=None, word_count=40, lang=None,
+    )
+    blocked_urls = {"https://example.com/throttled", "https://example.com/blocked"}
+    quarantined = AuditContext(
+        PROJECT_ID, (healthy, throttled, interstitial), ("example.com",),
+        BusinessProfile.SERVICE_SAAS, challenged_urls=frozenset(blocked_urls),
+    )
+    findings = run_rules(quarantined)
+
+    assert not any(
+        blocked_urls & set(finding.affected_urls) for finding in findings
+    )
+    ids = {finding.rule_id for finding in findings}
+    assert "technical.http_status" not in ids
+    assert "on_page.title" not in ids
+    assert "on_page.h1" not in ids
+    assert "on_page.thin_content" not in ids
+
+    # Without the quarantine the same crawl result would have produced those findings.
+    unfiltered = {
+        finding.rule_id
+        for finding in run_rules(context([healthy, throttled, interstitial]))
+    }
+    assert {
+        "technical.http_status", "on_page.title", "on_page.h1", "on_page.thin_content",
+    } <= unfiltered
+
+
+def test_individual_rules_skip_quarantined_pages_when_called_directly() -> None:
+    blocked = make_page(
+        "https://example.com/blocked", status=503, title=None, description=None,
+        h1=(), word_count=10,
+    )
+    guarded = AuditContext(
+        PROJECT_ID, (blocked,), ("example.com",), BusinessProfile.SERVICE_SAAS,
+        challenged_urls=frozenset({"https://example.com/blocked"}),
+    )
+    for rule in (HTTPStatusRule(), TitleRule(), MetaDescriptionRule(), H1Rule(),
+                 ThinContentRule()):
+        assert list(rule.evaluate(guarded)) == []
+
+
+def test_crawl_degradation_is_reported_as_an_info_finding_with_the_share() -> None:
+    integrity = CrawlIntegrity(
+        fetched_pages=110, challenged_pages=139, rate_limited_pages=139,
+        quarantined_urls=("https://example.com/blocked",),
+    )
+    assert integrity.status == "blocked"
+    ctx = AuditContext(
+        PROJECT_ID, (make_page("https://example.com/", word_count=900),), ("example.com",),
+        BusinessProfile.SERVICE_SAAS,
+        challenged_urls=frozenset({"https://example.com/blocked"}),
+        crawl_integrity=integrity,
+    )
+    findings = list(CrawlDegradationRule().evaluate(ctx))
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity is Severity.INFO
+    assert finding.evidence_ids == ()  # challenge bytes are not evidence about the site
+    assert "56%" in finding.description
+    assert "139" in finding.description
+    assert finding.affected_urls == ("https://example.com/blocked",)
+
+
+def test_crawl_degradation_is_silent_on_a_clean_crawl() -> None:
+    clean = CrawlIntegrity(fetched_pages=100, challenged_pages=0)
+    assert clean.status == "clean"
+    assert clean.challenge_share == 0.0
+    ctx = AuditContext(
+        PROJECT_ID, (make_page("https://example.com/"),), ("example.com",),
+        BusinessProfile.SERVICE_SAAS, crawl_integrity=clean,
+    )
+    assert list(CrawlDegradationRule().evaluate(ctx)) == []
+    assert list(CrawlDegradationRule().evaluate(context([make_page("https://example.com/")]))) == []
+
+
+def test_crawl_integrity_thresholds() -> None:
+    assert CrawlIntegrity(fetched_pages=95, challenged_pages=5).status == "clean"
+    assert CrawlIntegrity(fetched_pages=94, challenged_pages=6).status == "degraded"
+    assert CrawlIntegrity(fetched_pages=70, challenged_pages=30).status == "degraded"
+    assert CrawlIntegrity(fetched_pages=69, challenged_pages=31).status == "blocked"
+    assert CrawlIntegrity().status == "clean"

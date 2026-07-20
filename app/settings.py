@@ -362,7 +362,12 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_DEFAULT_QUEUE = "analysis"
-CELERY_IMPORTS = ("app.domain.tasks", "audit_engine.tasks", "exporters.tasks")
+CELERY_IMPORTS = (
+    "app.domain.tasks",
+    "audit_engine.tasks",
+    "exporters.tasks",
+    "integrations.tasks",
+)
 CELERY_TASK_ROUTES = {
     "studio.analysis.*": {"queue": "analysis"},
     "studio.scheduler.*": {"queue": "analysis"},
@@ -415,6 +420,26 @@ AUTO_AUDIT_DURATION_SECONDS = max(30, int(os.getenv("AUTO_AUDIT_DURATION_SECONDS
 AUTO_BUILD_PACKAGE = env_bool("AUTO_BUILD_PACKAGE", not _RUNNING_TESTS)
 OPENAI_STRATEGY_MODEL = os.getenv("OPENAI_STRATEGY_MODEL", "gpt-5.6-sol").strip()
 OPENAI_EXTRACTION_MODEL = os.getenv("OPENAI_EXTRACTION_MODEL", "gpt-5.6-luna").strip()
+
+# --- Package enrichment -------------------------------------------------
+# Read via getattr across the exporter pipeline; defined here so the flag is
+# actually configurable instead of silently defaulting.
+PACKAGE_AI_ENRICHMENT_ENABLED = env_bool("PACKAGE_AI_ENRICHMENT_ENABLED", True)
+PACKAGE_AI_MAX_CALLS = max(0, int(os.getenv("PACKAGE_AI_MAX_CALLS", "3")))
+
+# --- SEMrush market data ------------------------------------------------
+# SEMrush bills per returned line. SEMRUSH_UNIT_BUDGET is a hard per-run
+# ceiling: a report whose estimated cost exceeds the remaining budget is
+# skipped and recorded, never issued.
+SEMRUSH_API_KEY = os.getenv("SEMRUSH_API_KEY", "").strip()
+SEMRUSH_PLAN_TIER = os.getenv("SEMRUSH_PLAN_TIER", "lite").strip().casefold() or "lite"
+if SEMRUSH_PLAN_TIER not in {"lite", "standard", "deep"}:
+    raise ImproperlyConfigured("SEMRUSH_PLAN_TIER must be lite, standard, or deep.")
+SEMRUSH_UNIT_BUDGET = max(0, int(os.getenv("SEMRUSH_UNIT_BUDGET", "700")))
+SEMRUSH_DATABASE = os.getenv("SEMRUSH_DATABASE", "au").strip().casefold() or "au"
+# The SEMrush contract caps local caching of API responses at 30 days.
+SEMRUSH_CACHE_DAYS = max(0, min(30, int(os.getenv("SEMRUSH_CACHE_DAYS", "30"))))
+MARKET_DATA_ENABLED = env_bool("MARKET_DATA_ENABLED", bool(SEMRUSH_API_KEY))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],

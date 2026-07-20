@@ -44,17 +44,32 @@ def _c(value: str) -> colors.Color:
     return HexColor(value)
 
 
+def _pdf_display(value: Any) -> str:
+    """Render a measured value, or state plainly that it was not measured."""
+
+    if value is None or value == "":
+        return "Unavailable"
+    return str(value)
+
+
 class PDFReportBuilder:
     def __init__(self, project_root: Path) -> None:
         self.project_root = project_root
         self.display_font = "Helvetica-Bold"
         self.body_font = "Helvetica"
         display, body = font_paths(project_root)
-        if display and body:
-            pdfmetrics.registerFont(TTFont("Fraunces", str(display)))
-            pdfmetrics.registerFont(TTFont("SourceSans3", str(body)))
+        registered = set(pdfmetrics.getRegisteredFontNames())
+        # Register each brand face independently: shipping one of the two is no
+        # reason to silently fall back to Helvetica for both.
+        if display is not None:
+            if "Fraunces" not in registered:
+                pdfmetrics.registerFont(TTFont("Fraunces", str(display)))
             self.display_font = "Fraunces"
+        if body is not None:
+            if "SourceSans3" not in registered:
+                pdfmetrics.registerFont(TTFont("SourceSans3", str(body)))
             self.body_font = "SourceSans3"
+        self.fonts_embedded = display is not None and body is not None
         self.styles = self._styles()
 
     def _styles(self) -> dict[str, ParagraphStyle]:
@@ -68,8 +83,6 @@ class PDFReportBuilder:
                 leading=11,
                 textColor=_c(COPPER),
                 spaceAfter=9 * mm,
-                uppercase=True,
-                letterSpacing=1.4,
             ),
             "cover_title": ParagraphStyle(
                 "CoverTitle",
@@ -289,14 +302,65 @@ class PDFReportBuilder:
         )
         return table
 
+    @staticmethod
+    def _split_scores(
+        categories: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Split into (scored, withheld). A null score is never coerced to zero."""
+        scored = [
+            item for item in categories
+            if isinstance(item.get("score"), int | float)
+        ]
+        withheld = [
+            item for item in categories
+            if not isinstance(item.get("score"), int | float)
+        ]
+        return scored, withheld
+
+    def _withheld_flowables(self, withheld: list[dict[str, Any]]) -> list[Any]:
+        """List withheld categories as text — they must never appear as a 0 bar."""
+        if not withheld:
+            return []
+        flowables: list[Any] = [
+            Paragraph("Withheld categories", self.styles["h2"]),
+            self._table(
+                ["Category", "Evidence coverage", "Why it is withheld"],
+                [
+                    (
+                        item.get("category"),
+                        f"{item['coverage']:.0%}"
+                        if isinstance(item.get("coverage"), int | float)
+                        else "Unavailable",
+                        item.get("unavailable_reason")
+                        or "Evidence coverage below the publication threshold",
+                    )
+                    for item in withheld
+                ],
+                [38 * mm, 30 * mm, 72 * mm],
+            ),
+        ]
+        return flowables
+
     def _score_chart(self, categories: list[dict[str, Any]]) -> Drawing:
+        """Chart only the categories that actually have a measured score."""
+        categories, _withheld = self._split_scores(categories)
+        if not categories:
+            drawing = Drawing(450, 40)
+            drawing.add(
+                String(
+                    0, 20,
+                    "No category cleared the evidence threshold, so no score is charted.",
+                    fontName=self.body_font, fontSize=9, fillColor=_c(MUTED),
+                )
+            )
+            return drawing
         drawing = Drawing(450, max(170, 28 * len(categories) + 50))
         chart = HorizontalBarChart()
         chart.x = 118
         chart.y = 24
         chart.height = max(105, 24 * len(categories))
         chart.width = 292
-        chart.data = [[float(item.get("score") or 0) for item in categories]]
+        chart.data = [[float(item["score"]) for item in categories]]
         chart.categoryAxis.categoryNames = [str(item["category"]) for item in categories]
         chart.categoryAxis.labels.fontName = self.body_font
         chart.categoryAxis.labels.fontSize = 7
@@ -311,6 +375,156 @@ class PDFReportBuilder:
         drawing.add(chart)
         drawing.add(String(118, chart.height + 38, "Category scores (evidence-covered rules only)", fontName=self.body_font, fontSize=9, fillColor=_c(MUTED)))
         return drawing
+
+    _MARKET_ROWS: tuple[tuple[str, str], ...] = (
+        ("organic_keywords", "Organic keywords"),
+        ("organic_traffic", "Organic traffic (monthly)"),
+        ("organic_cost", "Organic traffic value"),
+        ("authority_score", "Authority score"),
+        ("referring_domains", "Referring domains"),
+        ("backlinks_total", "Backlinks (total)"),
+    )
+
+    def _market_flowables(self, data: dict[str, Any]) -> list[Any]:
+        """Market, keyword and competitor sections — measured values only."""
+        market = data.get("market") if isinstance(data.get("market"), dict) else {}
+        keywords = [row for row in (data.get("keywords") or []) if isinstance(row, dict)]
+        competitors = [
+            row for row in (data.get("competitors") or []) if isinstance(row, dict)
+        ]
+        performance = data.get("performance_vs_competitors")
+        performance = performance if isinstance(performance, dict) else {}
+        flowables: list[Any] = [Paragraph("Market position", self.styles["h1"])]
+
+        domain = market.get("domain") if isinstance(market.get("domain"), dict) else {}
+        if str(market.get("status") or "").casefold() == "available":
+            flowables.append(
+                self._table(
+                    ["Metric", "Value", "Provider"],
+                    [
+                        (
+                            label,
+                            safe_text(domain.get(key)),
+                            safe_text(market.get("provider")),
+                        )
+                        for key, label in self._MARKET_ROWS
+                    ],
+                    [48 * mm, 46 * mm, 46 * mm],
+                )
+            )
+        else:
+            flowables.append(
+                Paragraph(
+                    "Unavailable — "
+                    + safe_text(
+                        market.get("unavailable_reason"),
+                        "no market data provider is connected to this run",
+                    )
+                    + ". No volume, ranking or traffic figure is estimated in its place.",
+                    self.styles["body"],
+                )
+            )
+        flowables.append(Spacer(1, 5 * mm))
+
+        flowables.append(Paragraph("Keyword evidence", self.styles["h2"]))
+        if keywords:
+            volumes = [
+                row.get("search_volume") for row in keywords
+                if isinstance(row.get("search_volume"), int | float)
+            ]
+            mapped = [
+                row for row in keywords
+                if str(row.get("landing_url") or "").strip()
+            ]
+            top = sorted(
+                (row for row in keywords if isinstance(row.get("search_volume"), int | float)),
+                key=lambda row: -float(row["search_volume"]),
+            )[:8]
+            flowables.append(
+                self._table(
+                    ["Measure", "Value"],
+                    [
+                        ("Keywords measured", len(keywords)),
+                        ("With a measured volume", len(volumes)),
+                        ("Total measured volume", sum(volumes) if volumes else "Unavailable"),
+                        ("Mapped to a crawled URL", len(mapped)),
+                        ("Content gap (no mapped URL)", len(keywords) - len(mapped)),
+                    ],
+                    [72 * mm, 68 * mm],
+                )
+            )
+            if top:
+                flowables.extend([
+                    Spacer(1, 4 * mm),
+                    self._table(
+                        ["Keyword", "Volume", "Position", "Landing URL"],
+                        [
+                            (
+                                row.get("phrase"),
+                                safe_text(row.get("search_volume")),
+                                safe_text(row.get("position")),
+                                safe_text(row.get("landing_url"), "Not mapped"),
+                            )
+                            for row in top
+                        ],
+                        [46 * mm, 18 * mm, 18 * mm, 58 * mm],
+                    ),
+                ])
+        else:
+            flowables.append(
+                Paragraph(
+                    "Unavailable — no keyword provider is connected, so no phrase, "
+                    "volume or ranking is reported for this run.",
+                    self.styles["body"],
+                )
+            )
+        flowables.append(Spacer(1, 5 * mm))
+
+        flowables.append(Paragraph("Competitor landscape", self.styles["h2"]))
+        if competitors:
+            flowables.append(
+                self._table(
+                    ["Competitor", "Common keywords", "Organic keywords", "Organic traffic"],
+                    [
+                        (
+                            row.get("domain"),
+                            safe_text(row.get("common_keywords")),
+                            safe_text(row.get("organic_keywords")),
+                            safe_text(row.get("organic_traffic")),
+                        )
+                        for row in competitors[:10]
+                    ],
+                    [50 * mm, 30 * mm, 30 * mm, 30 * mm],
+                )
+            )
+        else:
+            flowables.append(
+                Paragraph(
+                    "Unavailable — no competitor set was measured for this run.",
+                    self.styles["body"],
+                )
+            )
+
+        metrics = [row for row in (performance.get("metrics") or []) if isinstance(row, dict)]
+        if metrics:
+            flowables.extend([
+                Spacer(1, 4 * mm),
+                self._table(
+                    ["Metric", "Client", "Competitor median", "Position"],
+                    [
+                        (
+                            row.get("metric"),
+                            safe_text(row.get("client")),
+                            safe_text(row.get("competitor_median")),
+                            safe_text(row.get("position"), "unknown"),
+                        )
+                        for row in metrics
+                    ],
+                    [56 * mm, 28 * mm, 32 * mm, 24 * mm],
+                ),
+            ])
+        flowables.extend([Spacer(1, 5 * mm), PageBreak()])
+        return flowables
 
     def executive_report(self, data: dict[str, Any], output: Path) -> Path:
         client = data["client"]["name"]
@@ -352,7 +566,11 @@ class PDFReportBuilder:
                 Spacer(1, 6 * mm),
                 Paragraph("Where evidence points first", self.styles["h2"]),
                 self._score_chart(data.get("categories", [])),
+                *self._withheld_flowables(
+                    self._split_scores(data.get("categories", []))[1]
+                ),
                 PageBreak(),
+                *self._market_flowables(data),
                 Paragraph("Priority findings", self.styles["h1"]),
                 self._table(
                     ["Priority", "Finding", "Why it matters", "Confidence", "Evidence"],
@@ -468,6 +686,96 @@ class PDFReportBuilder:
                         for item in data.get("measurement_plan", [])
                     ],
                     [28 * mm, 26 * mm, 22 * mm, 29 * mm, 35 * mm],
+                ),
+            ]
+        )
+        doc.build(story)
+        return output
+
+    def content_strategy(self, data: dict[str, Any], output: Path) -> Path:
+        """Demand-and-publishing strategy: a distinct document from strategy_report."""
+
+        doc = self._doc(output, "Content and Keyword Strategy")
+        run = data["run"]
+        market = data.get("market") or {}
+        keywords = list(data.get("keywords") or [])
+        clusters = list(data.get("keyword_clusters") or [])
+        assets = list(data.get("content_assets") or [])
+        story = self._cover(
+            "Content and Keyword Strategy",
+            "Where measured search demand meets the pages that exist today, and what should be published next.",
+            client=data["client"]["name"],
+            as_of=run["evidence_as_of"],
+            run_id=run["id"],
+        )
+        if market.get("status") == "available":
+            domain = market.get("domain") or {}
+            demand = (
+                f"{len(keywords)} ranking keywords retrieved from "
+                f"{market.get('provider', 'the connected provider')} "
+                f"({market.get('database', 'configured')} database). Domain totals: "
+                f"{_pdf_display(domain.get('organic_keywords'))} organic keywords, "
+                f"{_pdf_display(domain.get('organic_traffic'))} estimated monthly sessions."
+            )
+        else:
+            demand = (
+                "Search-demand metrics are unavailable for this run: "
+                f"{market.get('unavailable_reason') or 'no keyword provider is connected'}. "
+                "Priorities below derive from crawl evidence only; no volume or traffic figure is asserted."
+            )
+        story.extend(
+            [
+                Paragraph("Demand evidence", self.styles["h1"]),
+                Paragraph(demand, self.styles["body"]),
+                Spacer(1, 4 * mm),
+                Paragraph("Topic clusters and coverage", self.styles["h1"]),
+                self._table(
+                    ["Cluster", "Keywords", "Volume", "Coverage", "Primary URL"],
+                    [
+                        (
+                            cluster.get("name", "Unavailable"),
+                            cluster.get("keyword_count", 0),
+                            _pdf_display(cluster.get("total_volume")),
+                            cluster.get("coverage", "unknown"),
+                            cluster.get("primary_url") or "No mapped page",
+                        )
+                        for cluster in clusters[:30]
+                    ]
+                    or [("No clusters were derived from the available evidence.", "", "", "", "")],
+                    [38 * mm, 18 * mm, 18 * mm, 22 * mm, 44 * mm],
+                ),
+                Spacer(1, 5 * mm),
+                Paragraph("Priority keywords", self.styles["h1"]),
+                self._table(
+                    ["Keyword", "Position", "Volume", "CPC", "Landing URL"],
+                    [
+                        (
+                            item.get("phrase", ""),
+                            _pdf_display(item.get("position")),
+                            _pdf_display(item.get("search_volume")),
+                            _pdf_display(item.get("cpc")),
+                            item.get("landing_url") or "Unmapped",
+                        )
+                        for item in keywords[:30]
+                    ]
+                    or [("No provider keyword data was available for this run.", "", "", "", "")],
+                    [46 * mm, 18 * mm, 18 * mm, 16 * mm, 42 * mm],
+                ),
+                PageBreak(),
+                Paragraph("Publishing priorities", self.styles["h1"]),
+                self._table(
+                    ["Asset", "Intent", "Target URL", "Approval"],
+                    [
+                        (
+                            asset.get("title", ""),
+                            asset.get("intent", ""),
+                            asset.get("target_url", ""),
+                            asset.get("approval_state", ""),
+                        )
+                        for asset in assets
+                    ]
+                    or [("No content assets passed the evidence gates for this run.", "", "", "")],
+                    [52 * mm, 26 * mm, 44 * mm, 18 * mm],
                 ),
             ]
         )
@@ -618,56 +926,15 @@ class PDFReportBuilder:
         doc.build(story)
         return output
     def deck_pdf(self, data: dict[str, Any], output: Path) -> Path:
-        """Render a self-contained PDF slide derivative independent of office software."""
-        output.parent.mkdir(parents=True, exist_ok=True)
-        width, height = landscape(A4)
-        client_name = str(data.get("client", {}).get("name") or "Client").strip() or "Client"
-        doc = BaseDocTemplate(
-            str(output),
-            pagesize=(width, height),
-            leftMargin=20 * mm,
-            rightMargin=20 * mm,
-            topMargin=18 * mm,
-            bottomMargin=16 * mm,
-            title=f"{client_name} Enterprise SEO Executive Deck",
-            author="Traffic Radius",
-            subject="Evidence-led SEO approval deck",
-        )
-        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="slide")
-        footer_brand = f"TRAFFIC RADIUS · {client_name.upper()}"
+        """Render the deck's PDF sibling.
 
-        def background(canvas: Any, document: BaseDocTemplate) -> None:
-            canvas.saveState()
-            canvas.setFillColor(_c(PAPER))
-            canvas.rect(0, 0, width, height, fill=1, stroke=0)
-            canvas.setFont(self.body_font, 7)
-            canvas.setFillColor(_c(MUTED))
-            canvas.drawString(20 * mm, 8 * mm, footer_brand)
-            canvas.drawRightString(width - 20 * mm, 8 * mm, str(document.page))
-            canvas.restoreState()
+        Delegates to :func:`exporters.pptx_deck.render_deck_pdf` so the PPTX and
+        the PDF cannot drift: one slide sequence, one page per slide, no
+        LibreOffice dependency.
+        """
+        from exporters.pptx_deck import render_deck_pdf
 
-        doc.addPageTemplates([PageTemplate(id="deck", frames=[frame], onPage=background)])
-        slides: list[Any] = []
-        for index, slide in enumerate(data.get("deck", [])):
-            slides.extend(
-                [
-                    Paragraph(slide.get("eyebrow", "EXECUTIVE REVIEW"), self.styles["cover_kicker"]),
-                    Paragraph(slide["title"], self.styles["cover_title"]),
-                    Paragraph(slide["body"], self.styles["cover_deck"]),
-                ]
-            )
-            if slide.get("points"):
-                slides.append(
-                    self._table(
-                        ["Signal", "Meaning"],
-                        [(point["label"], point["text"]) for point in slide["points"]],
-                        [45 * mm, 150 * mm],
-                    )
-                )
-            if index < len(data.get("deck", [])) - 1:
-                slides.append(PageBreak())
-        doc.build(slides)
-        return output
+        return render_deck_pdf(data, Path(output))
 
 
 def write_qa_json(data: dict[str, Any], output: Path) -> Path:

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -38,11 +38,51 @@ def enabled_modules(profile: BusinessProfile) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
+class CrawlIntegrity:
+    """How much of the site we were actually allowed to read.
+
+    ``challenged`` URLs were answered by a bot challenge or throttle response,
+    so nothing about them may be reported as a defect of the client's site.
+    """
+
+    fetched_pages: int = 0
+    challenged_pages: int = 0
+    rate_limited_pages: int = 0
+    quarantined_urls: tuple[str, ...] = ()
+    note: str = ""
+
+    @property
+    def challenge_share(self) -> float:
+        total = self.fetched_pages + self.challenged_pages
+        return (self.challenged_pages / total) if total else 0.0
+
+    @property
+    def status(self) -> str:
+        share = self.challenge_share
+        if share > 0.30:
+            return "blocked"
+        if share > 0.05:
+            return "degraded"
+        return "clean"
+
+
+@dataclass(frozen=True, slots=True)
 class AuditContext:
     project_id: str
     pages: tuple[PageSnapshot, ...]
     allowed_domains: tuple[str, ...]
     business_profile: BusinessProfile
+    challenged_urls: frozenset[str] = frozenset()
+    crawl_integrity: CrawlIntegrity | None = None
+
+    def evaluable_pages(self) -> tuple[PageSnapshot, ...]:
+        """Pages that may legitimately produce findings (quarantine excluded)."""
+
+        if not self.challenged_urls:
+            return self.pages
+        return tuple(
+            page for page in self.pages if page.normalized_url not in self.challenged_urls
+        )
 
 
 class Rule(Protocol):
@@ -94,6 +134,12 @@ _UTILITY_SEGMENTS = frozenset(
         "legal", "cookies", "cookie-policy", "thank-you", "unsubscribe", "404", "sitemap",
     }
 )
+
+
+def _is_quarantined(context: AuditContext, page: PageSnapshot) -> bool:
+    """Defence in depth: rules invoked directly still skip challenged URLs."""
+
+    return page.normalized_url in context.challenged_urls
 
 
 def _is_success(page: PageSnapshot) -> bool:
@@ -175,6 +221,8 @@ class HTTPStatusRule:
 
     def evaluate(self, context: AuditContext) -> Iterable[Finding]:
         for page in context.pages:
+            if _is_quarantined(context, page):
+                continue
             if page.status_code is None or page.status_code < 400:
                 continue
             critical = page.status_code >= 500
@@ -196,6 +244,8 @@ class TitleRule:
 
     def evaluate(self, context: AuditContext) -> Iterable[Finding]:
         for page in context.pages:
+            if _is_quarantined(context, page):
+                continue
             if page.status_code is None or not 200 <= page.status_code < 300:
                 continue
             if not page.title or not page.title.strip():
@@ -228,7 +278,8 @@ class MetaDescriptionRule:
     def evaluate(self, context: AuditContext) -> Iterable[Finding]:
         for page in context.pages:
             if (
-                page.status_code is not None
+                not _is_quarantined(context, page)
+                and page.status_code is not None
                 and 200 <= page.status_code < 300
                 and (not page.meta_description or not page.meta_description.strip())
             ):
@@ -250,6 +301,8 @@ class H1Rule:
 
     def evaluate(self, context: AuditContext) -> Iterable[Finding]:
         for page in context.pages:
+            if _is_quarantined(context, page):
+                continue
             if page.status_code is None or not 200 <= page.status_code < 300:
                 continue
             nonempty = tuple(value.strip() for value in page.h1 if value.strip())
@@ -607,6 +660,8 @@ class ThinContentRule:
 
     def evaluate(self, context: AuditContext) -> Iterable[Finding]:
         for page in context.pages:
+            if _is_quarantined(context, page):
+                continue
             if not _is_success_html(page) or _is_utility_page(page):
                 continue
             if page.word_count is not None and page.word_count < 200:
@@ -933,6 +988,50 @@ class LocalBusinessSchemaMissingRule:
         )
 
 
+class CrawlDegradationRule:
+    """Report our own blocked crawl as a coverage caveat, never as a site defect.
+
+    The finding is INFO severity and carries no page evidence on purpose: the
+    quarantined responses are the protection layer's, not the client's pages, so
+    they must not be cited as evidence of anything about the site itself.
+    """
+
+    rule_id = "technical.crawl_degraded"
+    version = RULESET_VERSION
+    category = "technical"
+
+    def evaluate(self, context: AuditContext) -> Iterable[Finding]:
+        integrity = context.crawl_integrity
+        if integrity is None or integrity.status == "clean":
+            return
+        share = integrity.challenge_share
+        quarantined = tuple(integrity.quarantined_urls)[:_AFFECTED_URL_CAP]
+        listing = f" Examples: {', '.join(quarantined[:5])}." if quarantined else ""
+        yield Finding(
+            id=str(uuid4()),
+            project_id=context.project_id,
+            category=self.category,
+            rule_id=self.rule_id,
+            rule_version=RULESET_VERSION,
+            severity=Severity.INFO,
+            title="Crawl coverage was reduced by bot protection",
+            description=(
+                f"{integrity.challenged_pages} of "
+                f"{integrity.fetched_pages + integrity.challenged_pages} requested URLs "
+                f"({share:.0%}) returned a bot-challenge or rate-limit response "
+                f"({integrity.rate_limited_pages} were explicit rate limits), so crawl "
+                f"status is '{integrity.status}'. Those URLs were quarantined and produced "
+                "no findings; the audit describes only the pages we could actually read."
+                f"{listing}"
+            ),
+            evidence_ids=(),
+            affected_urls=quarantined,
+            affected_share=min(1.0, share),
+            confidence=1.0,
+            risk=RiskClass.LOW,
+        )
+
+
 DEFAULT_RULES: tuple[Rule, ...] = (
     HTTPStatusRule(),
     TitleRule(),
@@ -965,13 +1064,20 @@ DEFAULT_RULES: tuple[Rule, ...] = (
     GenericTitleRule(),
     ProductSchemaMissingRule(),
     LocalBusinessSchemaMissingRule(),
+    CrawlDegradationRule(),
 )
 
 
 def run_rules(context: AuditContext, rules: Iterable[Rule] = DEFAULT_RULES) -> tuple[Finding, ...]:
     active = set(enabled_modules(context.business_profile))
+    # Quarantined (bot-challenged) URLs are removed once, here, so no rule can
+    # accidentally turn a challenge interstitial into a client-facing defect and
+    # no share denominator counts pages we were never allowed to read.
+    evaluation_context = context
+    if context.challenged_urls:
+        evaluation_context = replace(context, pages=context.evaluable_pages())
     findings: list[Finding] = []
     for rule in rules:
         if rule.category in active:
-            findings.extend(rule.evaluate(context))
+            findings.extend(rule.evaluate(evaluation_context))
     return tuple(findings)

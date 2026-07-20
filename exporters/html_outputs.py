@@ -51,10 +51,11 @@ def build_html_deck(data: dict[str, Any], output: Path) -> Path:
 <ul class="signal-list" aria-label="Supporting evidence">{points}</ul><span class="folio">{index:02d} / {len(slides):02d}</span></section>"""
         )
     run = data["run"]
+    client_name = str((data.get("client") or {}).get("name") or "Client").strip() or "Client"
     document = f"""<!doctype html>
-<html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Kakawa Chocolates · Enterprise SEO Executive Review</title><style>{DECK_CSS}</style></head>
-<body><a class="skip" href="#slide-1">Skip to presentation</a><nav class="deck-nav" aria-label="Slide navigation"><strong>TRAFFIC RADIUS · KAKAWA</strong>{nav}</nav><main>{''.join(rendered)}</main>
-<footer class="deck-footer"><span>Evidence as of {_e(run['evidence_as_of'])} · Run {_e(run['id'])}</span><span>Self-contained HTML · no external assets or machine paths</span></footer></body></html>"""
+<html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>{_e(client_name)} · Enterprise SEO Executive Review</title><style>{DECK_CSS}</style></head>
+<body><a class="skip" href="#slide-1">Skip to presentation</a><nav class="deck-nav" aria-label="Slide navigation"><strong>TRAFFIC RADIUS · {_e(client_name.upper())}</strong>{nav}</nav><main>{''.join(rendered)}</main>
+<footer class="deck-footer"><span>Evidence as of {_e(run.get('evidence_as_of') or 'Unavailable')} · Run {_e(run.get('id') or 'Unavailable')}</span><span>Self-contained HTML · no external assets or machine paths</span></footer></body></html>"""
     output.write_text(document, encoding="utf-8", newline="\n")
     return output
 

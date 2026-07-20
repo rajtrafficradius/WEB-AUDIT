@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import re
+import shutil
 import tempfile
 import zipfile
 from collections import Counter
@@ -26,9 +27,16 @@ from app.domain.models import Artifact, AuditRun, QAResult, User
 from app.domain.models import PackageManifest as PackageManifestModel
 from app.domain.storage import save_artifact_bytes
 
+from . import paths as tree
 from .docx_reports import DOCXReportBuilder
-from .html_outputs import content_filename
-from .manifest import CONTROL_FILES, PackageManifest, build_zip, verify_zip_members
+from .html_outputs import build_html_deck, content_filename
+from .manifest import (
+    PackageManifest,
+    build_zip,
+    is_control_file,
+    resolve_derivative_of,
+    verify_zip_members,
+)
 from .package_builder import _csv as write_csv
 from .package_builder import _json as write_json
 from .pdf_reports import PDFReportBuilder, write_qa_json
@@ -42,15 +50,6 @@ OOXML_MAIN_PARTS = {
     ".docx": "word/document.xml",
     ".pptx": "ppt/presentation.xml",
     ".xlsx": "xl/workbook.xml",
-}
-FOLDER_ARTIFACT_TYPES = {
-    "01": ("audit_workbook", "approved"),
-    "02": ("strategy_document", "approved"),
-    "03": ("action_plan", "approved"),
-    "04": ("deployment_asset", "withheld_pending_approval"),
-    "05": ("content_brief", "withheld_pending_human_approval"),
-    "06": ("qa_control", "approved"),
-    "07": ("executive_deck", "approved"),
 }
 ACTION_CSV_HEADERS = [
     "id", "phase", "week", "priority", "action", "owner",
@@ -93,34 +92,88 @@ def _write_markdown(data: dict[str, Any], root: Path) -> Path:
     content = render_markdown(data)
     if not content.endswith("\n"):
         content += "\n"
-    output = root / "AUDIT_RESULTS.md"
+    output = tree.package_path(root, tree.SUMMARY_MARKDOWN)
     output.write_text(content, encoding="utf-8", newline="\n")
     return output
+
+
+def _change_log_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """One deterministic provenance row per package build.
+
+    The change log records what this package is derived from; it never invents a
+    revision history the studio has not observed.
+    """
+    run = data.get("run") or {}
+    crawl = data.get("crawl_integrity") or {}
+    return [
+        {
+            "id": "CHG-0001",
+            "run_id": run.get("id"),
+            "run_version": run.get("version"),
+            "rule_version": run.get("rule_version"),
+            "evidence_as_of": run.get("evidence_as_of"),
+            "captured_at": run.get("captured_at"),
+            "change": "Package generated from canonical run data",
+            "crawl_integrity": crawl.get("status"),
+            "note": (
+                "Earlier revisions are listed only when a prior package exists for this "
+                "run; no revision history was fabricated."
+            ),
+        }
+    ]
+
+
+def _source_coverage_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Per-category evidence coverage, distinct from the source availability matrix."""
+    findings = data.get("findings") or []
+    rows: list[dict[str, Any]] = []
+    for category in data.get("categories") or []:
+        keys = {
+            str(category.get("key") or "").casefold(),
+            str(category.get("category") or "").casefold(),
+        }
+        keys.discard("")
+        rows.append(
+            {
+                "key": category.get("key"),
+                "category": category.get("category"),
+                "score": category.get("score"),
+                "score_reason": category.get("score_reason"),
+                "coverage": category.get("coverage"),
+                "weight": category.get("weight"),
+                "findings": sum(
+                    1
+                    for finding in findings
+                    if str(finding.get("category") or "").casefold() in keys
+                ),
+                "unavailable_reason": category.get("unavailable_reason"),
+            }
+        )
+    return rows
 
 
 def _write_csvs(data: dict[str, Any], root: Path) -> None:
     deployment = data.get("deployment") or {}
     write_csv(
-        root / "03_Action_Plan" / "16_Week_Action_Plan.csv",
+        tree.package_path(root, tree.ACTION_PLAN_CSV),
         ACTION_CSV_HEADERS,
         data.get("actions", []),
     )
     write_csv(
-        root / "04_Implementation_Deliverables" / "Technical_Fixes" / "Redirect_Map.csv",
+        tree.package_path(root, tree.REDIRECT_MAP_CSV),
         [
             "source_url", "target_url", "status_code", "evidence_id",
             "approval_status", "included_in_deployment", "reason",
         ],
         deployment.get("redirect_candidates") or [],
     )
-    qa_folder = root / "06_QA_and_Manifest"
     write_csv(
-        qa_folder / "availability_matrix.csv",
+        tree.package_path(root, tree.AVAILABILITY_MATRIX_CSV),
         ["id", "label", "kind", "status", "captured_at", "scope", "coverage", "unavailable_reason"],
         data.get("sources", []),
     )
     write_csv(
-        qa_folder / "generation_ledger.csv",
+        tree.package_path(root, tree.GENERATION_LEDGER_CSV),
         [
             "id", "task", "configured_model", "returned_model", "prompt_version",
             "status", "request_hash", "response_hash", "tokens", "cost", "unavailable_reason",
@@ -128,7 +181,7 @@ def _write_csvs(data: dict[str, Any], root: Path) -> None:
         data.get("generation_ledger", []),
     )
     write_csv(
-        qa_folder / "evidence_index.csv",
+        tree.package_path(root, tree.EVIDENCE_INDEX_CSV),
         [
             "id", "source_id", "evidence_type", "observed_value", "original_url",
             "normalized_url", "captured_at", "locale", "scope", "confidence",
@@ -137,7 +190,7 @@ def _write_csvs(data: dict[str, Any], root: Path) -> None:
         data.get("evidence", []),
     )
     write_csv(
-        qa_folder / "issue_register.csv",
+        tree.package_path(root, tree.ISSUE_REGISTER_CSV),
         [
             "id", "priority", "priority_score", "category", "rule_id", "rule_version",
             "severity", "title", "description", "impact", "confidence", "reach",
@@ -145,6 +198,22 @@ def _write_csvs(data: dict[str, Any], root: Path) -> None:
             "evidence_ids", "affected_urls",
         ],
         data.get("findings", []),
+    )
+    write_csv(
+        tree.package_path(root, tree.SOURCE_COVERAGE_CSV),
+        [
+            "key", "category", "score", "score_reason", "coverage", "weight",
+            "findings", "unavailable_reason",
+        ],
+        _source_coverage_rows(data),
+    )
+    write_csv(
+        tree.package_path(root, tree.CHANGE_LOG_CSV),
+        [
+            "id", "run_id", "run_version", "rule_version", "evidence_as_of",
+            "captured_at", "change", "crawl_integrity", "note",
+        ],
+        _change_log_rows(data),
     )
 
 
@@ -159,8 +228,8 @@ def _write_robots_notes(data: dict[str, Any], root: Path) -> Path:
         str(page.get("indexability") or "Unknown") for page in data.get("pages", [])
     )
     lines = [
-        "Robots and indexation notes",
-        "===========================",
+        "robots.txt and indexation recommendations",
+        "=========================================",
         "",
         f"Run: {data['run']['id']}",
         f"Evidence as of: {data['run'].get('evidence_as_of') or 'Unavailable'}",
@@ -182,10 +251,7 @@ def _write_robots_notes(data: dict[str, Any], root: Path) -> Path:
     else:
         lines.append("- Unavailable — no crawled pages were recorded for this run.")
     lines.append("")
-    output = (
-        root / "04_Implementation_Deliverables" / "Technical_Fixes"
-        / "Robots_And_Indexation_Notes.txt"
-    )
+    output = tree.package_path(root, tree.ROBOTS_RECOMMENDATIONS_TXT)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines), encoding="utf-8", newline="\n")
     return output
@@ -193,7 +259,6 @@ def _write_robots_notes(data: dict[str, Any], root: Path) -> Path:
 
 def _write_schema_files(data: dict[str, Any], root: Path, brand_facts: dict[str, Any]) -> None:
     client = data["client"]
-    folder = root / "04_Implementation_Deliverables" / "Schema_Markup"
     url = f"https://{client['domain']}/" if client.get("domain") else None
     organization: dict[str, Any] = {
         "@context": "https://schema.org",
@@ -205,12 +270,12 @@ def _write_schema_files(data: dict[str, Any], root: Path, brand_facts: dict[str,
     summary = str(brand_facts.get("business_summary") or "").strip()
     if summary:
         organization["description"] = summary
-    write_json(folder / "Schema_Organization.json", organization)
+    write_json(tree.package_path(root, tree.SCHEMA_ORGANIZATION_JSON), organization)
 
     profile = str((data.get("project") or {}).get("business_profile") or "").casefold()
     if profile in {"local", "hybrid"}:
         write_json(
-            folder / "Schema_LocalBusiness.json",
+            tree.package_path(root, tree.SCHEMA_LOCAL_BUSINESS_JSON),
             {
                 "@context": "https://schema.org",
                 "@type": "LocalBusiness",
@@ -224,7 +289,7 @@ def _write_schema_files(data: dict[str, Any], root: Path, brand_facts: dict[str,
         )
     if profile in {"ecommerce", "hybrid"}:
         write_json(
-            folder / "Schema_Product_Template.json",
+            tree.package_path(root, tree.SCHEMA_PRODUCT_TEMPLATE_JSON),
             {
                 "@context": "https://schema.org",
                 "@type": "Product",
@@ -242,6 +307,34 @@ def _write_schema_files(data: dict[str, Any], root: Path, brand_facts: dict[str,
         )
 
 
+def _render_deck_pdf(data: dict[str, Any], output: Path, *, pdf: PDFReportBuilder) -> Path:
+    """Render the deck's PDF sibling, preferring the deck module's own renderer."""
+    from exporters import pptx_deck
+
+    renderer = getattr(pptx_deck, "render_deck_pdf", None)
+    if callable(renderer):
+        return renderer(data, output)
+    return pdf.deck_pdf(data, output)
+
+
+def _render_content_strategy(
+    data: dict[str, Any], root: Path, *, docx: DOCXReportBuilder, pdf: PDFReportBuilder
+) -> list[Path]:
+    """Render the narrative content strategy when a dedicated renderer exists.
+
+    The SEO strategy renderer is deliberately not reused here: emitting the same
+    bytes under a second name is exactly the duplication the manifest forbids.
+    """
+    written: list[Path] = []
+    docx_renderer = getattr(docx, "content_strategy", None)
+    if callable(docx_renderer):
+        written.append(docx_renderer(data, tree.package_path(root, tree.CONTENT_STRATEGY_DOCX)))
+    pdf_renderer = getattr(pdf, "content_strategy", None)
+    if callable(pdf_renderer):
+        written.append(pdf_renderer(data, tree.package_path(root, tree.CONTENT_STRATEGY_PDF)))
+    return written
+
+
 def _csv_row_count(path: Path) -> int:
     with path.open("r", encoding="utf-8-sig", newline="") as stream:
         return max(0, sum(1 for _ in csv.reader(stream)) - 1)
@@ -249,15 +342,14 @@ def _csv_row_count(path: Path) -> int:
 
 def _reconcile_package_counts(data: dict[str, Any], root: Path) -> list[str]:
     """Recompute package-side reconciliation numbers from what was actually rendered."""
-    qa_folder = root / "06_QA_and_Manifest"
-    findings_rows = _csv_row_count(qa_folder / "issue_register.csv")
+    findings_rows = _csv_row_count(tree.package_path(root, tree.ISSUE_REGISTER_CSV))
     recomputed = {
-        "content": len(list((root / "05_Content").glob("*.docx"))),
-        "evidence": _csv_row_count(qa_folder / "evidence_index.csv"),
+        "content": len(list(tree.package_path(root, tree.SEO_CONTENT).glob("*.docx"))),
+        "evidence": _csv_row_count(tree.package_path(root, tree.EVIDENCE_INDEX_CSV)),
         "finding": findings_rows,
         "issue": findings_rows,
-        "action": _csv_row_count(root / "03_Action_Plan" / "16_Week_Action_Plan.csv"),
-        "source": _csv_row_count(qa_folder / "availability_matrix.csv"),
+        "action": _csv_row_count(tree.package_path(root, tree.ACTION_PLAN_CSV)),
+        "source": _csv_row_count(tree.package_path(root, tree.AVAILABILITY_MATRIX_CSV)),
     }
     failures: list[str] = []
     for entry in (data.get("qa") or {}).get("reconciliation") or []:
@@ -279,10 +371,55 @@ def _reconcile_package_counts(data: dict[str, Any], root: Path) -> list[str]:
     return failures
 
 
+def _deployment_source_rows(data: dict[str, Any], relative: str) -> int:
+    """How many canonical rows a deployment CSV should have carried."""
+    section, key = tree.DEPLOYMENT_CSV_SOURCES[relative]
+    rows = (data.get(section) or {}).get(key) or []
+    if rows:
+        return len(rows)
+    if relative == tree.REDIRECT_MAP_CSV:
+        # A redirect map cannot be empty while the crawl observed broken URLs.
+        return sum(
+            1
+            for page in data.get("pages") or []
+            if page.get("status_code") not in {200, 301, 302}
+        )
+    return 0
+
+
+def _verify_deployment_csvs(root: Path, data: dict[str, Any], present: set[str]) -> list[str]:
+    """A header-only deployment CSV is a build failure when source rows exist."""
+    failures: list[str] = []
+    for relative in sorted(tree.DEPLOYMENT_CSV_SOURCES):
+        if relative not in present:
+            continue
+        rendered = _csv_row_count(tree.package_path(root, relative))
+        if rendered:
+            continue
+        expected = _deployment_source_rows(data, relative)
+        if expected:
+            failures.append(
+                f"Header-only deployment CSV: {relative} has 0 rows while the run data "
+                f"holds {expected} source row(s)"
+            )
+    return failures
+
+
+def _verify_pptx_siblings(present: set[str]) -> list[str]:
+    """Every PPTX ships a PDF sibling so reviewers never need office software."""
+    return [
+        f"PPTX without a sibling PDF: {relative}"
+        for relative in sorted(present)
+        if relative.casefold().endswith(".pptx")
+        and PurePosixPath(relative).with_suffix(".pdf").as_posix() not in present
+    ]
+
+
 def _verify_tree(root: Path, data: dict[str, Any]) -> tuple[list[str], dict[str, int], int]:
     """Verify every rendered file; failures are collected, never guessed away."""
     failures: list[str] = []
     counts: Counter[str] = Counter()
+    present: set[str] = set()
     total = 0
     client_words = str((data.get("client") or {}).get("name") or "").split()
     kakawa_is_the_client = bool(client_words) and client_words[0].casefold() == "kakawa"
@@ -292,6 +429,7 @@ def _verify_tree(root: Path, data: dict[str, Any]) -> tuple[list[str], dict[str,
             continue
         total += 1
         relative = path.relative_to(root).as_posix()
+        present.add(relative)
         suffix = path.suffix.casefold()
         counts[suffix or "(none)"] += 1
         if path.stat().st_size == 0:
@@ -336,14 +474,28 @@ def _verify_tree(root: Path, data: dict[str, Any]) -> tuple[list[str], dict[str,
             failures.append(f"Literal machine path leaked: {relative}")
         if not kakawa_is_the_client and "kakawa" in combined.casefold():
             failures.append(f"Foreign client name 'Kakawa' leaked: {relative}")
+
+    failures.extend(_verify_pptx_siblings(present))
+    failures.extend(_verify_deployment_csvs(root, data, present))
     return failures, dict(sorted(counts.items())), total
 
 
-def _entry_profile(relative: str) -> tuple[str, str]:
-    parts = PurePosixPath(relative).parts
-    if len(parts) == 1:
-        return "summary_markdown", "approved"
-    return FOLDER_ARTIFACT_TYPES.get(parts[0][:2], ("package_file", "approved"))
+def _prune_unavailable_folders(data: dict[str, Any], root: Path) -> None:
+    """Drop folders that would otherwise ship empty or unsupported by evidence.
+
+    Link building is omitted entirely when no backlink provider answered: an
+    empty or invented referring-domain list is worse than an absent folder.
+    """
+    backlinks = data.get("backlinks") or {}
+    if str(backlinks.get("status") or "unavailable").casefold() != "available":
+        shutil.rmtree(tree.package_path(root, tree.LINK_BUILDING), ignore_errors=True)
+    for folder in sorted(
+        (path for path in root.rglob("*") if path.is_dir()),
+        key=lambda item: len(item.parts),
+        reverse=True,
+    ):
+        if not any(folder.iterdir()):
+            folder.rmdir()
 
 
 def _build_manifest(
@@ -362,19 +514,23 @@ def _build_manifest(
         },
         limitations=[str(item) for item in data.get("limitations", [])],
     )
-    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
-        if not path.is_file():
-            continue
+    payloads = [
+        path
+        for path in sorted(root.rglob("*"), key=lambda item: item.as_posix())
+        if path.is_file()
+        and not is_control_file(PurePosixPath(path.relative_to(root)).as_posix())
+    ]
+    available = {PurePosixPath(path.relative_to(root)).as_posix() for path in payloads}
+    for path in payloads:
         relative = PurePosixPath(path.relative_to(root)).as_posix()
-        if relative in CONTROL_FILES:
-            continue
-        artifact_type, approval_state = _entry_profile(relative)
+        artifact_type, approval_state = tree.entry_profile(relative)
         manifest.add_file(
             root,
             path,
             artifact_type=artifact_type,
             title=path.stem.replace("_", " ").strip() or path.name,
             approval_state=approval_state,
+            derivative_of=resolve_derivative_of(relative, available),
         )
     return manifest
 
@@ -441,6 +597,7 @@ def build_package_for_run(
         tmp_dir = Path(tmp)
         root = tmp_dir / package_name
         root.mkdir(parents=True, exist_ok=True)
+        tree.ensure_folders(root)
 
         _notify(progress, "Rendering the package summary")
         _write_markdown(data, root)
@@ -454,18 +611,20 @@ def build_package_for_run(
         base_dir = Path(settings.BASE_DIR)
         pdf = PDFReportBuilder(base_dir)
         docx = DOCXReportBuilder(base_dir)
-        pdf.executive_report(data, root / "01_Audit_Reports" / "Enterprise_SEO_Audit_Report.pdf")
-        docx.strategy_report(data, root / "02_Strategy_Documents" / "SEO_Strategy.docx")
-        pdf.strategy_report(data, root / "02_Strategy_Documents" / "SEO_Strategy.pdf")
-        pdf.action_plan(data, root / "03_Action_Plan" / "16_Week_Action_Plan.pdf")
+        pdf.executive_report(data, tree.package_path(root, tree.ENTERPRISE_AUDIT_PDF))
+        docx.strategy_report(data, tree.package_path(root, tree.SEO_STRATEGY_DOCX))
+        pdf.strategy_report(data, tree.package_path(root, tree.SEO_STRATEGY_PDF))
+        pdf.action_plan(data, tree.package_path(root, tree.ACTION_PLAN_PDF))
+        _render_content_strategy(data, root, docx=docx, pdf=pdf)
         for asset in data.get("content_assets", []):
-            docx.content_asset(data, asset, root / "05_Content" / _content_docx_name(asset))
+            docx.content_asset(data, asset, tree.content_asset_path(root, _content_docx_name(asset)))
 
         _notify(progress, "Rendering the executive deck")
         from exporters.pptx_deck import render_deck
 
-        render_deck(data, root / "07_Executive_Deck" / "Executive_Deck.pptx")
-        pdf.deck_pdf(data, root / "07_Executive_Deck" / "Executive_Deck.pdf")
+        render_deck(data, tree.package_path(root, tree.DECK_PPTX))
+        _render_deck_pdf(data, tree.package_path(root, tree.DECK_PDF), pdf=pdf)
+        build_html_deck(data, tree.package_path(root, tree.DECK_HTML))
 
         _notify(progress, "Writing data files and schema templates")
         _write_csvs(data, root)
@@ -475,8 +634,9 @@ def build_package_for_run(
 
         _notify(progress, "Verifying the package")
         failures = _reconcile_package_counts(data, root)
-        write_qa_json(data, root / "06_QA_and_Manifest" / "QA_Report.json")
-        pdf.qa_report(data, root / "06_QA_and_Manifest" / "QA_Report.pdf")
+        write_qa_json(data, tree.package_path(root, tree.QA_REPORT_JSON))
+        pdf.qa_report(data, tree.package_path(root, tree.QA_REPORT_PDF))
+        _prune_unavailable_folders(data, root)
         tree_failures, format_counts, file_total = _verify_tree(root, data)
         failures.extend(tree_failures)
         if failures:

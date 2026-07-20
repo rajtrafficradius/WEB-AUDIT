@@ -22,7 +22,7 @@ from app.domain.models import (
 from .crawler import BoundedCrawler, CrawlConfig
 from .models import RUN_LIMITS, BusinessProfile, RunProfile
 from .models import PageSnapshot as EnginePage
-from .rules import RULESET_VERSION, AuditContext, run_rules
+from .rules import RULESET_VERSION, AuditContext, CrawlIntegrity, run_rules
 from .scoring import CATEGORY_WEIGHTS, scorecard
 
 IMPACT = {"critical": 95, "high": 80, "medium": 60, "low": 35, "info": 15}
@@ -47,9 +47,23 @@ CATEGORY_COVERAGE = {
 }
 
 
+# Stage order is data, not a ternary: "highest-sequence RUNNING stage" lookups
+# break silently when a new stage lands on the default sequence of an old one.
+STAGE_SEQUENCE = {
+    "collecting": 10,
+    "auditing": 20,
+    "enriching": 25,
+    "packaging": 30,
+}
+DEFAULT_STAGE_SEQUENCE = 20
+MARKET_DATA_TASK = "studio.analysis.collect_market_data"
+QUARANTINE_URL_CAP = 50
+
+
 def _stage(run, name, status, **data):
     stage, _ = RunStage.objects.get_or_create(
-        run=run, name=name, defaults={"sequence": 10 if name == "collecting" else 20}
+        run=run, name=name,
+        defaults={"sequence": STAGE_SEQUENCE.get(name, DEFAULT_STAGE_SEQUENCE)},
     )
     now = timezone.now()
     if status == StageStatus.RUNNING:
@@ -81,6 +95,7 @@ def _advice(code):
         "on_page.title": ("Write a distinct page title", "Create a concise, intent-aligned title and compare it with other crawled titles."),
         "on_page.meta_description": ("Add a useful meta description", "Draft an accurate page-specific search summary."),
         "on_page.h1": ("Correct the primary heading", "Use one clear H1 and lower-level headings for supporting sections."),
+        "technical.crawl_degraded": ("Allow the audit crawler through bot protection", "Allow-list the audit crawler's user agent and source addresses in your WAF, CDN or rate-limit rules, then re-run the audit so the quarantined URLs can be assessed. No change to those pages is implied by this item."),
         "technical.canonical_boundary": ("Review the unsafe canonical", "Propose an approved-domain canonical for administrator review."),
         "technical.robots_directive": ("Confirm indexation intent", "Compare the directive with the page purpose before changing it."),
         "technical.redirect_chain_length": ("Flatten the redirect chain", "Point every internal link and redirect rule directly at the final destination URL so each request resolves in a single hop."),
@@ -116,19 +131,113 @@ def _url_depth(url):
     return len([segment for segment in urlsplit(url).path.split("/") if segment])
 
 
+def _failure_digest(result):
+    """Summarise crawl failures instead of throwing them away."""
+
+    codes, samples = {}, []
+    for failure in result.failures:
+        codes[failure.code] = codes.get(failure.code, 0) + 1
+        if len(samples) < QUARANTINE_URL_CAP:
+            samples.append({
+                "url": failure.url,
+                "code": failure.code,
+                "message": failure.message[:300],
+                "challenge": bool(getattr(failure, "challenge", False)),
+                "challenge_kind": getattr(failure, "challenge_kind", None),
+                "retry_after": getattr(failure, "retry_after", None),
+            })
+    return codes, samples
+
+
+def _crawl_integrity_payload(fetched, challenged, rate_limited, quarantined):
+    total = fetched + challenged
+    share = round(challenged / total, 4) if total else 0.0
+    if share > 0.30:
+        status = "blocked"
+        note = ("Bot protection answered most requests, so this audit covers only a "
+                "minority of the site. Allow-list the audit crawler and re-run for full coverage.")
+    elif share > 0.05:
+        status = "degraded"
+        note = ("Some URLs returned bot-challenge or rate-limit responses and were "
+                "quarantined; they produced no findings.")
+    else:
+        status = "clean"
+        note = "The crawl completed without material bot-protection interference."
+    return {
+        "status": status,
+        "fetched_pages": fetched,
+        "challenged_pages": challenged,
+        "challenge_share": share,
+        "rate_limited_pages": rate_limited,
+        "quarantined_urls": list(quarantined[:QUARANTINE_URL_CAP]),
+        "note": note,
+    }
+
+
 def _collect(run, result, captured):
+    fetched_items = [item for item in result.pages if not getattr(item, "challenge", False)]
+    challenged_items = [item for item in result.pages if getattr(item, "challenge", False)]
+    failure_codes, failure_samples = _failure_digest(result)
     source = SourceSnapshot.objects.create(
         run=run, source_type="crawl",
-        availability=AvailabilityStatus.AVAILABLE if result.pages else AvailabilityStatus.UNAVAILABLE,
-        unavailable_reason="" if result.pages else "No approved-domain page was collected.",
-        record_count=len(result.pages), captured_at=captured, locale=run.project.locale,
-        scope=f"{len(result.pages)} fetched; {result.discovered_count} discovered; {result.stopped_reason}",
-        rule_version=RULESET_VERSION, confidence=Decimal("1") if result.pages else Decimal("0"),
-        metadata={"failure_count": len(result.failures), "stopped_reason": result.stopped_reason},
+        availability=AvailabilityStatus.AVAILABLE if fetched_items else AvailabilityStatus.UNAVAILABLE,
+        unavailable_reason="" if fetched_items else "No approved-domain page was collected.",
+        record_count=len(fetched_items), captured_at=captured, locale=run.project.locale,
+        scope=f"{len(fetched_items)} fetched; {result.discovered_count} discovered; {result.stopped_reason}",
+        rule_version=RULESET_VERSION, confidence=Decimal("1") if fetched_items else Decimal("0"),
+        metadata={
+            "failure_count": len(result.failures),
+            "stopped_reason": result.stopped_reason,
+            "discovered_count": result.discovered_count,
+            "failure_codes": failure_codes,
+            "failures": failure_samples,
+            "challenged_count": len(challenged_items),
+            "rate_limited_count": int(getattr(result, "rate_limited_count", 0)),
+        },
     )
     allowed = tuple(v.casefold().rstrip(".") for v in run.project.approved_domains)
     pages, evidence_map, seen = [], {}, set()
-    for item in result.pages:
+    quarantined_urls = []
+    for item in challenged_items:
+        host = (urlsplit(item.final_url).hostname or "").casefold().rstrip(".")
+        if item.final_url in seen or not any(host == v or host.endswith("." + v) for v in allowed):
+            continue
+        seen.add(item.final_url)
+        quarantined_urls.append(item.final_url)
+        reason = (
+            f"The origin returned a {item.challenge_kind or 'bot challenge'} response "
+            f"(HTTP {item.status_code}); the page content was never delivered to the crawler."
+        )
+        quarantined = PageSnapshot.objects.create(
+            run=run, source_snapshot=source, original_url=item.requested_url,
+            normalized_url=item.final_url, domain=host, approved_domain=True,
+            status_code=item.status_code, content_type=item.content_type or "",
+            canonical_url="", redirect_target_url="", robots_indexable=None,
+            title="", meta_description="", h1="", content_sha256=item.body_sha256,
+            response_ms=item.response_ms, captured_at=captured, locale=run.project.locale,
+            scope="quarantined: bot challenge", rule_version=RULESET_VERSION,
+            confidence=Decimal("0"),
+            facts={
+                "challenge": True,
+                "challenge_kind": item.challenge_kind,
+                "retry_after": item.retry_after,
+                "availability": AvailabilityStatus.UNAVAILABLE,
+                "unavailable_reason": reason,
+                "url_depth": _url_depth(item.final_url),
+            },
+        )
+        Evidence.objects.create(
+            run=run, source_snapshot=source, page=quarantined,
+            evidence_type="website_crawl_challenge",
+            title=f"Quarantined challenge response: {item.final_url}",
+            locator=item.final_url, sha256=item.body_sha256,
+            details={"status_code": item.status_code, "challenge_kind": item.challenge_kind,
+                     "retry_after": item.retry_after},
+            availability=AvailabilityStatus.UNAVAILABLE, unavailable_reason=reason,
+            captured_at=captured, locale=run.project.locale, scope="single URL",
+            rule_version=RULESET_VERSION, confidence=Decimal("0"),
+        )
+    for item in fetched_items:
         host = (urlsplit(item.final_url).hostname or "").casefold().rstrip(".")
         if item.final_url in seen or not any(host == v or host.endswith("." + v) for v in allowed):
             continue
@@ -190,16 +299,32 @@ def _collect(run, result, captured):
             analytics_tags=item.analytics_tags, url_depth=depth,
             redirect_chain=item.redirect_chain,
         ))
-    return pages, evidence_map
+    integrity = _crawl_integrity_payload(
+        len(pages), len(quarantined_urls),
+        int(getattr(result, "rate_limited_count", 0)), quarantined_urls,
+    )
+    source.metadata = {**source.metadata, "crawl_integrity": integrity}
+    source.save(update_fields=["metadata", "updated_at"])
+    return pages, evidence_map, integrity
 
 
-def _create_findings(run, pages, evidence_map):
+def _create_findings(run, pages, evidence_map, integrity=None):
     """Evaluate rules, then persist ONE grouped Finding/Recommendation/Action per rule."""
 
+    integrity = integrity or {}
+    quarantined = tuple(integrity.get("quarantined_urls") or ())
     context = AuditContext(
         project_id=str(run.project_id), pages=tuple(pages),
         allowed_domains=tuple(run.project.approved_domains),
         business_profile=_business_profile(run.project.business_type),
+        challenged_urls=frozenset(quarantined),
+        crawl_integrity=CrawlIntegrity(
+            fetched_pages=int(integrity.get("fetched_pages") or 0),
+            challenged_pages=int(integrity.get("challenged_pages") or 0),
+            rate_limited_pages=int(integrity.get("rate_limited_pages") or 0),
+            quarantined_urls=quarantined,
+            note=str(integrity.get("note") or ""),
+        ) if integrity else None,
     )
     engine_findings = run_rules(context)
     page_map = {v.normalized_url: v for v in run.pages.all()}
@@ -263,6 +388,29 @@ def _create_findings(run, pages, evidence_map):
     return engine_findings
 
 
+def _dispatch_market_data(run):
+    """Queue the optional market/competitor enrichment between audit and packaging.
+
+    Market data is an enhancement, never a precondition: a missing module, a dead
+    broker or a provider outage must leave the completed audit untouched.
+    """
+
+    if not getattr(settings, "MARKET_DATA_ENABLED", False):
+        return False
+    try:
+        from celery import current_app
+
+        RunStage.objects.get_or_create(
+            run=run, name="enriching",
+            defaults={"sequence": STAGE_SEQUENCE["enriching"], "status": StageStatus.PENDING},
+        )
+        current_app.send_task(MARKET_DATA_TASK, args=[str(run.pk)], queue="analysis")
+    except Exception:
+        record_event(event_type="market_data.queue_failed", run=run, object_instance=run)
+        return False
+    return True
+
+
 @shared_task(bind=True, name="audit_engine.tasks.run_website_audit", queue="analysis",
              acks_late=True, reject_on_worker_lost=True)
 def run_website_audit(self, run_id):
@@ -280,14 +428,22 @@ def run_website_audit(self, run_id):
             request_timeout_seconds=12, min_host_delay_seconds=.2,
         )).crawl((f"https://{run.project.primary_domain}/",))
         captured = timezone.now()
-        pages, evidence = _collect(run, result, captured)
+        pages, evidence, integrity = _collect(run, result, captured)
         if not pages:
-            raise RuntimeError("No pages were collected. Check robots.txt, DNS, or the website URL.")
-        _stage(run, "collecting", StageStatus.SUCCEEDED, output_count=len(pages))
+            raise RuntimeError(
+                "No readable pages were collected. Check robots.txt, DNS, bot protection, "
+                "or the website URL."
+                if integrity["challenged_pages"]
+                else "No pages were collected. Check robots.txt, DNS, or the website URL."
+            )
+        _stage(
+            run, "collecting", StageStatus.SUCCEEDED, output_count=len(pages),
+            crawl_integrity=integrity,
+        )
         run.state, run.source_cutoff_at = RunState.AUDITING, captured
         run.save(update_fields=["state", "source_cutoff_at", "updated_at"])
         _stage(run, "auditing", StageStatus.RUNNING, message="Applying evidence rules")
-        engine_findings = _create_findings(run, pages, evidence)
+        engine_findings = _create_findings(run, pages, evidence, integrity)
         profile = _business_profile(run.project.business_type)
         card = scorecard(profile, engine_findings, CATEGORY_COVERAGE)
         run.evidence_coverage = Decimal(str(round(card.weighted_coverage * 100, 2)))
@@ -310,15 +466,18 @@ def run_website_audit(self, run_id):
                 for item in card.categories
             ],
             stopped_reason=result.stopped_reason, discovered=result.discovered_count,
+            crawl_integrity=integrity,
         )
         record_event(event_type="audit.ready_for_review", run=run, object_instance=run,
                      payload={"pages": len(pages), "findings": run.findings.count()})
+        _dispatch_market_data(run)
         if getattr(settings, "AUTO_BUILD_PACKAGE", False):
             try:
                 from exporters.tasks import build_audit_package
 
                 RunStage.objects.get_or_create(
-                    run=run, name="packaging", defaults={"sequence": 30}
+                    run=run, name="packaging",
+                    defaults={"sequence": STAGE_SEQUENCE["packaging"]},
                 )
                 build_audit_package.delay(str(run.pk))
             except Exception:

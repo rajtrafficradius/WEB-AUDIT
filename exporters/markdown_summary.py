@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from exporters import paths as tree
 from exporters.common import coverage_label, safe_text
 
 UNAVAILABLE = "Unavailable"
@@ -99,36 +100,51 @@ def _week_range(actions: list[dict[str, Any]]) -> str:
 
 def _package_tree(data: dict[str, Any]) -> list[str]:
     profile = str(data.get("project", {}).get("business_profile") or "").casefold()
+    backlinks_available = (
+        str((data.get("backlinks") or {}).get("status") or "unavailable").casefold()
+        == "available"
+    )
     lines = [
-        "AUDIT_RESULTS.md — this summary of results, package contents and methodology",
-        "01_Audit_Reports/",
+        f"{tree.SUMMARY_MARKDOWN} — this summary of results, package contents and methodology",
+        f"{tree.AUDIT_REPORTS}/",
         "  Technical_Audit_Report.xlsx — crawl inventory, errors, redirects, canonicals,"
         " duplicates, indexability",
-        "  OnPage_Audit_Report.xlsx — title, meta description, H1, thin content and"
-        " image alt reviews",
-        "  Performance_And_Tracking_Audit.xlsx — response timing, page weight and"
-        " analytics tag coverage",
+        "  Content_Audit_Workbook.xlsx — page-level content inventory, thin pages and"
+        " coverage gaps",
+        "  Backlink_Audit_Report.xlsx — referring domains and link profile, or the reason"
+        " they are unavailable",
+        "  Competitor_Landscape_Analysis.xlsx — competitor set with the metrics that were"
+        " actually retrieved",
+        "  Ecommerce_Audit_Report.xlsx — product, category and checkout observations",
+        "  GEO_AEO_Readiness_Scorecard.xlsx — generative and answer-engine readiness checks",
+        "  CRO_UX_Findings.xlsx — conversion and usability observations from the crawl",
+        "  Tracking_Audit_Report.xlsx — analytics and tag coverage per crawled page",
+        "  GBP_Local_Audit.xlsx — local presence and NAP observations",
+        "  Baseline_Performance_Analysis.xlsx — the measured baseline this plan is judged against",
         "  Enterprise_SEO_Audit_Report.pdf — the full narrative audit report",
-        "02_Strategy_Documents/",
+        f"{tree.STRATEGY_DOCUMENTS}/",
+        "  Master_Keyword_Universe.xlsx — every retrieved keyword with position, volume,"
+        " CPC and mapped URL",
+        "  Content_Gap_Analysis.xlsx — clusters where competitors rank and the site does not",
+        "  Content_Strategy.xlsx — the prioritised content programme",
+        "  URL_Architecture_Map.xlsx — URL inventory with depth and section rollups",
+        "  Cannibalization_Resolution_Plan.xlsx — pages competing for the same intent",
         "  SEO_Strategy.docx — the evidence-led 16-week strategy document",
         "  SEO_Strategy.pdf — the same strategy in PDF form",
-        "  Keyword_And_Topic_Observations.xlsx — crawl-observed topic clusters and"
-        " overlap signals",
-        "  URL_Architecture_Map.xlsx — URL inventory with depth and section rollups",
-        "03_Action_Plan/",
+        f"{tree.ACTION_PLAN}/",
         "  16_Week_Action_Plan.xlsx — the sequenced plan with a week-by-week Gantt",
         "  16_Week_Action_Plan.csv — the same plan for spreadsheet-free import",
         "  16_Week_Action_Plan.pdf — the plan formatted for review and sign-off",
-        "04_Implementation_Deliverables/",
+        f"{tree.IMPLEMENTATION}/",
+        "  Technical_Fixes/",
+        "    Redirect_Map.csv — redirect candidates with approval status",
+        "    Redirect_Map.xlsx — the same map with review formatting",
+        "    Canonical_Fixes.xlsx — canonical observations and candidates",
+        "    Robots_txt_Recommendations.txt — robots and indexation recommendations",
         "  On_Page_Optimizations/",
         "    Title_Tag_Optimizations.xlsx — current vs proposed titles, approval-gated",
         "    Meta_Description_Optimizations.xlsx — current vs proposed descriptions",
-        "    H1_Optimizations.xlsx — current vs proposed H1 headings",
-        "  Technical_Fixes/",
-        "    Redirect_Map.csv — redirect candidates with approval status",
-        "    Canonical_Review.xlsx — canonical observations and candidates",
-        "    Robots_And_Indexation_Notes.txt — robots and indexation recommendations",
-        "  Internal_Linking/",
+        "    H1_Tags.xlsx — current vs proposed H1 headings",
         "    Internal_Link_Map.xlsx — evidence-linked internal link candidates",
         "  Schema_Markup/",
         "    Schema_Organization.json — Organization structured data template",
@@ -141,7 +157,17 @@ def _package_tree(data: dict[str, Any]) -> list[str]:
         lines.append(
             "    Schema_Product_Template.json — Product structured data template"
         )
-    lines.append("05_Content/")
+    if backlinks_available:
+        lines.extend([
+            "  Link_Building/",
+            "    Referring_Domains.xlsx — the retrieved referring-domain profile",
+            "    Link_Gap_Opportunities.xlsx — domains linking to competitors but not to you",
+        ])
+    else:
+        lines.append(
+            "  (Link_Building/ omitted — no backlink provider data was retrieved for this run)"
+        )
+    lines.append(f"{tree.SEO_CONTENT}/")
     assets = list(data.get("content_assets") or [])
     if assets:
         for asset in assets:
@@ -152,19 +178,163 @@ def _package_tree(data: dict[str, Any]) -> list[str]:
     else:
         lines.append("  (no content assets cleared evidence checks in this run)")
     lines.extend([
-        "06_QA_and_Manifest/",
+        f"{tree.QA}/",
         "  QA_Report.pdf — release gates, reconciliation and QA narrative",
         "  QA_Report.json — the same QA result in machine-readable form",
+        "  QC_Report.xlsx — the quality-control checks in workbook form",
         "  availability_matrix.csv — which evidence sources were available",
         "  generation_ledger.csv — every generation task with status and hashes",
         "  evidence_index.csv — the full evidence register",
         "  issue_register.csv — the full findings register",
+        "  source_coverage.csv — evidence coverage per audit category",
+        "  change_log.csv — provenance for this package build",
         "  package-manifest.json — file inventory for this package",
         "  checksums.sha256 — SHA-256 checksums for every file",
-        "07_Executive_Deck/",
+        f"{tree.SLIDE_DECK}/",
         "  Executive_Deck.pptx — the executive presentation",
         "  Executive_Deck.pdf — the same deck in PDF form",
+        "  Executive_Deck.html — the same deck as a self-contained web page",
     ])
+    return lines
+
+
+def _market_section(data: dict[str, Any]) -> list[str]:
+    """Domain-level market position, or the stated reason it is unavailable."""
+    market = data.get("market") or {}
+    lines = ["## Market position", ""]
+    status = str(market.get("status") or "unavailable").casefold()
+    if status != "available":
+        reason = safe_text(
+            market.get("unavailable_reason"),
+            "no market data provider was connected for this run",
+        )
+        lines.extend([f"Market metrics are {UNAVAILABLE.casefold()} — {reason}", ""])
+        return lines
+    domain = market.get("domain") or {}
+    labels = [
+        ("Organic keywords", "organic_keywords"),
+        ("Estimated organic traffic", "organic_traffic"),
+        ("Estimated organic traffic value", "organic_cost"),
+        ("Paid keywords", "adwords_keywords"),
+        ("Authority score", "authority_score"),
+        ("Backlinks", "backlinks_total"),
+        ("Referring domains", "referring_domains"),
+    ]
+    rows = [[label, _cell(domain.get(key))] for label, key in labels]
+    lines.extend(_table(["Metric", "Value"], rows))
+    lines.append("")
+    lines.append(
+        f"Source: {_cell(market.get('provider'))} · database {_cell(market.get('database'))} · "
+        f"retrieved {_cell(market.get('fetched_at'))}"
+    )
+    lines.append("")
+    return lines
+
+
+def _comparison_section(data: dict[str, Any]) -> list[str]:
+    """Client vs competitor medians, only for metrics that were actually measured."""
+    comparison = data.get("performance_vs_competitors") or {}
+    lines = ["## How you compare", ""]
+    if str(comparison.get("status") or "unavailable").casefold() != "available":
+        reason = safe_text(
+            comparison.get("unavailable_reason"),
+            "no competitor metrics were retrieved for this run",
+        )
+        lines.extend([f"Competitor comparison is {UNAVAILABLE.casefold()} — {reason}", ""])
+        return lines
+    rows = [
+        [
+            _cell(metric.get("metric")),
+            _cell(metric.get("client")),
+            _cell(metric.get("competitor_median")),
+            _cell(metric.get("best_competitor")),
+            _cell(metric.get("best_value")),
+            _cell(metric.get("position")),
+        ]
+        for metric in comparison.get("metrics") or []
+    ]
+    if not rows:
+        lines.extend(["No comparable metrics were retrieved for this run.", ""])
+        return lines
+    lines.extend(_table(
+        ["Metric", "You", "Competitor median", "Best competitor", "Best value", "Standing"],
+        rows,
+    ))
+    summary = comparison.get("summary")
+    if summary:
+        lines.extend(["", safe_text(summary)])
+    lines.append("")
+    return lines
+
+
+def _keyword_section(data: dict[str, Any]) -> list[str]:
+    """The largest measured keyword opportunities; never an invented volume."""
+    keywords = list(data.get("keywords") or [])
+    lines = ["## Keyword opportunities", ""]
+    measured = [
+        keyword for keyword in keywords
+        if isinstance(keyword.get("search_volume"), int | float)
+    ]
+    if not measured:
+        reason = next(
+            (
+                safe_text(keyword.get("unavailable_reason"), "")
+                for keyword in keywords
+                if keyword.get("unavailable_reason")
+            ),
+            "",
+        )
+        detail = reason or "no keyword provider returned measured search volumes for this run"
+        lines.extend([f"Keyword metrics are {UNAVAILABLE.casefold()} — {detail}", ""])
+        return lines
+    measured.sort(key=lambda keyword: float(keyword["search_volume"]), reverse=True)
+    rows = [
+        [
+            _cell(keyword.get("phrase")),
+            _cell(keyword.get("position")),
+            _cell(keyword.get("search_volume")),
+            _cell(keyword.get("cpc")),
+            _cell(keyword.get("funnel_stage")),
+            _cell(keyword.get("landing_url")),
+        ]
+        for keyword in measured[:15]
+    ]
+    lines.extend(_table(
+        ["Keyword", "Position", "Monthly volume", "CPC", "Funnel stage", "Mapped URL"], rows
+    ))
+    lines.append("")
+    lines.append(
+        f"Showing the {len(rows)} highest-volume of {len(measured)} keywords with measured volume."
+    )
+    lines.append("")
+    return lines
+
+
+def _crawl_integrity_section(data: dict[str, Any]) -> list[str]:
+    """Only rendered when the crawl was degraded or blocked — silence means clean."""
+    integrity = data.get("crawl_integrity") or {}
+    status = str(integrity.get("status") or "").casefold()
+    if status not in {"degraded", "blocked"}:
+        return []
+    quarantined = list(integrity.get("quarantined_urls") or [])
+    lines = ["## Crawl integrity", ""]
+    lines.extend(_table(
+        ["Signal", "Value"],
+        [
+            ["Crawl status", _cell(status)],
+            ["Pages fetched", _cell(integrity.get("fetched_pages"))],
+            ["Pages challenged", _cell(integrity.get("challenged_pages"))],
+            ["Challenge share", _cell(_percent(integrity.get("challenge_share")))],
+            ["Rate-limited pages", _cell(integrity.get("rate_limited_pages"))],
+            ["Quarantined URLs", _cell(len(quarantined))],
+        ],
+    ))
+    lines.append("")
+    lines.append(safe_text(
+        integrity.get("note"),
+        "Findings drawn from challenged pages are held back until a clean re-crawl.",
+    ))
+    lines.append("")
     return lines
 
 
@@ -222,6 +392,11 @@ def render_markdown(data: dict) -> str:
     lines.extend(_table(["Category", "Score", "Evidence coverage", "Findings"],
                         category_rows))
     lines.append("")
+
+    lines.extend(_market_section(data))
+    lines.extend(_comparison_section(data))
+    lines.extend(_keyword_section(data))
+    lines.extend(_crawl_integrity_section(data))
 
     lines.append("## Top priority findings")
     lines.append("")

@@ -13,7 +13,15 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-from .common import COPPER, INDIGO, INK, MUTED, PAPER, WHITE
+from .brand import COPPER, INDIGO, INK, MUTED, PAPER, WHITE
+
+
+def _display(value: Any) -> str:
+    """Render a measured value, or state plainly that it was not measured."""
+
+    if value is None or value == "":
+        return "Unavailable"
+    return str(value)
 
 
 def _rgb(value: str) -> RGBColor:
@@ -335,6 +343,115 @@ class DOCXReportBuilder:
             ],
             [0.65, 2.1, 1.05, 1.55, 0.65],
         )
+        for limitation in data.get("limitations", []):
+            doc.add_paragraph(limitation, style="List Bullet")
+        doc.save(output)
+        return output
+
+    def content_strategy(self, data: dict[str, Any], output: Path) -> Path:
+        """Render the content-and-keyword strategy as its own deliverable.
+
+        Deliberately distinct from ``strategy_report``: this document answers
+        "what should we publish and for which demand", using the keyword,
+        cluster and content-asset evidence rather than the operating plan.
+        """
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        run = data["run"]
+        client_name = data["client"]["name"]
+        doc = self._base_document(
+            title=f"{client_name} Content and Keyword Strategy",
+            subject="Evidence-led content strategy and demand mapping",
+        )
+        self._cover(
+            doc,
+            title="Content and Keyword Strategy",
+            subtitle=f"Demand, coverage and publishing priorities for {client_name}.",
+            client=client_name,
+            as_of=run["evidence_as_of"],
+            run_id=run["id"],
+        )
+
+        market = data.get("market") or {}
+        keywords = list(data.get("keywords") or [])
+        clusters = list(data.get("keyword_clusters") or [])
+        assets = list(data.get("content_assets") or [])
+
+        doc.add_heading("Demand evidence", level=1)
+        if market.get("status") == "available":
+            domain = market.get("domain") or {}
+            doc.add_paragraph(
+                f"{len(keywords)} ranking keywords were retrieved from "
+                f"{market.get('provider', 'the connected provider')} for the "
+                f"{market.get('database', 'configured')} database. The domain holds "
+                f"{_display(domain.get('organic_keywords'))} organic keywords and "
+                f"{_display(domain.get('organic_traffic'))} estimated monthly organic sessions."
+            )
+        else:
+            doc.add_paragraph(
+                "Search-demand metrics are unavailable for this run: "
+                f"{market.get('unavailable_reason') or 'no keyword provider is connected'}. "
+                "Every priority below is therefore derived from crawl evidence only, and no "
+                "volume, difficulty or traffic figure is asserted."
+            )
+
+        doc.add_heading("Topic clusters and coverage", level=1)
+        self._table(
+            doc,
+            ["Cluster", "Keywords", "Volume", "Coverage", "Primary URL"],
+            [
+                [
+                    cluster.get("name", "Unavailable"),
+                    cluster.get("keyword_count", 0),
+                    _display(cluster.get("total_volume")),
+                    cluster.get("coverage", "unknown"),
+                    cluster.get("primary_url") or "No mapped page",
+                ]
+                for cluster in clusters[:40]
+            ]
+            or [["No clusters were derived from the available evidence.", "", "", "", ""]],
+            [1.6, 0.75, 0.8, 1.0, 2.0],
+        )
+
+        doc.add_heading("Priority keywords", level=1)
+        self._table(
+            doc,
+            ["Keyword", "Position", "Volume", "CPC", "Landing URL"],
+            [
+                [
+                    item.get("phrase", ""),
+                    _display(item.get("position")),
+                    _display(item.get("search_volume")),
+                    _display(item.get("cpc")),
+                    item.get("landing_url") or "Unmapped",
+                ]
+                for item in keywords[:40]
+            ]
+            or [["No provider keyword data was available for this run.", "", "", "", ""]],
+            [2.0, 0.75, 0.8, 0.7, 1.9],
+        )
+
+        doc.add_heading("Publishing priorities", level=1)
+        doc.add_paragraph(
+            "Each asset below exists because a crawled page or an evidenced demand cluster "
+            "justified it. Drafts stay withheld until a human approves them."
+        )
+        self._table(
+            doc,
+            ["Asset", "Intent", "Target URL", "Approval"],
+            [
+                [
+                    asset.get("title", ""),
+                    asset.get("intent", ""),
+                    asset.get("target_url", ""),
+                    asset.get("approval_state", ""),
+                ]
+                for asset in assets
+            ]
+            or [["No content assets passed the evidence gates for this run.", "", "", ""]],
+            [2.1, 1.1, 1.85, 1.1],
+        )
+
         for limitation in data.get("limitations", []):
             doc.add_paragraph(limitation, style="List Bullet")
         doc.save(output)

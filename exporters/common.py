@@ -1,32 +1,92 @@
-"""Shared presentation data and brand tokens."""
+"""Shared presentation helpers.
+
+Brand tokens now live in :mod:`exporters.brand`; this module re-exports them
+under their historical names so existing call sites keep working.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
-INK = "#17201E"
-PAPER = "#F6F2E9"
-INDIGO = "#3E4C83"
-COPPER = "#A15C38"
-GREEN = "#2F6B57"
-MUTED = "#66716D"
-RULE = "#D8D4C9"
-WHITE = "#FFFEFA"
+from exporters.brand import (
+    ACCENT,
+    ACCENT_LIGHT,
+    AMBER,
+    BLUE,
+    BRAND_BLUE,
+    BRAND_BLUE_DEEP,
+    BRAND_DEEP,
+    BRAND_GREEN,
+    BRAND_GREEN_DEEP,
+    BRAND_INK,
+    CHART_SERIES,
+    COPPER,
+    CRITICAL,
+    DEEP,
+    GREEN,
+    GREEN_RAMP,
+    INDIGO,
+    INK,
+    ISSUE_FILL,
+    MUTED,
+    NEUTRAL,
+    PAPER,
+    POSITIVE,
+    RED,
+    RULE,
+    SEVERITY_FILL,
+    SURFACE,
+    TYPE_RAMP,
+    WARNING,
+    WHITE,
+    BrandFonts,
+    argb,
+    font_paths,
+    hex_to_rgb,
+    series_color,
+    severity_tone,
+)
 
-
-@dataclass(frozen=True, slots=True)
-class BrandFonts:
-    display: str = "Fraunces"
-    body: str = "Source Sans 3"
-
-
-def font_paths(project_root: Path) -> tuple[Path | None, Path | None]:
-    font_dir = project_root / "static" / "fonts"
-    display = font_dir / "Fraunces.ttf"
-    body = font_dir / "SourceSans3.ttf"
-    return (display if display.exists() else None, body if body.exists() else None)
+__all__ = [
+    "ACCENT",
+    "ACCENT_LIGHT",
+    "AMBER",
+    "BLUE",
+    "BRAND_BLUE",
+    "BRAND_BLUE_DEEP",
+    "BRAND_DEEP",
+    "BRAND_GREEN",
+    "BRAND_GREEN_DEEP",
+    "BRAND_INK",
+    "CHART_SERIES",
+    "COPPER",
+    "CRITICAL",
+    "DEEP",
+    "GREEN",
+    "GREEN_RAMP",
+    "INDIGO",
+    "INK",
+    "ISSUE_FILL",
+    "MUTED",
+    "NEUTRAL",
+    "PAPER",
+    "POSITIVE",
+    "RED",
+    "RULE",
+    "SEVERITY_FILL",
+    "SURFACE",
+    "TYPE_RAMP",
+    "WARNING",
+    "WHITE",
+    "BrandFonts",
+    "argb",
+    "coverage_label",
+    "font_paths",
+    "hex_to_rgb",
+    "safe_text",
+    "series_color",
+    "severity_tone",
+]
 
 
 def coverage_label(value: float | None) -> str:
@@ -44,4 +104,3 @@ def safe_text(value: Any, fallback: str = "Unavailable") -> str:
         return fallback
     text = str(value).strip()
     return text or fallback
-

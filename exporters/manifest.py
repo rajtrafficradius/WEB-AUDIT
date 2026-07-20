@@ -16,7 +16,25 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
-CONTROL_FILES = {"06_QA_and_Manifest/package-manifest.json", "06_QA_and_Manifest/checksums.sha256"}
+from .paths import (
+    CHECKSUMS_SHA256,
+    CONTROL_FILES,
+    DERIVATIVE_SOURCE_SUFFIXES,
+    DERIVED_SUFFIXES,
+    PACKAGE_MANIFEST_JSON,
+    is_control_file,
+    qa_folder,
+)
+
+__all__ = [
+    "CONTROL_FILES",
+    "ManifestEntry",
+    "PackageManifest",
+    "build_zip",
+    "is_control_file",
+    "resolve_derivative_of",
+    "verify_zip_members",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +89,7 @@ class PackageManifest:
         if not resolved.is_file() or not resolved.is_relative_to(root):
             raise ValueError(f"Artifact must be a file inside the package: {path}")
         relative = PurePosixPath(resolved.relative_to(root)).as_posix()
-        if relative in CONTROL_FILES:
+        if is_control_file(relative):
             raise ValueError("Control files are added after manifest enumeration")
         media_type = mimetypes.guess_type(resolved.name)[0] or "application/octet-stream"
         entry = ManifestEntry(
@@ -131,7 +149,7 @@ class PackageManifest:
             if not candidate.is_file():
                 continue
             relative = PurePosixPath(candidate.relative_to(package_root)).as_posix()
-            if relative not in CONTROL_FILES:
+            if not is_control_file(relative):
                 actual_paths.add(relative)
         if actual_paths != seen_paths:
             untracked = sorted(actual_paths - seen_paths)
@@ -142,7 +160,7 @@ class PackageManifest:
 
     def write(self, package_root: Path) -> Path:
         self.assert_integrity(package_root)
-        output = package_root / "06_QA_and_Manifest" / "package-manifest.json"
+        output = qa_folder(package_root) / PurePosixPath(PACKAGE_MANIFEST_JSON).name
         output.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "schema_version": "1.0",
@@ -166,7 +184,8 @@ class PackageManifest:
         return output
 
     def write_checksums(self, package_root: Path, manifest_path: Path) -> Path:
-        output = package_root / "06_QA_and_Manifest" / "checksums.sha256"
+        output = qa_folder(package_root) / PurePosixPath(CHECKSUMS_SHA256).name
+        output.parent.mkdir(parents=True, exist_ok=True)
         files = [package_root / Path(entry.path) for entry in self.entries] + [manifest_path]
         lines = [
             f"{self.sha256(path)}  {PurePosixPath(path.relative_to(package_root)).as_posix()}"
@@ -174,6 +193,24 @@ class PackageManifest:
         ]
         output.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         return output
+
+
+def resolve_derivative_of(relative: str, available: set[str]) -> str | None:
+    """Return the sibling payload a cross-format derivative was rendered from.
+
+    A ``.pdf``/``.html``/``.csv`` file is treated as a derivative of the sibling
+    that shares its stem and carries the richest source format present. Returns
+    ``None`` when no such sibling exists, so standalone PDFs stay standalone
+    rather than claiming a source they were not rendered from.
+    """
+    path = PurePosixPath(relative)
+    if path.suffix.casefold() not in DERIVED_SUFFIXES:
+        return None
+    for suffix in DERIVATIVE_SOURCE_SUFFIXES:
+        candidate = path.with_suffix(suffix).as_posix()
+        if candidate != relative and candidate in available:
+            return candidate
+    return None
 
 
 def build_zip(package_root: Path, zip_path: Path) -> tuple[Path, Path]:

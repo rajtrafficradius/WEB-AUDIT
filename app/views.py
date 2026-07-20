@@ -1080,7 +1080,13 @@ def _audit_progress_payload(run, user=None):
     active = run.state in {RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING}
     message = run.error_summary or ((stage.checkpoint or {}).get("message") if stage else "")
     if run.state == RunState.GATE_1_REVIEW:
+        enriching = run.stages.filter(name="enriching").first()
         packaging = run.stages.filter(name="packaging").first()
+        if enriching and enriching.status in {StageStatus.PENDING, StageStatus.RUNNING}:
+            # Market/competitor enrichment sits between the audit and packaging;
+            # it is optional, so a failure here never blocks the package.
+            percent, label, active = 80, "Collecting market and competitor data", True
+            message = (enriching.checkpoint or {}).get("message") or message
         if packaging and packaging.status in {StageStatus.PENDING, StageStatus.RUNNING}:
             percent, label, active = 90, "Building the deliverable package", True
             message = (packaging.checkpoint or {}).get("message") or message
@@ -2137,6 +2143,7 @@ def run_resume_view(request, run_id):
     stage_target = {
         "collecting": RunState.COLLECTING,
         "auditing": RunState.AUDITING,
+        "enriching": RunState.GATE_1_REVIEW,
         "planning": RunState.PLANNING,
         "generating": RunState.GENERATING,
         "final_qa": RunState.FINAL_QA,
