@@ -438,6 +438,24 @@ def _verify_tree(root: Path, data: dict[str, Any]) -> tuple[list[str], dict[str,
     total = 0
     client_words = str((data.get("client") or {}).get("name") or "").split()
     kakawa_is_the_client = bool(client_words) and client_words[0].casefold() == "kakawa"
+    # The contamination check predates real market data. A competitor list or
+    # keyword set can now LEGITIMATELY contain another client's brand (two AU
+    # chocolate retailers WILL surface each other as organic competitors), so
+    # the name is only a leak when the provider evidence never mentions it.
+    evidence_blob = " ".join(
+        filter(
+            None,
+            (
+                *(str(c.get("domain") or "") for c in data.get("competitors") or []),
+                *(str(k.get("phrase") or "") for k in data.get("keywords") or []),
+                *(
+                    str(r.get("domain") or "")
+                    for r in (data.get("backlinks") or {}).get("referring_domains") or []
+                ),
+            ),
+        )
+    ).casefold()
+    kakawa_in_evidence = "kakawa" in evidence_blob
 
     for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
         if not path.is_file():
@@ -487,7 +505,11 @@ def _verify_tree(root: Path, data: dict[str, Any]) -> tuple[list[str], dict[str,
             failures.append(f"Mojibake or replacement characters: {relative}")
         if MACHINE_PATH_RE.search(combined):
             failures.append(f"Literal machine path leaked: {relative}")
-        if not kakawa_is_the_client and "kakawa" in combined.casefold():
+        if (
+            not kakawa_is_the_client
+            and not kakawa_in_evidence
+            and "kakawa" in combined.casefold()
+        ):
             failures.append(f"Foreign client name 'Kakawa' leaked: {relative}")
 
     failures.extend(_verify_pptx_siblings(present))

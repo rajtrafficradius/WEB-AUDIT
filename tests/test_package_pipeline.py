@@ -927,3 +927,22 @@ def test_zombie_run_does_not_freeze_backfills(monkeypatch, client, settings):
     assert client.login(username="zombie-gate-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
     assert client.get("/", secure=True).status_code == 200
     assert queued == [{"queue": "render"}]
+
+
+def test_verify_tree_allows_kakawa_when_provider_evidence_names_it(tmp_path):
+    """A competitor who is also a client is market evidence, not a leak."""
+    from exporters.run_package import _verify_tree
+
+    root = tmp_path / "pkg"
+    _write(root, tree.SUMMARY_MARKDOWN, b"# Top competitor: kakawachocolates.com.au\n")
+
+    contaminated = {"client": {"name": "ChocolArts"}, "competitors": []}
+    failures, _counts, _total = _verify_tree(root, contaminated)
+    assert any("Kakawa" in failure for failure in failures)
+
+    evidenced = {
+        "client": {"name": "ChocolArts"},
+        "competitors": [{"domain": "kakawachocolates.com.au"}],
+    }
+    failures, _counts, _total = _verify_tree(root, evidenced)
+    assert not [failure for failure in failures if "Kakawa" in failure]
