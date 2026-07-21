@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
@@ -91,6 +92,8 @@ from .domain.workflow import (
     transition_run,
 )
 from .errors import error_response
+
+logger = logging.getLogger(__name__)
 
 
 class BrowserLoginForm(forms.Form):
@@ -917,6 +920,11 @@ def dashboard_view(request):
     )
     coverages = []
     backfills_dispatched = 0
+    # Backfills wait their turn: while any audit is genuinely running, the
+    # worker belongs to it — old-package rebuilds resume on a later visit.
+    live_audit_running = AuditRun.objects.filter(
+        state__in=(RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING)
+    ).exists()
     for project in projects:
         latest = project.audit_runs.first()
         project.evidence_coverage = latest.evidence_coverage if latest else None
@@ -925,14 +933,16 @@ def dashboard_view(request):
 
         # A finished project whose package bytes were lost (e.g. a redeploy
         # wiped local storage before database archiving existed) self-heals
-        # from the portfolio itself: queue a rebuild, capped per page load.
+        # from the portfolio itself: queue a rebuild, capped per page load,
+        # on the low-priority lane so live audits are never delayed.
         if (
             latest is not None
+            and not live_audit_running
             and not project.can_download
             and latest.state in PACKAGEABLE_STATES
             and getattr(settings, "AUTO_BUILD_PACKAGE", False)
             and backfills_dispatched < 6
-        ) and _dispatch_package_build(latest, actor=request.user):
+        ) and _dispatch_package_build(latest, actor=request.user, lane="backfill"):
             backfills_dispatched += 1
 
         # Row status reflects the RUN, not the project record: only genuinely
@@ -1382,12 +1392,16 @@ def _package_artifact_exists(run) -> bool:
     return artifact is not None and _artifact_downloadable(artifact)
 
 
-def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
+def _dispatch_package_build(run, *, actor=None, force: bool = False, lane: str = "pipeline") -> bool:
     """Queue a deliverable package build when one is due.
 
     Idempotent and throttled: the packaging stage checkpoint records the last
     dispatch time so polling cannot flood the queue, and the task itself
     replays safely because artifacts are content-addressed per run version.
+
+    ``lane="backfill"`` sends the build to the low-priority render queue so
+    rebuilding old packages can never delay a live audit — the worker drains
+    the analysis queue first (queue_order_strategy: priority).
     """
 
     if run.state not in PACKAGEABLE_STATES or _package_artifact_exists(run):
@@ -1425,11 +1439,41 @@ def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
     try:
         from exporters.tasks import build_audit_package
 
-        build_audit_package.delay(str(run.pk), str(actor.pk) if actor else None)
+        args = (str(run.pk), str(actor.pk) if actor else None)
+        if lane == "backfill":
+            build_audit_package.apply_async(args=args, queue="render")
+        else:
+            build_audit_package.delay(*args)
     except Exception:
         record_event(event_type="package.queue_failed", run=run, object_instance=run)
         return False
     return True
+
+
+QUEUED_KICK_AFTER_SECONDS = 180
+
+
+def _kick_stalled_queued_run(run) -> None:
+    """Re-dispatch an audit whose queue message was lost or starved.
+
+    Safe to repeat: run_website_audit no-ops unless the run is still DRAFT
+    or FAILED, and a cache lock limits the kick to once per window.
+    """
+
+    if run.state != RunState.DRAFT:
+        return
+    age = (timezone.now() - (run.updated_at or run.created_at)).total_seconds()
+    if age < QUEUED_KICK_AFTER_SECONDS:
+        return
+    if not cache.add(f"audit:queued-kick:{run.pk}", "1", QUEUED_KICK_AFTER_SECONDS):
+        return
+    try:
+        from audit_engine.tasks import run_website_audit
+
+        run_website_audit.delay(str(run.pk))
+        record_event(event_type="audit.requeued_stalled", run=run, object_instance=run)
+    except Exception:  # noqa: BLE001 - a failed kick must not break the poll
+        logger.exception("Could not re-dispatch a stalled queued run %s", run.pk)
 
 
 @login_required
@@ -1437,8 +1481,10 @@ def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
 def project_progress_view(request, project_id):
     project = _project_for_user(request, project_id)
     run = project.audit_runs.first()
-    if run is not None and getattr(settings, "AUTO_BUILD_PACKAGE", False):
-        _dispatch_package_build(run)
+    if run is not None:
+        _kick_stalled_queued_run(run)
+        if getattr(settings, "AUTO_BUILD_PACKAGE", False):
+            _dispatch_package_build(run)
     return JsonResponse(_audit_progress_payload(run, user=request.user))
 
 

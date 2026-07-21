@@ -123,9 +123,13 @@
     // so long stages read as steady motion instead of a stuck bar.
     var MILESTONES = [2, 25, 72, 80, 90, 100];
     var serverPercent = 0;
+    var serverState = "";
     var shownPercent = 0;
     var creepTimer = null;
     function creepCeiling(value) {
+      // A queued run has done no work yet: keep the bar honest near zero
+      // instead of creeping to the edge of the collecting milestone.
+      if (serverState === "draft") return 10;
       for (var i = 0; i < MILESTONES.length; i += 1) {
         if (MILESTONES[i] > value + 0.5) return MILESTONES[i] - 1;
       }
@@ -166,6 +170,7 @@
           setText("[data-progress-findings]", data.findings);
           setText("[data-progress-recommendations]", data.recommendations);
           serverPercent = Number(data.percent) || 0;
+          serverState = String(data.state || "");
           shownPercent = Math.max(shownPercent, serverPercent);
           renderPercent(shownPercent);
           if (data.active) startCreep();

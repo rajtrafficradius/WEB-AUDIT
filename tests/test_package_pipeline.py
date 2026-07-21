@@ -643,3 +643,157 @@ def test_package_render_dependencies_are_declared():
     dependency_block = pyproject.split("dependencies = [", 1)[1].split("\n]", 1)[0]
     assert '"openpyxl>=' in dependency_block
     assert '"python-pptx>=' in dependency_block
+
+
+# ---------------------------------------------------------------------------
+# Queue starvation guards: live audits must never wait behind backfills
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_backfill_lane_dispatches_to_render_queue(monkeypatch):
+    import exporters.tasks as exporter_tasks
+
+    run = _seed_run(slug="backfill-lane")
+    run.state = RunState.GATE_1_REVIEW
+    run.save(update_fields=["state", "updated_at"])
+
+    lanes: list[tuple[str, dict]] = []
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "apply_async",
+        lambda args=None, **kwargs: lanes.append(("apply_async", kwargs)),
+    )
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "delay",
+        lambda *args, **kwargs: lanes.append(("delay", kwargs)),
+    )
+
+    assert views._dispatch_package_build(run, lane="backfill") is True
+    assert lanes == [("apply_async", {"queue": "render"})]
+
+    # The normal pipeline lane keeps using the analysis queue via delay().
+    stage = RunStage.objects.get(run=run, name="packaging")
+    stage.checkpoint = {}
+    stage.save(update_fields=["checkpoint", "updated_at"])
+    assert views._dispatch_package_build(run) is True
+    assert lanes[-1][0] == "delay"
+
+
+@pytest.mark.django_db
+def test_dashboard_backfill_waits_while_an_audit_is_live(monkeypatch, client, settings):
+    import exporters.tasks as exporter_tasks
+
+    settings.AUTO_BUILD_PACKAGE = True
+    run = _seed_run(slug="backfill-guard")
+    run.state = RunState.GATE_1_REVIEW
+    run.save(update_fields=["state", "updated_at"])
+
+    live_project = Project.objects.create(
+        client=run.project.client,
+        name="Live Crawl",
+        slug="backfill-guard-live",
+        primary_domain="live.example.com.au",
+        approved_domains=["live.example.com.au"],
+        business_type=Project.BusinessType.SERVICE,
+    )
+    live_run = AuditRun.objects.create(
+        project=live_project,
+        profile="quick",
+        idempotency_key="backfill-guard-live-run",
+        rule_version="1.0.0",
+        state=RunState.COLLECTING,
+    )
+
+    queued: list[dict] = []
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "apply_async",
+        lambda args=None, **kwargs: queued.append(kwargs),
+    )
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "delay",
+        lambda *args, **kwargs: queued.append({"lane": "delay"}),
+    )
+
+    assert client.login(username="backfill-guard-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+
+    # While another audit is genuinely running, no backfill may be queued.
+    assert client.get("/", secure=True).status_code == 200
+    assert queued == []
+
+    # Once the live audit finishes, the same page load queues the rebuild
+    # on the low-priority render lane.
+    live_run.state = RunState.FAILED
+    live_run.save(update_fields=["state", "updated_at"])
+    assert client.get("/", secure=True).status_code == 200
+    assert queued == [{"queue": "render"}]
+
+
+@pytest.mark.django_db
+def test_stalled_queued_run_is_rekicked_once(monkeypatch, client):
+    from datetime import timedelta
+
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    import audit_engine.tasks as audit_tasks
+
+    cache.clear()
+    run = _seed_run(slug="queued-kick")
+    AuditRun.objects.filter(pk=run.pk).update(
+        updated_at=timezone.now() - timedelta(seconds=600)
+    )
+
+    kicked: list[str] = []
+    monkeypatch.setattr(
+        audit_tasks.run_website_audit, "delay", lambda run_id: kicked.append(run_id)
+    )
+
+    assert client.login(username="queued-kick-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    url = f"/projects/{run.project_id}/progress/"
+
+    assert client.get(url, secure=True).status_code == 200
+    assert kicked == [str(run.pk)]
+
+    # The cache lock stops the poll loop from flooding the queue.
+    AuditRun.objects.filter(pk=run.pk).update(
+        updated_at=timezone.now() - timedelta(seconds=600)
+    )
+    assert client.get(url, secure=True).status_code == 200
+    assert kicked == [str(run.pk)]
+
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_fresh_queued_run_is_not_rekicked(monkeypatch, client):
+    from django.core.cache import cache
+
+    import audit_engine.tasks as audit_tasks
+
+    cache.clear()
+    run = _seed_run(slug="queued-fresh")
+
+    kicked: list[str] = []
+    monkeypatch.setattr(
+        audit_tasks.run_website_audit, "delay", lambda run_id: kicked.append(run_id)
+    )
+
+    assert client.login(username="queued-fresh-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    response = client.get(f"/projects/{run.project_id}/progress/", secure=True)
+
+    assert response.status_code == 200
+    assert kicked == []
+
+
+def test_worker_drains_analysis_before_render():
+    from django.conf import settings as django_settings
+
+    options = django_settings.CELERY_BROKER_TRANSPORT_OPTIONS
+    assert options.get("queue_order_strategy") == "priority"
+
+    entrypoint = (REPO_ROOT / "deployment" / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "--queues=analysis,render" in entrypoint

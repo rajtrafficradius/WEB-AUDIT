@@ -398,6 +398,10 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
     "visibility_timeout": int(os.getenv("CELERY_VISIBILITY_TIMEOUT", "14400")),
     "socket_connect_timeout": int(os.getenv("REDIS_CONNECT_TIMEOUT", "5")),
     "socket_timeout": int(os.getenv("REDIS_SOCKET_TIMEOUT", "5")),
+    # Drain queues strictly in the order the worker declares them
+    # (analysis, then render). Live audit work must never wait behind
+    # background package rebuilds, which are dispatched to "render".
+    "queue_order_strategy": "priority",
 }
 CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "mark-stale-run-stages": {
