@@ -99,6 +99,32 @@ INDIGO = ACCENT
 COPPER = CRITICAL
 GREEN = POSITIVE
 
+# ------------------------------------------------------------ executive dark theme
+
+NAVY_900 = "#0F1B33"
+"""Deck page background — the deepest navy of the executive theme."""
+
+NAVY_700 = "#1B2A4A"
+"""Card surface on the navy deck theme."""
+
+NAVY_500 = "#24365C"
+"""Elevated surface (callouts, alternate table rows) on the navy theme."""
+
+GOLD = "#C5A059"
+"""Executive gold accent — eyebrows, rules, chart series, stat values."""
+
+GOLD_LIGHT = "#E2C286"
+"""Lighter gold for large numerals and highlights on navy."""
+
+TEXT_ON_NAVY = "#F2F5FA"
+"""Primary text colour on navy surfaces."""
+
+MUTED_ON_NAVY = "#8FA0BC"
+"""Secondary/muted text colour on navy surfaces."""
+
+RULE_ON_NAVY = "#31456B"
+"""Hairlines and card borders on navy surfaces."""
+
 # --------------------------------------------------------------------------- severity
 
 SEVERITY_FILL: dict[str, tuple[str, str]] = {

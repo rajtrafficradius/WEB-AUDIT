@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -9,11 +11,21 @@ from docx import Document
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from .brand import COPPER, INDIGO, INK, MUTED, PAPER, WHITE
+
+# Word cannot embed fonts via python-docx, so the document must only name
+# typefaces that ship with every Word install. Georgia/Calibri are the closest
+# universally-available matches to the brand pair (Fraunces / Source Sans 3).
+DOCX_DISPLAY_FONT = "Georgia"
+DOCX_BODY_FONT = "Calibri"
+
+_THEME_FONT_ATTRS = ("w:asciiTheme", "w:hAnsiTheme", "w:eastAsiaTheme", "w:cstheme")
+_RFONT_SLOTS = ("w:ascii", "w:hAnsi", "w:eastAsia", "w:cs")
 
 
 def _display(value: Any) -> str:
@@ -27,6 +39,41 @@ def _display(value: Any) -> str:
 def _rgb(value: str) -> RGBColor:
     value = value.lstrip("#")
     return RGBColor(int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16))
+
+
+def _pin_style_font(style: Any, font_name: str) -> None:
+    """Pin every rFonts slot on a style and strip theme references.
+
+    Word resolves ``asciiTheme``/``hAnsiTheme`` attributes ahead of explicit
+    ``rFonts`` names, so both must be handled: set all four concrete slots and
+    delete any theme attributes left over from the built-in style definitions.
+    """
+
+    style.font.name = font_name
+    rfonts = style.element.get_or_add_rPr().get_or_add_rFonts()
+    for slot in _RFONT_SLOTS:
+        rfonts.set(qn(slot), font_name)
+    for attr in _THEME_FONT_ATTRS:
+        rfonts.attrib.pop(qn(attr), None)
+
+
+def _pin_document_fonts(doc: Document) -> None:
+    """Rewrite the theme part so theme-font fallbacks resolve to installed faces."""
+
+    with contextlib.suppress(Exception):  # the theme part may be absent entirely
+        theme = doc.part.part_related_by(RT.THEME)
+        blob = theme.blob.decode("utf-8")
+        blob = re.sub(
+            r'(<a:majorFont>\s*<a:latin\b[^>]*?typeface=")[^"]*(")',
+            lambda match: match.group(1) + DOCX_DISPLAY_FONT + match.group(2),
+            blob,
+        )
+        blob = re.sub(
+            r'(<a:minorFont>\s*<a:latin\b[^>]*?typeface=")[^"]*(")',
+            lambda match: match.group(1) + DOCX_BODY_FONT + match.group(2),
+            blob,
+        )
+        theme._blob = blob.encode("utf-8")
 
 
 def _shade(cell: Any, fill: str) -> None:
@@ -105,8 +152,7 @@ class DOCXReportBuilder:
 
         styles = doc.styles
         normal = styles["Normal"]
-        normal.font.name = "Source Sans 3"
-        normal._element.rPr.rFonts.set(qn("w:eastAsia"), "Source Sans 3")
+        _pin_style_font(normal, DOCX_BODY_FONT)
         normal.font.size = Pt(10.5)
         normal.font.color.rgb = _rgb(INK)
         normal_rpr = normal._element.get_or_add_rPr()
@@ -125,8 +171,10 @@ class DOCXReportBuilder:
             ("Heading 3", 11, COPPER, 10, 4),
         ):
             style = styles[name]
-            style.font.name = "Fraunces" if name in {"Title", "Heading 1"} else "Source Sans 3"
-            style._element.rPr.rFonts.set(qn("w:eastAsia"), style.font.name)
+            _pin_style_font(
+                style,
+                DOCX_DISPLAY_FONT if name in {"Title", "Heading 1"} else DOCX_BODY_FONT,
+            )
             style.font.size = Pt(size)
             style.font.color.rgb = _rgb(color)
             style.font.bold = name != "Title"
@@ -138,7 +186,7 @@ class DOCXReportBuilder:
             callout = styles.add_style("Evidence Callout", WD_STYLE_TYPE.PARAGRAPH)
         else:
             callout = styles["Evidence Callout"]
-        callout.font.name = "Source Sans 3"
+        _pin_style_font(callout, DOCX_BODY_FONT)
         callout.font.size = Pt(11)
         callout.font.color.rgb = _rgb(INDIGO)
         callout.paragraph_format.left_indent = Inches(0.2)
@@ -158,7 +206,6 @@ class DOCXReportBuilder:
         for cell in (left, right):
             _cell_margins(cell, top=0, bottom=40, start=0, end=0)
             for run in cell.paragraphs[0].runs:
-                run.font.name = "Source Sans 3"
                 run.font.size = Pt(7.5)
                 run.font.bold = True
                 run.font.color.rgb = _rgb(MUTED)
@@ -174,10 +221,10 @@ class DOCXReportBuilder:
         _page_number(page_paragraph)
         for cell in footer_table.rows[0].cells:
             for run in cell.paragraphs[0].runs:
-                run.font.name = "Source Sans 3"
                 run.font.size = Pt(7.5)
                 run.font.color.rgb = _rgb(MUTED)
 
+        _pin_document_fonts(doc)
         return doc
 
     def _cover(
@@ -195,7 +242,6 @@ class DOCXReportBuilder:
         p.paragraph_format.space_before = Pt(42)
         p.paragraph_format.space_after = Pt(18)
         run = p.add_run("TRAFFIC RADIUS · EVIDENCE-LED DELIVERY")
-        run.font.name = "Source Sans 3"
         run.font.size = Pt(9)
         run.font.bold = True
         run.font.color.rgb = _rgb(COPPER)
@@ -249,7 +295,6 @@ class DOCXReportBuilder:
             _shade(cell, INDIGO)
             _cell_margins(cell)
             for run in cell.paragraphs[0].runs:
-                run.font.name = "Source Sans 3"
                 run.font.size = Pt(8)
                 run.font.bold = True
                 run.font.color.rgb = _rgb(WHITE)
@@ -264,7 +309,6 @@ class DOCXReportBuilder:
                 if row_index % 2:
                     _shade(cells[index], PAPER)
                 for run in cells[index].paragraphs[0].runs:
-                    run.font.name = "Source Sans 3"
                     run.font.size = Pt(8)
                     run.font.color.rgb = _rgb(INK)
         doc.add_paragraph().paragraph_format.space_after = Pt(0)

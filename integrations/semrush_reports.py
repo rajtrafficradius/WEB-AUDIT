@@ -334,6 +334,42 @@ def build_request(
     )
 
 
+# The Analytics API echoes DISPLAY NAMES in the header row ("Organic
+# Keywords"), not the short codes the request asked for ("Or"). The row
+# mappers key on short codes, so headers are normalised through this table —
+# without it every real response silently maps to all-None rows and the
+# whole market pipeline reads as "no data" despite a working key.
+COLUMN_ALIASES: Mapping[str, str] = {
+    "Database": "Db",
+    "Domain": "Dn",
+    "Rank": "Rk",
+    "Organic Keywords": "Or",
+    "Organic Traffic": "Ot",
+    "Organic Cost": "Oc",
+    "Adwords Keywords": "Ad",
+    "Adwords Traffic": "At",
+    "Adwords Cost": "Ac",
+    "Keyword": "Ph",
+    "Position": "Po",
+    "Previous Position": "Pp",
+    "Search Volume": "Nq",
+    "CPC": "Cp",
+    "Competition": "Co",
+    "Number of Results": "Nr",
+    "Traffic (%)": "Tr",
+    "Traffic Cost (%)": "Tc",
+    "Trends": "Td",
+    "Url": "Ur",
+    "Competitor Relevance": "Cr",
+    "Common Keywords": "Np",
+}
+
+
+def _normalize_column(name: str) -> str:
+    cleaned = (name or "").strip()
+    return COLUMN_ALIASES.get(cleaned, cleaned)
+
+
 def parse_response(report_type: str, body: str) -> ReportResponse:
     """Parse a SEMrush body, distinguishing empty results from real failures."""
 
@@ -354,14 +390,20 @@ def parse_response(report_type: str, body: str) -> ReportResponse:
             )
         raise SemrushReportError(code, message)
     reader = csv.DictReader(StringIO(text), delimiter=";")
-    columns = tuple(reader.fieldnames or ())
+    columns = tuple(_normalize_column(name) for name in (reader.fieldnames or ()))
     if not columns or len(set(columns)) != len(columns):
         raise SemrushReportError(0, "SEMrush returned malformed report columns.")
     rows: list[dict[str, str]] = []
-    for row in reader:
-        if None in row:
+    for raw in reader:
+        if None in raw:
             raise SemrushReportError(0, "SEMrush returned a malformed report row.")
-        rows.append({key: (value or "") for key, value in row.items() if key is not None})
+        rows.append(
+            {
+                _normalize_column(key): (value or "")
+                for key, value in raw.items()
+                if key is not None
+            }
+        )
     return ReportResponse(report_type, columns, tuple(rows))
 
 

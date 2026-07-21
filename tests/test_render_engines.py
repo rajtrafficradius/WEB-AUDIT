@@ -54,7 +54,9 @@ V18_MINIMUMS: dict[str, tuple[int, int]] = {
     "Content_Gap_Analysis.xlsx": (3, 169),
     "GEO_AEO_Readiness_Scorecard.xlsx": (3, 126),
     "Competitor_Landscape_Analysis.xlsx": (3, 37),
-    "CRO_UX_Findings.xlsx": (2, 36),
+    # Deliberately below V18's raw row count: identical same-signal rows are
+    # now aggregated into one systemic finding each (quality over volume).
+    "CRO_UX_Findings.xlsx": (2, 8),
     "Content_Strategy.xlsx": (3, 52),
     "Ecommerce_Audit_Report.xlsx": (4, 276),
     "Tracking_Audit_Report.xlsx": (2, 15),
@@ -1169,3 +1171,52 @@ def test_markdown_honest_when_run_is_empty() -> None:
     assert "No categories were scored in this run" in markdown
     assert "no content assets cleared evidence checks" in markdown
     assert "None" not in markdown
+
+
+# ---------------------------------------------------------------------------
+# CRO signal quality: normal ecommerce copy is not a defect; floods aggregate
+# ---------------------------------------------------------------------------
+
+
+def _cro_page(word_count: int, page_type: str = "Product", index: int = 0) -> dict:
+    return {
+        "normalized_url": f"https://example.com.au/p/{index}",
+        "page_type": page_type,
+        "word_count": word_count,
+        "response_ms": 300,
+        "images_missing_alt": 0,
+        "images_total": 4,
+        "meta_description": "Present",
+        "h1": "Heading",
+        "facts": {"has_viewport": True, "h1_count": 1},
+        "evidence_id": f"EV-{index:04d}",
+    }
+
+
+def test_normal_product_copy_is_not_flagged_thin() -> None:
+    from exporters.xlsx_workbooks import _cro_findings
+
+    findings = _cro_findings([_cro_page(200), _cro_page(180, index=1)])
+    assert not [row for row in findings if row[2] == "Thin money page"]
+
+
+def test_truly_thin_product_page_is_flagged_medium_then_high() -> None:
+    from exporters.xlsx_workbooks import _cro_findings
+
+    medium = _cro_findings([_cro_page(110)])
+    assert [row[3] for row in medium if row[2] == "Thin money page"] == ["Medium"]
+
+    high = _cro_findings([_cro_page(40)])
+    assert [row[3] for row in high if row[2] == "Thin money page"] == ["High"]
+
+
+def test_signal_floods_collapse_to_one_summary_row() -> None:
+    from exporters.xlsx_workbooks import _aggregate_signal_floods, _cro_findings
+
+    pages = [_cro_page(90, index=i) for i in range(22)]
+    aggregated = _aggregate_signal_floods(_cro_findings(pages))
+    thin_rows = [row for row in aggregated if row[2] == "Thin money page"]
+
+    assert len(thin_rows) == 1
+    assert "22 pages" in str(thin_rows[0][0])
+    assert "template-level fix" in str(thin_rows[0][4])

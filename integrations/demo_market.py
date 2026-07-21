@@ -271,6 +271,8 @@ def fill_demo_report_gaps(data: dict) -> None:
         for field in ("title", "meta_description", "h1"):
             if not page.get(field):
                 page[field] = "Missing"
+        if page.get("canonical_url") in (None, ""):
+            page["canonical_url"] = "Missing"
         if page.get("word_count") is None:
             page["word_count"] = rng.randint(160, 940)
         if page.get("response_ms") is None:
@@ -312,6 +314,11 @@ def fill_demo_report_gaps(data: dict) -> None:
     ) or [f"{domain.split('.')[0]} range"]
 
     def _top_up_proposal(entry: dict, url_key: str) -> None:
+        # A page that truly lacks the tag shows "Missing" — the finding the
+        # proposal fixes — never a bare unavailable cell.
+        for current_key in ("current_title", "current_meta", "current_h1"):
+            if current_key in entry and not entry.get(current_key):
+                entry[current_key] = "Missing"
         target = entry.get("target_keyword")
         if not target:
             target = fallback_phrases[rng.randrange(len(fallback_phrases))]
@@ -325,17 +332,30 @@ def fill_demo_report_gaps(data: dict) -> None:
         title_base = (page_name or str(target)).strip().title()
         if entry.get("proposed_title") is None:
             entry["proposed_title"] = f"{title_base} | {str(target).title()}"[:60]
-        if entry.get("proposed_meta_description") is None:
-            entry["proposed_meta_description"] = (
-                f"Explore {title_base.casefold() or target} — {target} from a trusted "
-                "Australian specialist. Browse the range online today."
-            )[:158]
+        meta_text = (
+            f"Explore {title_base.casefold() or target} — {target} from a trusted "
+            "Australian specialist. Browse the range online today."
+        )[:158]
+        # The compiler uses "proposed_meta"; deployment review rows use the
+        # long key — cover both so no consumer sees an empty proposal.
+        for meta_key in ("proposed_meta", "proposed_meta_description"):
+            if entry.get(meta_key) is None:
+                entry[meta_key] = meta_text
         if entry.get("proposed_h1") is None:
             entry["proposed_h1"] = title_base[:70] or str(target).title()
 
     for entry in data.get("onpage_proposals") or []:
         if isinstance(entry, dict):
             _top_up_proposal(entry, "url")
+    for candidate in (data.get("deployment") or {}).get("canonical_candidates") or []:
+        if not isinstance(candidate, dict):
+            continue
+        if not (candidate.get("current_canonical") or candidate.get("canonical_url")):
+            candidate["current_canonical"] = "Missing"
+        if not (candidate.get("reason") or candidate.get("issue")):
+            candidate["reason"] = (
+                "No canonical declared — add a self-referencing canonical tag."
+            )
     for entry in (data.get("deployment") or {}).get("metadata_review") or []:
         if isinstance(entry, dict):
             if str(entry.get("target_keyword") or "").startswith("Unavailable"):
@@ -451,16 +471,15 @@ def collect_demo_market_data(run) -> Any:
             }
         )
     _augment_demo_competitors(run)
-    if result.status == "available":
-        # The failed real-key attempt persists an "unavailable" semrush
-        # snapshot before the demo fallback runs; drop it so the sources
-        # matrix reflects the snapshot the reports were actually built from.
-        from app.domain.constants import AvailabilityStatus
+    if result.status == "available" and result.snapshot_id:
+        # A real-key attempt may have left a snapshot behind — failed
+        # ("unavailable") or hollow ("available" with zero rows). Drop every
+        # semrush snapshot except the one the reports were built from.
         from app.domain.models import SourceSnapshot
 
-        SourceSnapshot.objects.filter(
-            run=run, source_type="semrush"
-        ).exclude(availability=AvailabilityStatus.AVAILABLE).delete()
+        SourceSnapshot.objects.filter(run=run, source_type="semrush").exclude(
+            pk=result.snapshot_id
+        ).delete()
     result.units_spent = 0
     return result
 
@@ -513,6 +532,55 @@ def top_up_demo_refdomains(run) -> int:
     snapshot.metadata = {**(snapshot.metadata or {}), "refdomains_simulated": True}
     snapshot.save(update_fields=["metadata", "updated_at"])
     return created
+
+
+def top_up_demo_competitors(run) -> int:
+    """Simulate the competitor report when the real one returned no rows.
+
+    Small domains often have no measurable organic competitors in the
+    provider's index; in demo mode fill that family so comparison sheets
+    and the deck's benchmark slide populate. Flagged on the snapshot.
+    """
+
+    from django.utils import timezone
+
+    from app.domain.constants import AvailabilityStatus
+    from app.domain.models import MetricObservation, SourceSnapshot
+    from integrations.market_data import MarketDataService
+
+    if MetricObservation.objects.filter(
+        run=run, metric_key="semrush.competitors"
+    ).exists():
+        return 0
+    snapshot = (
+        SourceSnapshot.objects.filter(
+            run=run, source_type="semrush", availability=AvailabilityStatus.AVAILABLE
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if snapshot is None:
+        return 0
+
+    from integrations.semrush_reports import map_rows, parse_response
+
+    transport = DemoSemrushTransport(run)
+    body = transport.fetch_text(
+        "https://api.semrush.com/?type=domain_organic_organic&display_limit=5"
+    )
+    rows = map_rows(parse_response("domain_organic_organic", body))
+    if not rows:
+        return 0
+    service = MarketDataService(
+        run, transport=transport, api_key="demo-simulated-provider", enabled=True
+    )
+    service._metric(  # noqa: SLF001 - same package; reuses the real persistence path
+        snapshot, "semrush.competitors", timezone.now(), json_value=rows
+    )
+    snapshot.metadata = {**(snapshot.metadata or {}), "competitors_simulated": True}
+    snapshot.save(update_fields=["metadata", "updated_at"])
+    _augment_demo_competitors(run)
+    return len(rows)
 
 
 def _augment_demo_competitors(run) -> None:

@@ -31,29 +31,29 @@ from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.util import Emu, Inches, Pt
 
 from exporters.brand import (
-    ACCENT,
     ACCENT_LIGHT,
     BRAND_BLUE,
     BRAND_DEEP,
     BRAND_GREEN,
-    CHART_SERIES,
     CRITICAL,
-    DEEP,
-    INK,
-    MUTED,
+    GOLD,
+    GOLD_LIGHT,
+    MUTED_ON_NAVY,
+    NAVY_500,
+    NAVY_700,
+    NAVY_900,
     NEUTRAL,
-    PAPER,
     POSITIVE,
-    RULE,
+    RULE_ON_NAVY,
+    TEXT_ON_NAVY,
     WARNING,
     WHITE,
     BrandFonts,
-    series_color,
 )
 from exporters.common import safe_text
 
@@ -136,6 +136,7 @@ def _rect(
     fill_color: str | None,
     *,
     line_color: str | None = None,
+    line_width: float = 0.75,
     shape: MSO_SHAPE = MSO_SHAPE.RECTANGLE,
 ) -> Any:
     element = slide.shapes.add_shape(
@@ -151,8 +152,37 @@ def _rect(
         element.line.fill.background()
     else:
         element.line.color.rgb = _rgb(line_color)
-        element.line.width = Pt(0.75)
+        element.line.width = Pt(line_width)
     return element
+
+
+def _set_fill_opacity(shape: Any, opacity: float) -> None:
+    """Apply an ``a:alpha`` child to a solid fill (0.0 transparent … 1.0 opaque)."""
+    from pptx.oxml.ns import qn
+
+    solid = shape.fill._xPr.find(qn("a:solidFill"))
+    if solid is None:  # pragma: no cover - defensive
+        return
+    srgb = solid.find(qn("a:srgbClr"))
+    if srgb is None:  # pragma: no cover - defensive
+        return
+    value = str(int(max(0.0, min(1.0, opacity)) * 100000))
+    srgb.append(srgb.makeelement(qn("a:alpha"), {"val": value}))
+
+
+def _dark_chart(chart: Any) -> None:
+    """Make the chart plate transparent so the navy slide shows through."""
+    from lxml import etree
+    from pptx.oxml.ns import qn
+
+    chart_space = chart._chartSpace
+    if chart_space.find(qn("c:spPr")) is not None:  # pragma: no cover - defensive
+        return
+    sp_pr = etree.SubElement(chart_space, qn("c:spPr"))
+    etree.SubElement(sp_pr, qn("a:noFill"))
+    line = etree.SubElement(sp_pr, qn("a:ln"))
+    etree.SubElement(line, qn("a:noFill"))
+    chart_space.find(qn("c:chart")).addnext(sp_pr)
 
 
 def _chip(slide: Any, left: float, top: float, width: float, height: float,
@@ -191,9 +221,10 @@ def _footer(slide: Any, data: dict[str, Any], index: int, total: int, *, dark: b
         f"{client} · Enterprise SEO Audit · Evidence as of {as_of} · "
         f"slide {index}/{total}"
     )
+    del dark  # every slide now sits on navy, so the footer tone is constant
     _textbox(
         slide, MARGIN_IN, SLIDE_HEIGHT_IN - 0.42, CONTENT_WIDTH_IN, 0.3, text,
-        size=9, color=RULE if dark else MUTED,
+        size=9, color=MUTED_ON_NAVY,
     )
 
 
@@ -201,17 +232,28 @@ def _eyebrow(slide: Any, text: str, *, top: float = 0.55) -> None:
     if not text:
         return
     _textbox(
-        slide, MARGIN_IN, top, CONTENT_WIDTH_IN - 1.0, 0.35, text.upper(),
-        size=13, color=ACCENT, bold=True,
+        slide, MARGIN_IN, top, CONTENT_WIDTH_IN, 0.35, text.upper(),
+        size=13, color=GOLD, bold=True,
     )
 
 
-def _title(slide: Any, text: str, *, top: float = 0.95, color: str = INK,
-           size: int = 34) -> None:
+#: Titles longer than this are assumed to wrap onto a second line at 30pt.
+_TITLE_WRAP_CHARS = 45
+
+
+def _title(slide: Any, text: str, *, top: float = 0.95, color: str = TEXT_ON_NAVY,
+           size: int = 30) -> float:
+    """Draw the slide title and return the recommended body top (inches).
+
+    Long titles wrap to a second line, so every renderer that anchors body
+    content below the title band must start at the returned offset instead of a
+    hard-coded 2.0in.
+    """
     _textbox(
-        slide, MARGIN_IN, top, CONTENT_WIDTH_IN - 1.0, 1.3, text,
+        slide, MARGIN_IN, top, CONTENT_WIDTH_IN, 1.3, text,
         size=size, color=color, bold=True, font=_FONTS.display,
     )
+    return 2.35 if len(text) > _TITLE_WRAP_CHARS else 2.0
 
 
 # --------------------------------------------------------------------------- data views
@@ -246,6 +288,8 @@ def _severity_mix(data: dict[str, Any]) -> list[tuple[str, int]]:
 
 
 def _withheld_reason(data: dict[str, Any], withheld: list[dict[str, Any]]) -> str | None:
+    if not withheld:
+        return None  # nothing was withheld, so no footnote is owed
     for category in withheld:
         reason = category.get("unavailable_reason")
         if reason:
@@ -285,37 +329,46 @@ def _resolve_layouts(specs: list[dict[str, Any]]) -> list[str]:
 
 
 def _render_cover(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
-    _background(slide, DEEP)
+    _background(slide, NAVY_900)
     client = safe_text(data.get("client", {}).get("name"), "Client")
     as_of = safe_text(data.get("run", {}).get("evidence_as_of"))
-    _rect(slide, 0, 0, 0.16, SLIDE_HEIGHT_IN, BRAND_BLUE)
+    # Depth object first so every later shape stacks above it.
+    oval = _rect(slide, 9.7, 4.3, 5.6, 5.6, NAVY_500, shape=MSO_SHAPE.OVAL)
+    _set_fill_opacity(oval, 0.16)
+    _rect(slide, 0, 0, 0.16, SLIDE_HEIGHT_IN, GOLD)
     _textbox(
-        slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.4,
+        slide, MARGIN_IN, 1.7, CONTENT_WIDTH_IN, 0.4,
         safe_text(spec.get("eyebrow"), "ENTERPRISE SEO REVIEW").upper(),
-        size=14, color=BRAND_GREEN, bold=True,
+        size=14, color=GOLD, bold=True,
     )
     _textbox(
-        slide, MARGIN_IN, 2.5, CONTENT_WIDTH_IN, 1.9,
+        slide, MARGIN_IN, 2.15, CONTENT_WIDTH_IN, 2.2,
         safe_text(spec.get("title"), "Enterprise SEO Audit"),
-        size=40, color=WHITE, bold=True, font=_FONTS.display,
+        size=48, color=TEXT_ON_NAVY, bold=True, font=_FONTS.display,
     )
+    _rect(slide, MARGIN_IN, 4.55, 2.2, 0.06, GOLD)
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 4.45, CONTENT_WIDTH_IN - 2.0, 1.1, str(body),
-                 size=18, color=NEUTRAL[200])
+        _textbox(slide, MARGIN_IN, 4.75, CONTENT_WIDTH_IN - 2.0, 1.0, str(body),
+                 size=18, color=TEXT_ON_NAVY)
+    _rect(slide, MARGIN_IN, 5.78, CONTENT_WIDTH_IN, 0.015, RULE_ON_NAVY)
     _textbox(
-        slide, MARGIN_IN, 5.85, CONTENT_WIDTH_IN, 0.4,
-        f"{client} · Evidence as of {as_of}", size=14, color=RULE,
+        slide, MARGIN_IN, 5.9, CONTENT_WIDTH_IN, 0.4,
+        f"{client} · Evidence as of {as_of}", size=14, color=MUTED_ON_NAVY,
     )
 
 
-def _render_score(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_score(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                  body_top: float) -> None:
     """Native bar chart of scored categories; withheld ones stay text chips."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.55, str(body),
-                 size=16, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.55, str(body),
+                 size=16, color=TEXT_ON_NAVY)
     scored, withheld = _scored_categories(data)
+    chart_top = body_top + 0.65
+    # With nothing withheld the right panel is not reserved: full-width chart.
+    chart_width = CONTENT_WIDTH_IN * 0.62 if withheld else CONTENT_WIDTH_IN
 
     if scored:
         chart_data = CategoryChartData()
@@ -325,11 +378,12 @@ def _render_score(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> Non
         )
         graphic_frame = slide.shapes.add_chart(
             XL_CHART_TYPE.BAR_CLUSTERED,
-            Inches(MARGIN_IN), Inches(2.65),
-            Inches(CONTENT_WIDTH_IN * 0.62), Inches(3.5),
+            Inches(MARGIN_IN), Inches(chart_top),
+            Inches(chart_width), Inches(3.5),
             chart_data,
         )
         chart = graphic_frame.chart
+        _dark_chart(chart)
         chart.has_legend = False
         chart.has_title = False
         plot = chart.plots[0]
@@ -337,51 +391,50 @@ def _render_score(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> Non
         plot.vary_by_categories = False
         series = plot.series[0]
         series.format.fill.solid()
-        series.format.fill.fore_color.rgb = _rgb(ACCENT)
+        series.format.fill.fore_color.rgb = _rgb(GOLD)
         value_axis = chart.value_axis
         value_axis.minimum_scale = 0
         value_axis.maximum_scale = 100
         for axis in (chart.category_axis, chart.value_axis):
             axis.tick_labels.font.size = Pt(11)
             axis.tick_labels.font.name = _FONTS.body
-            axis.tick_labels.font.color.rgb = _rgb(MUTED)
+            axis.tick_labels.font.color.rgb = _rgb(MUTED_ON_NAVY)
     else:
         _textbox(
-            slide, MARGIN_IN, 2.9, CONTENT_WIDTH_IN * 0.6, 0.5,
+            slide, MARGIN_IN, body_top + 0.9, chart_width, 0.5,
             "No category cleared the evidence threshold, so no score is published.",
-            size=16, color=MUTED,
+            size=16, color=MUTED_ON_NAVY,
         )
 
-    panel_left = MARGIN_IN + CONTENT_WIDTH_IN * 0.66
-    panel_width = CONTENT_WIDTH_IN - CONTENT_WIDTH_IN * 0.66
-    _textbox(slide, panel_left, 2.65, panel_width, 0.32, "WITHHELD",
-             size=12, color=MUTED, bold=True)
-    top = 3.05
-    for category in withheld:
-        _textbox(slide, panel_left, top, panel_width, 0.3,
-                 safe_text(category.get("category")), size=13, color=INK, bold=True)
-        _chip(slide, panel_left, top + 0.32, 1.35, 0.3, "Withheld",
-              fill_color=NEUTRAL[400], text_color=WHITE)
-        top += 0.85
-    if not withheld:
-        _textbox(slide, panel_left, 3.05, panel_width, 0.6,
-                 "Every scored category met the evidence threshold.",
-                 size=12, color=MUTED, italic=True)
+    if withheld:
+        panel_left = MARGIN_IN + CONTENT_WIDTH_IN * 0.66
+        panel_width = CONTENT_WIDTH_IN - CONTENT_WIDTH_IN * 0.66
+        _textbox(slide, panel_left, chart_top, panel_width, 0.32, "WITHHELD",
+                 size=12, color=MUTED_ON_NAVY, bold=True)
+        top = chart_top + 0.4
+        for category in withheld:
+            _textbox(slide, panel_left, top, panel_width, 0.3,
+                     safe_text(category.get("category")), size=13,
+                     color=TEXT_ON_NAVY, bold=True)
+            _chip(slide, panel_left, top + 0.32, 1.35, 0.3, "Withheld",
+                  fill_color=NAVY_500, text_color=TEXT_ON_NAVY)
+            top += 0.85
 
     reason = _withheld_reason(data, withheld)
-    if reason:
+    if reason:  # _withheld_reason is None when nothing is withheld
         _textbox(
-            slide, MARGIN_IN, 6.45, CONTENT_WIDTH_IN, 0.5,
-            f"Withheld: {reason}", size=11, color=MUTED, italic=True,
+            slide, MARGIN_IN, chart_top + 3.6, CONTENT_WIDTH_IN, 0.5,
+            f"Withheld: {reason}", size=11, color=MUTED_ON_NAVY, italic=True,
         )
 
 
-def _render_stat_rail(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_stat_rail(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                      body_top: float) -> None:
     """A rail of stat cards: scored categories first, then the slide's own points."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.6, str(body),
-                 size=16, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.6, str(body),
+                 size=16, color=TEXT_ON_NAVY)
     scored, withheld = _scored_categories(data)
     cards: list[tuple[str, str, str]] = [
         (safe_text(item.get("category")), f"{float(item['score']):.0f}", "score")
@@ -396,37 +449,45 @@ def _render_stat_rail(slide: Any, spec: dict[str, Any], data: dict[str, Any]) ->
             break
         cards.append((safe_text(point.get("label")), safe_text(point.get("text")), "point"))
     if not cards:
-        _textbox(slide, MARGIN_IN, 3.0, CONTENT_WIDTH_IN, 0.5,
+        _textbox(slide, MARGIN_IN, body_top + 1.0, CONTENT_WIDTH_IN, 0.5,
                  "No measured statistics were available for this slide.",
-                 size=15, color=MUTED, italic=True)
+                 size=15, color=MUTED_ON_NAVY, italic=True)
         return
 
     gap = 0.3
+    card_top = body_top + 0.9
+    card_height = 3.4
     width = (CONTENT_WIDTH_IN - gap * (len(cards) - 1)) / len(cards)
     for index, (label, value, kind) in enumerate(cards):
         left = MARGIN_IN + index * (width + gap)
-        _rect(slide, left, 2.9, width, 2.4, WHITE, line_color=RULE)
-        _rect(slide, left, 2.9, width, 0.09, series_color(index))
-        _textbox(slide, left + 0.22, 3.15, width - 0.44, 0.4, label,
-                 size=13, color=MUTED, bold=True)
-        _textbox(
-            slide, left + 0.22, 3.6, width - 0.44, 1.4, value,
+        _rect(slide, left, card_top, width, card_height, NAVY_700,
+              line_color=RULE_ON_NAVY)
+        # One gold strip on every card: the number carries the signal.
+        _rect(slide, left, card_top, width, 0.09, GOLD)
+        _textbox(slide, left + 0.22, card_top + 0.25, width - 0.44, 0.4, label,
+                 size=13, color=MUTED_ON_NAVY, bold=True)
+        value_box = _textbox(
+            slide, left + 0.22, card_top + 0.7, width - 0.44, card_height - 0.95,
+            value,
             size=30 if kind == "score" else 15,
-            color=INK if kind != "withheld" else MUTED,
+            color=GOLD_LIGHT if kind == "score"
+            else (MUTED_ON_NAVY if kind == "withheld" else TEXT_ON_NAVY),
             bold=kind == "score", font=_FONTS.display if kind == "score" else None,
         )
+        value_box.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
     reason = _withheld_reason(data, withheld)
     if reason and any(kind == "withheld" for _, _, kind in cards):
-        _textbox(slide, MARGIN_IN, 5.5, CONTENT_WIDTH_IN, 0.5,
-                 f"Withheld: {reason}", size=11, color=MUTED, italic=True)
+        _textbox(slide, MARGIN_IN, card_top + card_height + 0.12, CONTENT_WIDTH_IN, 0.4,
+                 f"Withheld: {reason}", size=11, color=MUTED_ON_NAVY, italic=True)
 
 
-def _render_chart(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_chart(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                  body_top: float) -> None:
     """Native doughnut of the severity mix, with the slide's points beside it."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.6, str(body),
-                 size=16, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.6, str(body),
+                 size=16, color=TEXT_ON_NAVY)
     mix = _severity_mix(data)
     if mix:
         chart_data = CategoryChartData()
@@ -434,85 +495,95 @@ def _render_chart(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> Non
         chart_data.add_series("Findings", tuple(count for _, count in mix))
         graphic_frame = slide.shapes.add_chart(
             XL_CHART_TYPE.DOUGHNUT,
-            Inches(MARGIN_IN), Inches(2.7),
+            Inches(MARGIN_IN), Inches(body_top + 0.7),
             Inches(5.0), Inches(3.6), chart_data,
         )
         chart = graphic_frame.chart
+        _dark_chart(chart)
         chart.has_title = False
         chart.has_legend = True
         chart.legend.position = XL_LEGEND_POSITION.RIGHT
         chart.legend.include_in_layout = False
         chart.legend.font.size = Pt(12)
         chart.legend.font.name = _FONTS.body
+        chart.legend.font.color.rgb = _rgb(TEXT_ON_NAVY)
         points = chart.plots[0].series[0].points
         for index, (name, _count) in enumerate(mix):
             point = points[index]
             point.format.fill.solid()
             point.format.fill.fore_color.rgb = _rgb(
-                SEVERITY_CHART_COLORS.get(name, series_color(index))
+                SEVERITY_CHART_COLORS.get(name, GOLD if index % 2 else GOLD_LIGHT)
             )
     else:
-        _textbox(slide, MARGIN_IN, 3.0, 5.0, 0.6,
+        _textbox(slide, MARGIN_IN, body_top + 1.0, 5.0, 0.6,
                  "No findings were raised, so there is no severity mix to chart.",
-                 size=15, color=MUTED, italic=True)
+                 size=15, color=MUTED_ON_NAVY, italic=True)
 
     left = MARGIN_IN + 5.6
     width = CONTENT_WIDTH_IN - 5.6
-    top = 2.75
+    top = body_top + 0.75
     for name, count in mix[:4]:
-        _rect(slide, left, top, width, 0.7, WHITE, line_color=RULE)
+        _rect(slide, left, top, width, 0.7, NAVY_700, line_color=RULE_ON_NAVY)
         _rect(slide, left, top, 0.09, 0.7,
-              SEVERITY_CHART_COLORS.get(name, ACCENT))
+              SEVERITY_CHART_COLORS.get(name, GOLD))
         _textbox(slide, left + 0.25, top + 0.1, width - 0.5, 0.3, name,
-                 size=13, color=INK, bold=True)
+                 size=13, color=TEXT_ON_NAVY, bold=True)
         _textbox(slide, left + 0.25, top + 0.38, width - 0.5, 0.28,
-                 f"{count} finding{'s' if count != 1 else ''}", size=11, color=MUTED)
+                 f"{count} finding{'s' if count != 1 else ''}",
+                 size=11, color=MUTED_ON_NAVY)
         top += 0.82
+    # Trailing points share the same card chrome as the severity rows above.
     for point in list(spec.get("points") or [])[:2]:
         if top > 6.0:
             break
-        _textbox(slide, left, top, width, 0.3, safe_text(point.get("label")),
-                 size=12, color=ACCENT, bold=True)
-        _textbox(slide, left, top + 0.28, width, 0.5, safe_text(point.get("text")),
-                 size=11, color=INK)
-        top += 0.85
+        _rect(slide, left, top, width, 0.7, NAVY_700, line_color=RULE_ON_NAVY)
+        _rect(slide, left, top, 0.09, 0.7, GOLD)
+        _textbox(slide, left + 0.25, top + 0.1, width - 0.5, 0.3,
+                 safe_text(point.get("label")), size=12, color=GOLD, bold=True)
+        _textbox(slide, left + 0.25, top + 0.38, width - 0.5, 0.28,
+                 safe_text(point.get("text")), size=11, color=TEXT_ON_NAVY)
+        top += 0.82
 
 
-def _render_two_column(slide: Any, spec: dict[str, Any]) -> None:
+def _render_two_column(slide: Any, spec: dict[str, Any], body_top: float) -> None:
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.8, str(body),
-                 size=16, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.8, str(body),
+                 size=16, color=TEXT_ON_NAVY)
     points = list(spec.get("points") or [])
     gap = 0.4
     column_width = (CONTENT_WIDTH_IN - gap) / 2
     split = (len(points) + 1) // 2
     columns = [points[:split], points[split:]]
-    top = 3.0
-    height = 3.3
+    top = body_top + 1.0
+    # Card height follows content: header room plus one row pitch per point.
+    rows = max(1, min(4, max(len(column) for column in columns)))
+    height = 0.5 + 0.82 * rows
     for index, column_points in enumerate(columns):
         left = MARGIN_IN + index * (column_width + gap)
-        _rect(slide, left, top, column_width, height, WHITE, line_color=RULE)
+        _rect(slide, left, top, column_width, height, NAVY_700,
+              line_color=RULE_ON_NAVY)
         item_top = top + 0.25
         if not column_points:
             _textbox(slide, left + 0.25, item_top, column_width - 0.5, 0.4,
                      "No further points were supplied for this column.",
-                     size=12, color=MUTED, italic=True)
+                     size=12, color=MUTED_ON_NAVY, italic=True)
             continue
         for point in column_points[:4]:
             _textbox(slide, left + 0.25, item_top, column_width - 0.5, 0.3,
-                     safe_text(point.get("label")), size=13, color=ACCENT, bold=True)
+                     safe_text(point.get("label")), size=13, color=GOLD, bold=True)
             _textbox(slide, left + 0.25, item_top + 0.32, column_width - 0.5, 0.5,
-                     safe_text(point.get("text")), size=12, color=INK)
+                     safe_text(point.get("text")), size=12, color=TEXT_ON_NAVY)
             item_top += 0.82
 
 
-def _render_table(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_table(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                  body_top: float) -> None:
     """Native table of the slide's points, or of the top findings when it has none."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.6, str(body),
-                 size=16, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.6, str(body),
+                 size=16, color=TEXT_ON_NAVY)
     points = list(spec.get("points") or [])
     if points:
         headers = ["Signal", "What the evidence shows"]
@@ -534,60 +605,85 @@ def _render_table(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> Non
         ]
         widths = (1.5, CONTENT_WIDTH_IN - 4.5, 3.0)
     if not rows:
-        _textbox(slide, MARGIN_IN, 3.0, CONTENT_WIDTH_IN, 0.6,
+        _textbox(slide, MARGIN_IN, body_top + 1.0, CONTENT_WIDTH_IN, 0.6,
                  "No rows cleared evidence checks for this slide.",
-                 size=15, color=MUTED, italic=True)
+                 size=15, color=MUTED_ON_NAVY, italic=True)
         return
 
+    # Content-driven height, vertically centred in the zone under the body.
+    row_height_in = 0.6
+    zone_top = body_top + 0.8
+    zone_bottom = 6.7
+    table_height = min(zone_bottom - zone_top, row_height_in * (len(rows) + 1))
+    table_top = zone_top + max(0.0, (zone_bottom - zone_top - table_height) / 2)
     shape = slide.shapes.add_table(
-        len(rows) + 1, len(headers), Inches(MARGIN_IN), Inches(2.8),
-        Inches(CONTENT_WIDTH_IN), Inches(min(3.6, 0.45 * (len(rows) + 1))),
+        len(rows) + 1, len(headers), Inches(MARGIN_IN), Inches(table_top),
+        Inches(CONTENT_WIDTH_IN), Inches(table_height),
     )
     table = shape.table
     for index, width in enumerate(widths):
         table.columns[index].width = Emu(int(Inches(width)))
+    for row in table.rows:
+        row.height = Emu(int(Inches(row_height_in)))
     for column, header in enumerate(headers):
         cell = table.cell(0, column)
         cell.text = header
         cell.fill.solid()
-        cell.fill.fore_color.rgb = _rgb(ACCENT)
+        cell.fill.fore_color.rgb = _rgb(GOLD)
         paragraph = cell.text_frame.paragraphs[0]
         paragraph.runs[0].font.size = Pt(12)
         paragraph.runs[0].font.bold = True
         paragraph.runs[0].font.name = _FONTS.body
-        paragraph.runs[0].font.color.rgb = _rgb(WHITE)
-    for row_index, row in enumerate(rows, start=1):
-        for column, value in enumerate(row):
+        paragraph.runs[0].font.color.rgb = _rgb(NAVY_900)
+    for row_index, row_values in enumerate(rows, start=1):
+        for column, value in enumerate(row_values):
             cell = table.cell(row_index, column)
             cell.text = value
             cell.fill.solid()
-            cell.fill.fore_color.rgb = _rgb(WHITE if row_index % 2 else PAPER)
+            cell.fill.fore_color.rgb = _rgb(NAVY_700 if row_index % 2 else NAVY_500)
             paragraph = cell.text_frame.paragraphs[0]
             paragraph.runs[0].font.size = Pt(11)
             paragraph.runs[0].font.name = _FONTS.body
-            paragraph.runs[0].font.color.rgb = _rgb(INK)
+            paragraph.runs[0].font.color.rgb = _rgb(TEXT_ON_NAVY)
 
 
-def _render_statement(slide: Any, spec: dict[str, Any]) -> None:
+def _render_statement(slide: Any, spec: dict[str, Any], body_top: float) -> None:
     body = spec.get("body")
+    statement_top = body_top + 0.3
     if body:
-        _textbox(slide, MARGIN_IN, 2.3, CONTENT_WIDTH_IN - 2.4, 1.6, str(body),
-                 size=22, color=INK, font=_FONTS.display)
-    _rect(slide, MARGIN_IN, 4.1, 2.2, 0.06, BRAND_GREEN)
+        _textbox(slide, MARGIN_IN, statement_top, CONTENT_WIDTH_IN - 2.4,
+                 3.95 - statement_top, str(body),
+                 size=22, color=TEXT_ON_NAVY, font=_FONTS.display)
+    _rect(slide, MARGIN_IN, 4.1, 2.2, 0.06, GOLD)
     points = list(spec.get("points") or [])[:3]
     top = 4.5
-    for index, point in enumerate(points):
-        _rect(slide, MARGIN_IN, top, 0.06, 0.62, series_color(index))
-        _textbox(slide, MARGIN_IN + 0.25, top, CONTENT_WIDTH_IN - 0.5, 0.3,
-                 safe_text(point.get("label")), size=13, color=ACCENT, bold=True)
-        _textbox(slide, MARGIN_IN + 0.25, top + 0.3, CONTENT_WIDTH_IN - 0.5, 0.32,
-                 safe_text(point.get("text")), size=12, color=INK)
-        top += 0.72
+    if points:
+        # A 3-across mini-card row (stat_rail style) in the 4.5–6.2in band:
+        # the value is the hero (28pt gold) under an 11pt muted label.
+        gap = 0.3
+        card_width = (CONTENT_WIDTH_IN - 2 * gap) / 3
+        card_height = 1.7
+        for index, point in enumerate(points):
+            left = MARGIN_IN + index * (card_width + gap)
+            _rect(slide, left, top, card_width, card_height, NAVY_700,
+                  line_color=RULE_ON_NAVY)
+            _rect(slide, left, top, card_width, 0.07, GOLD)
+            _textbox(slide, left + 0.22, top + 0.22, card_width - 0.44, 0.32,
+                     safe_text(point.get("label")), size=11,
+                     color=MUTED_ON_NAVY, bold=True)
+            _textbox(slide, left + 0.22, top + 0.6, card_width - 0.44,
+                     card_height - 0.75, safe_text(point.get("text")),
+                     size=28, color=GOLD, bold=True, font=_FONTS.display)
+        top += card_height
     callout = spec.get("callout")
     if callout:
-        _rect(slide, MARGIN_IN, 6.35, CONTENT_WIDTH_IN, 0.55, WHITE, line_color=ACCENT)
-        _textbox(slide, MARGIN_IN + 0.2, 6.44, CONTENT_WIDTH_IN - 0.4, 0.4,
-                 str(callout), size=13, color=ACCENT, bold=True)
+        # Never collide with the card row: sit below whatever was drawn above.
+        callout_top = max(6.35, top + 0.15)
+        _rect(slide, MARGIN_IN, callout_top, CONTENT_WIDTH_IN, 0.55, NAVY_500,
+              line_color=GOLD, line_width=1.0)
+        _textbox(slide, MARGIN_IN + 0.2, callout_top + 0.09,
+                 CONTENT_WIDTH_IN - 0.4, 0.4,
+                 str(callout), size=13, color=GOLD_LIGHT, bold=True)
 
 
 def _phase_summary(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -609,17 +705,19 @@ def _phase_summary(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [phases[name] for name in order[:5]]
 
 
-def _render_timeline(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_timeline(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                     body_top: float) -> None:
     """A true 16-week Gantt: one bar per phase across a week grid."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.5, str(body),
-                 size=15, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.5, str(body),
+                 size=15, color=TEXT_ON_NAVY)
     phases = _phase_summary(list(data.get("actions") or []))
     if not phases:
         _textbox(
-            slide, MARGIN_IN, 3.0, CONTENT_WIDTH_IN, 0.5,
-            "The 16-week action plan is unavailable for this run.", size=16, color=MUTED,
+            slide, MARGIN_IN, body_top + 1.0, CONTENT_WIDTH_IN, 0.5,
+            "The 16-week action plan is unavailable for this run.",
+            size=16, color=MUTED_ON_NAVY,
         )
         return
 
@@ -627,61 +725,78 @@ def _render_timeline(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> 
     grid_left = MARGIN_IN + label_width
     grid_width = CONTENT_WIDTH_IN - label_width
     week_width = grid_width / 16
-    header_top = 2.65
+    header_top = body_top + 0.65
     for week in range(1, 17):
         left = grid_left + (week - 1) * week_width
         _rect(slide, left, header_top, week_width, 0.32,
-              PAPER if week % 2 else WHITE, line_color=RULE)
+              NAVY_700 if week % 2 else NAVY_900, line_color=RULE_ON_NAVY)
         _textbox(slide, left, header_top + 0.03, week_width, 0.26, f"W{week}",
-                 size=9, color=MUTED, align=PP_ALIGN.CENTER)
+                 size=9, color=MUTED_ON_NAVY, align=PP_ALIGN.CENTER)
 
+    # Rows share the header-to-6.4in zone evenly so they fill it.
     row_top = header_top + 0.45
-    row_height = 0.62
-    for index, phase in enumerate(phases):
+    row_pitch = (6.4 - row_top) / max(len(phases), 4)
+    track_height = max(0.3, min(0.5, row_pitch - 0.28))
+    for phase in phases:
         weeks = phase["weeks"]
         first = min(weeks) if weeks else None
         last = max(weeks) if weeks else None
         if first is None or last is None:
             week_label = "Weeks unscheduled"
             start, end = 1, 16
-            bar_color = NEUTRAL[300]
+            bar_color, bar_text_color = NAVY_500, MUTED_ON_NAVY
         else:
             week_label = f"Week {first}" if first == last else f"Weeks {first}–{last}"
             start = max(1, min(16, first))
             end = max(start, min(16, last))
-            bar_color = series_color(index)
+            bar_color, bar_text_color = GOLD, NAVY_900
+        action_count = len(phase["actions"])
+        actions_caption = f"{action_count} action{'s' if action_count != 1 else ''}"
         _textbox(slide, MARGIN_IN, row_top + 0.02, label_width - 0.15, 0.3,
-                 phase["name"], size=13, color=INK, bold=True)
-        _textbox(slide, MARGIN_IN, row_top + 0.3, label_width - 0.15, 0.26,
-                 week_label, size=10, color=MUTED)
-        _rect(slide, grid_left, row_top, grid_width, row_height * 0.72, WHITE,
-              line_color=RULE)
+                 phase["name"], size=13, color=TEXT_ON_NAVY, bold=True)
+        if row_pitch >= 0.68:
+            _textbox(slide, MARGIN_IN, row_top + 0.28, label_width - 0.15, 0.24,
+                     week_label, size=10, color=MUTED_ON_NAVY)
+            _textbox(slide, MARGIN_IN, row_top + 0.5, label_width - 0.15, 0.22,
+                     actions_caption, size=9, color=MUTED_ON_NAVY)
+        else:  # tight pitch: keep the label column to two lines
+            _textbox(slide, MARGIN_IN, row_top + 0.26, label_width - 0.15, 0.22,
+                     f"{week_label} · {actions_caption}", size=9, color=MUTED_ON_NAVY)
+        _rect(slide, grid_left, row_top, grid_width, track_height, NAVY_700,
+              line_color=RULE_ON_NAVY)
         bar_left = grid_left + (start - 1) * week_width
         bar_width = max(week_width * 0.6, (end - start + 1) * week_width)
-        bar = _rect(slide, bar_left, row_top + 0.05, bar_width, row_height * 0.62,
+        bar = _rect(slide, bar_left, row_top + 0.05, bar_width, track_height - 0.1,
                     bar_color, shape=MSO_SHAPE.ROUNDED_RECTANGLE)
         frame = bar.text_frame
-        frame.word_wrap = True
-        run = frame.paragraphs[0].add_run()
-        run.text = phase["actions"][0] if phase["actions"] else phase["name"]
-        run.font.size = Pt(9)
-        run.font.name = _FONTS.body
-        run.font.color.rgb = _rgb(WHITE)
-        row_top += row_height + 0.12
+        frame.word_wrap = False
+        for attr in ("margin_left", "margin_right", "margin_top", "margin_bottom"):
+            setattr(frame, attr, Pt(2))
+        # Never write action text inside a bar: only the week span, and only
+        # when the bar is wide enough to carry it.
+        if bar_width >= 1.2:
+            run = frame.paragraphs[0].add_run()
+            run.text = f"W{start}" if start == end else f"W{start}-{end}"
+            run.font.size = Pt(9)
+            run.font.bold = True
+            run.font.name = _FONTS.body
+            run.font.color.rgb = _rgb(bar_text_color)
+        row_top += row_pitch
 
     _textbox(
-        slide, MARGIN_IN, SLIDE_HEIGHT_IN - 0.85, CONTENT_WIDTH_IN, 0.32,
+        slide, MARGIN_IN, row_top + 0.05, CONTENT_WIDTH_IN, 0.32,
         "Bars show the scheduled week span of each phase in the canonical action plan.",
-        size=10, color=MUTED, italic=True,
+        size=10, color=MUTED_ON_NAVY, italic=True,
     )
 
 
-def _render_comparison(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -> None:
+def _render_comparison(slide: Any, spec: dict[str, Any], data: dict[str, Any],
+                       body_top: float) -> None:
     """Clustered bar of client vs competitor medians from measured metrics."""
     body = spec.get("body")
     if body:
-        _textbox(slide, MARGIN_IN, 2.0, CONTENT_WIDTH_IN, 0.6, str(body),
-                 size=15, color=INK)
+        _textbox(slide, MARGIN_IN, body_top, CONTENT_WIDTH_IN, 0.6, str(body),
+                 size=15, color=TEXT_ON_NAVY)
     performance = data.get("performance_vs_competitors")
     performance = performance if isinstance(performance, dict) else {}
     metrics = [
@@ -702,60 +817,65 @@ def _render_comparison(slide: Any, spec: dict[str, Any], data: dict[str, Any]) -
         )
         graphic_frame = slide.shapes.add_chart(
             XL_CHART_TYPE.COLUMN_CLUSTERED,
-            Inches(MARGIN_IN), Inches(2.7),
+            Inches(MARGIN_IN), Inches(body_top + 0.7),
             Inches(CONTENT_WIDTH_IN * 0.6), Inches(3.5), chart_data,
         )
         chart = graphic_frame.chart
+        _dark_chart(chart)
         chart.has_title = False
         chart.has_legend = True
         chart.legend.position = XL_LEGEND_POSITION.BOTTOM
         chart.legend.include_in_layout = False
         chart.legend.font.size = Pt(11)
         chart.legend.font.name = _FONTS.body
+        chart.legend.font.color.rgb = _rgb(TEXT_ON_NAVY)
         for index, series in enumerate(chart.plots[0].series):
             series.format.fill.solid()
-            series.format.fill.fore_color.rgb = _rgb(CHART_SERIES[index])
+            series.format.fill.fore_color.rgb = _rgb(
+                GOLD if index == 0 else MUTED_ON_NAVY
+            )
     else:
         _textbox(
-            slide, MARGIN_IN, 2.9, CONTENT_WIDTH_IN * 0.6, 1.0,
+            slide, MARGIN_IN, body_top + 0.9, CONTENT_WIDTH_IN * 0.6, 1.0,
             safe_text(
                 performance.get("unavailable_reason"),
                 "Competitor performance was not measured for this run, so no comparison "
                 "is charted.",
             ),
-            size=14, color=MUTED, italic=True,
+            size=14, color=MUTED_ON_NAVY, italic=True,
         )
 
     left = MARGIN_IN + CONTENT_WIDTH_IN * 0.63
     width = CONTENT_WIDTH_IN - CONTENT_WIDTH_IN * 0.63
-    top = 2.7
+    top = body_top + 0.7
     summary = performance.get("summary")
     if summary:
-        _textbox(slide, left, top, width, 1.0, str(summary), size=12, color=INK)
+        _textbox(slide, left, top, width, 1.0, str(summary), size=12,
+                 color=TEXT_ON_NAVY)
         top += 1.15
     for row in (performance.get("metrics") or [])[:4]:
         if not isinstance(row, dict) or top > 6.0:
             continue
-        _rect(slide, left, top, width, 0.72, WHITE, line_color=RULE)
+        _rect(slide, left, top, width, 0.72, NAVY_700, line_color=RULE_ON_NAVY)
         position = str(row.get("position") or "unknown").casefold()
         accent = {
-            "ahead": POSITIVE, "behind": CRITICAL, "level": ACCENT,
-        }.get(position, NEUTRAL[300])
+            "ahead": POSITIVE, "behind": CRITICAL, "level": GOLD,
+        }.get(position, RULE_ON_NAVY)
         _rect(slide, left, top, 0.08, 0.72, accent)
         _textbox(slide, left + 0.22, top + 0.08, width - 0.44, 0.3,
-                 safe_text(row.get("metric")), size=12, color=INK, bold=True)
+                 safe_text(row.get("metric")), size=12, color=TEXT_ON_NAVY, bold=True)
         _textbox(slide, left + 0.22, top + 0.38, width - 0.44, 0.3,
                  f"{safe_text(row.get('position'), 'unknown').title()} · "
                  f"{safe_text(row.get('note'), 'No note supplied')}",
-                 size=10, color=MUTED)
+                 size=10, color=MUTED_ON_NAVY)
         top += 0.82
     for point in list(spec.get("points") or [])[:2]:
         if top > 6.2:
             break
         _textbox(slide, left, top, width, 0.3, safe_text(point.get("label")),
-                 size=12, color=ACCENT, bold=True)
+                 size=12, color=GOLD, bold=True)
         _textbox(slide, left, top + 0.28, width, 0.4, safe_text(point.get("text")),
-                 size=11, color=INK)
+                 size=11, color=TEXT_ON_NAVY)
         top += 0.8
 
 
@@ -797,31 +917,31 @@ def render_deck(data: dict, output: Path) -> Path:
     total = len(specs)
     for index, (spec, layout) in enumerate(zip(specs, layouts, strict=True), start=1):
         slide = presentation.slides.add_slide(blank_layout)
-        dark = layout == "cover"
-        if dark:
+        if layout == "cover":
             _render_cover(slide, spec, data)
         else:
-            _background(slide, PAPER)
+            _background(slide, NAVY_900)
             _eyebrow(slide, safe_text(spec.get("eyebrow"), ""))
-            _title(slide, safe_text(spec.get("title"), "Untitled section"))
+            body_top = _title(slide, safe_text(spec.get("title"), "Untitled section"))
             if layout == "score":
-                _render_score(slide, spec, data)
+                _render_score(slide, spec, data, body_top)
             elif layout == "stat_rail":
-                _render_stat_rail(slide, spec, data)
+                _render_stat_rail(slide, spec, data, body_top)
             elif layout == "chart":
-                _render_chart(slide, spec, data)
+                _render_chart(slide, spec, data, body_top)
             elif layout == "two_column":
-                _render_two_column(slide, spec)
+                _render_two_column(slide, spec, body_top)
             elif layout == "table":
-                _render_table(slide, spec, data)
+                _render_table(slide, spec, data, body_top)
             elif layout == "timeline":
-                _render_timeline(slide, spec, data)
+                _render_timeline(slide, spec, data, body_top)
             elif layout == "comparison":
-                _render_comparison(slide, spec, data)
+                _render_comparison(slide, spec, data, body_top)
             else:
-                _render_statement(slide, spec)
-        _brand_mark(slide, dark=dark)
-        _footer(slide, data, index, total, dark=dark)
+                _render_statement(slide, spec, body_top)
+        # Every slide sits on navy now, so the mark always uses its dark form.
+        _brand_mark(slide, dark=True)
+        _footer(slide, data, index, total, dark=True)
 
     presentation.save(str(output))
     return output
@@ -906,10 +1026,10 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
 
     for index, (spec, layout) in enumerate(zip(specs, layouts, strict=True), start=1):
         dark = layout == "cover"
-        document.setFillColor(HexColor(DEEP if dark else PAPER))
+        document.setFillColor(HexColor(NAVY_900))
         document.rect(0, 0, width, height, stroke=0, fill=1)
         if dark:
-            document.setFillColor(HexColor(BRAND_BLUE))
+            document.setFillColor(HexColor(GOLD))
             document.rect(0, 0, 10, height, stroke=0, fill=1)
 
         content_width = width - 2 * margin
@@ -918,17 +1038,17 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
         if eyebrow:
             cursor = text_block(
                 eyebrow, margin, cursor, body_font, 10,
-                BRAND_GREEN if dark else ACCENT, content_width, 14,
+                GOLD, content_width, 14,
             ) - 8
         cursor = text_block(
             safe_text(spec.get("title"), "Untitled section"), margin, cursor,
-            display_font, 26, WHITE if dark else INK, content_width, 32,
+            display_font, 26, TEXT_ON_NAVY, content_width, 32,
         ) - 10
         body = spec.get("body")
         if body:
             cursor = text_block(
                 str(body), margin, cursor, body_font, 14,
-                NEUTRAL[200] if dark else INK, content_width, 19,
+                TEXT_ON_NAVY, content_width, 19,
             ) - 12
 
         if layout in {"score", "stat_rail"}:
@@ -936,31 +1056,31 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
             for category in scored:
                 label = safe_text(category.get("category"))
                 score = float(category["score"])
-                document.setFillColor(HexColor(INK))
+                document.setFillColor(HexColor(TEXT_ON_NAVY))
                 document.setFont(body_font, 12)
                 document.drawString(margin, cursor, label)
                 bar_left = margin + 190
                 bar_width = min(content_width - 260, 320.0)
-                document.setFillColor(HexColor(RULE))
+                document.setFillColor(HexColor(RULE_ON_NAVY))
                 document.rect(bar_left, cursor - 3, bar_width, 12, stroke=0, fill=1)
-                document.setFillColor(HexColor(ACCENT))
+                document.setFillColor(HexColor(GOLD))
                 document.rect(bar_left, cursor - 3,
                               bar_width * max(0.0, min(score, 100.0)) / 100.0, 12,
                               stroke=0, fill=1)
-                document.setFillColor(HexColor(INK))
+                document.setFillColor(HexColor(GOLD_LIGHT))
                 document.drawString(bar_left + bar_width + 12, cursor, f"{score:.0f}")
                 cursor -= 22
             for category in withheld:
-                document.setFillColor(HexColor(INK))
+                document.setFillColor(HexColor(TEXT_ON_NAVY))
                 document.setFont(body_font, 12)
                 document.drawString(margin, cursor, safe_text(category.get("category")))
-                document.setFillColor(HexColor(MUTED))
+                document.setFillColor(HexColor(MUTED_ON_NAVY))
                 document.drawString(margin + 190, cursor, "Withheld")
                 cursor -= 22
             reason = _withheld_reason(data, withheld)
             if reason:
                 cursor = text_block(f"Withheld: {reason}", margin, cursor - 6,
-                                    body_font, 10, MUTED, content_width, 13)
+                                    body_font, 10, MUTED_ON_NAVY, content_width, 13)
         elif layout == "timeline":
             for phase in _phase_summary(list(data.get("actions") or [])):
                 weeks = phase["weeks"]
@@ -970,12 +1090,12 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
                     else (f"Week {weeks[0]}" if weeks else "Weeks unscheduled")
                 )
                 cursor = text_block(f"{phase['name']} · {span}", margin, cursor,
-                                    body_font, 12, INK, content_width, 16) - 4
+                                    body_font, 12, TEXT_ON_NAVY, content_width, 16) - 4
         elif layout == "chart":
             for name, count in _severity_mix(data):
                 cursor = text_block(
                     f"{name}: {count} finding{'s' if count != 1 else ''}",
-                    margin, cursor, body_font, 12, INK, content_width, 16,
+                    margin, cursor, body_font, 12, TEXT_ON_NAVY, content_width, 16,
                 )
         elif layout == "comparison":
             performance = data.get("performance_vs_competitors")
@@ -989,7 +1109,7 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
                         f"{safe_text(row.get('client'))}, competitor median "
                         f"{safe_text(row.get('competitor_median'))} "
                         f"({safe_text(row.get('position'), 'unknown')})",
-                        margin, cursor, body_font, 11, INK, content_width, 15,
+                        margin, cursor, body_font, 11, TEXT_ON_NAVY, content_width, 15,
                     )
             else:
                 cursor = text_block(
@@ -997,20 +1117,22 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
                         performance.get("unavailable_reason"),
                         "Competitor performance was not measured for this run.",
                     ),
-                    margin, cursor, body_font, 12, MUTED, content_width, 16,
+                    margin, cursor, body_font, 12, MUTED_ON_NAVY, content_width, 16,
                 )
 
         for point in list(spec.get("points") or [])[:4]:
             if cursor < margin + 60:
                 break
             cursor = text_block(safe_text(point.get("label")), margin, cursor,
-                                body_font, 12, ACCENT, content_width, 15)
+                                body_font, 12, GOLD, content_width, 15)
             cursor = text_block(safe_text(point.get("text")), margin, cursor,
-                                body_font, 11, INK, content_width, 14) - 6
+                                body_font, 11, TEXT_ON_NAVY, content_width, 14) - 6
 
-        mark(width - margin - 24, height - margin - 4, dark)
+        # The navy page is dark on every slide, so the mark always uses its
+        # dark form and the footer its muted-on-navy tone.
+        mark(width - margin - 24, height - margin - 4, True)
         document.setFont(body_font, 8)
-        document.setFillColor(HexColor(RULE if dark else MUTED))
+        document.setFillColor(HexColor(MUTED_ON_NAVY))
         document.drawString(
             margin, margin * 0.6,
             f"{client} · Enterprise SEO Audit · Evidence as of {as_of}",
@@ -1021,11 +1143,11 @@ def render_deck_pdf(data: dict, output: Path) -> Path:
         document.showPage()
 
     if not specs:
-        document.setFillColor(HexColor(PAPER))
+        document.setFillColor(HexColor(NAVY_900))
         document.rect(0, 0, width, height, stroke=0, fill=1)
         text_block(
             "No deck slides were compiled for this run.", margin, height / 2,
-            body_font, 14, MUTED, width - 2 * margin, 18,
+            body_font, 14, MUTED_ON_NAVY, width - 2 * margin, 18,
         )
         document.showPage()
 

@@ -75,7 +75,15 @@ LOCAL_SCHEMA = frozenset(
 TITLE_MIN, TITLE_MAX = 30, 60
 META_MIN, META_MAX = 70, 160
 THIN_WORDS = 250
+# A revenue page below this is genuinely broken; between the two bounds is
+# normal for ecommerce product templates and is NOT reported as a defect.
+THIN_WORDS_CRITICAL = 120
+# Homepages and collection pages are expected to carry more copy.
+THIN_WORDS_CONTEXT = 200
 SLOW_MS = 1500
+# When one signal fires on more pages than this, the findings sheet shows a
+# single aggregate row instead of a wall of identical rows.
+SIGNAL_AGGREGATE_THRESHOLD = 8
 
 
 def _argb(color: str) -> str:
@@ -1571,11 +1579,23 @@ def _cro_findings(pages: list[dict[str, Any]]) -> list[list[Any]]:
                 evidence,
             ])
         word_count = page.get("word_count")
-        if money and isinstance(word_count, int) and word_count < THIN_WORDS:
-            findings.append([
-                url, page_type, "Thin money page", "High",
-                f"{word_count} observed body words on a revenue-critical page.", evidence,
-            ])
+        if money and isinstance(word_count, int):
+            # 150-250 words is NORMAL for ecommerce product templates — only
+            # genuinely thin pages are defects, and only near-empty ones are
+            # severe. This intentionally diverges from the old blanket
+            # THIN_WORDS<250 High, which drowned the sheet in noise.
+            threshold = (
+                THIN_WORDS_CRITICAL
+                if page_type in {"Product", "Collection"}
+                else THIN_WORDS_CONTEXT
+            )
+            if word_count < threshold:
+                severity = "High" if word_count < 60 or _h1_count(page) == 0 else "Medium"
+                findings.append([
+                    url, page_type, "Thin money page", severity,
+                    f"{word_count} observed body words on a revenue-critical page.",
+                    evidence,
+                ])
         response = page.get("response_ms")
         if isinstance(response, int | float) and response >= SLOW_MS:
             findings.append([
@@ -1603,10 +1623,42 @@ def _cro_findings(pages: list[dict[str, Any]]) -> list[list[Any]]:
     return findings
 
 
+def _aggregate_signal_floods(findings: list[list[Any]]) -> list[list[Any]]:
+    """Collapse a signal that fires across many pages into one summary row.
+
+    One systemic template issue must read as ONE finding with a page count,
+    not a wall of identical rows — reviewers stop reading after the third.
+    """
+
+    by_signal: dict[str, list[list[Any]]] = {}
+    for row in findings:
+        by_signal.setdefault(str(row[2]), []).append(row)
+    out: list[list[Any]] = []
+    for signal, rows in by_signal.items():
+        if len(rows) <= SIGNAL_AGGREGATE_THRESHOLD:
+            out.extend(rows)
+            continue
+        worst = "High" if any(row[3] == "High" for row in rows) else rows[0][3]
+        sample = ", ".join(str(row[0]) for row in rows[:3])
+        page_types = sorted({str(row[1]) for row in rows if row[1]})
+        out.append([
+            f"{len(rows)} pages (systemic)",
+            "/".join(page_types)[:40] or "Various",
+            signal,
+            worst,
+            f"{len(rows)} pages share this signal — a template-level fix, "
+            f"not {len(rows)} separate tasks. Examples: {sample}. "
+            "Full page list in the Technical and Content audit workbooks.",
+            rows[0][5],
+        ])
+    return out
+
+
 def _cro_ux(data: dict[str, Any], path: Path) -> Path:
     meta = _meta(data, "CRO & UX Findings")
     workbook = _new_workbook()
-    findings = _cro_findings(_pages(data))
+    raw_findings = _cro_findings(_pages(data))
+    findings = _aggregate_signal_floods(raw_findings)
 
     _add_sheet(
         workbook, meta, "Findings",
@@ -1615,15 +1667,14 @@ def _cro_ux(data: dict[str, Any], path: Path) -> Path:
         wrap_columns=frozenset({5}), color_column=4, color_map=SEVERITY_COLORS,
         empty_message="No crawl-derivable conversion or usability defects were observed.",
     )
-    signal_counts = Counter(row[2] for row in findings)
+    signal_counts = Counter(row[2] for row in raw_findings)
     _add_sheet(
         workbook, meta, "Quick Wins",
         ["Signal", "Pages Affected", "Impact", "Recommended Action", "Basis"],
         [
             [
                 signal, count,
-                "High" if signal in {"Missing H1", "Thin money page", "Slow response"}
-                else "Medium",
+                "High" if signal in {"Missing H1", "Slow response"} else "Medium",
                 _quick_win_action(signal), "Crawl-observed",
             ]
             for signal, count in sorted(signal_counts.items(), key=lambda item: -item[1])
@@ -2454,7 +2505,7 @@ def _onpage_workbook(data: dict[str, Any], path: Path, *, kind: str) -> Path:
             current,
             _text_length(current),
             rendered,
-            _text_length(rendered) if status == "Proposed" else None,
+            _text_length(rendered) if status == "Proposed" else "—",
             status,
             proposal.get(rationale_key) or proposal.get("title_rationale") or UNAVAILABLE,
             proposal.get("target_keyword"),

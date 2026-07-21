@@ -421,3 +421,50 @@ class MarketDataTaskTests(TestCase):
             args=["00000000-0000-0000-0000-000000000000"]
         ).get()
         self.assertEqual(payload["reason"], "run_not_found")
+
+
+# --------------------------------------------------------------------------
+# Live-API header format: display names, not short codes (captured 2026-07-21)
+# --------------------------------------------------------------------------
+
+REAL_RANKS_CSV = (
+    "Database;Domain;Rank;Organic Keywords;Organic Traffic;Organic Cost;"
+    "Adwords Keywords;Adwords Traffic;Adwords Cost\n"
+    "au;billees.com.au;3917569;11;0;0;0;0;0\n"
+)
+REAL_ORGANIC_CSV = (
+    "Keyword;Position;Previous Position;Search Volume;CPC;Competition;"
+    "Number of Results;Traffic (%);Traffic Cost (%);Trends;Url\n"
+    "kakawa chocolates sydney;1;1;720;0.00;0.12;163;12.24;0.00;"
+    "0.36,0.30,0.24;https://kakawachocolates.com.au/\n"
+)
+REAL_COMPETITORS_CSV = (
+    "Domain;Competitor Relevance;Common Keywords;Organic Keywords;"
+    "Organic Traffic;Organic Cost;Adwords Keywords\n"
+    "cacao.com.au;0.27;181;1624;5732;3777;12\n"
+)
+
+
+def test_parse_response_normalizes_live_display_name_headers() -> None:
+    """The Analytics API echoes display names; mappers key on short codes."""
+
+    ranks = map_rows(parse_response("domain_ranks", REAL_RANKS_CSV))
+    assert ranks[0]["organic_keywords"] == 11
+    assert ranks[0]["rank"] == 3917569
+    assert ranks[0]["domain"] == "billees.com.au"
+
+    organic = map_rows(parse_response("domain_organic", REAL_ORGANIC_CSV))
+    assert organic[0]["phrase"] == "kakawa chocolates sydney"
+    assert organic[0]["search_volume"] == 720
+    assert organic[0]["traffic_share"] == 12.24
+    assert organic[0]["landing_url"] == "https://kakawachocolates.com.au/"
+
+    competitors = map_rows(parse_response("domain_organic_organic", REAL_COMPETITORS_CSV))
+    assert competitors[0]["domain"] == "cacao.com.au"
+    assert competitors[0]["common_keywords"] == 181
+    assert competitors[0]["organic_traffic"] == 5732
+
+
+def test_parse_response_still_accepts_short_code_headers() -> None:
+    rows = map_rows(parse_response("domain_ranks", DOMAIN_RANKS_CSV))
+    assert rows[0]["organic_keywords"] == 412

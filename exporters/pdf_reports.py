@@ -20,6 +20,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
+    CondPageBreak,
     Frame,
     LongTable,
     PageBreak,
@@ -50,6 +51,25 @@ def _pdf_display(value: Any) -> str:
     if value is None or value == "":
         return "Unavailable"
     return str(value)
+
+
+#: Usable portrait content width — every portrait table sums its columns to this.
+CONTENT_W = 168 * mm
+
+
+def _widths(*fracs: float) -> list[float]:
+    """Convert column proportions into absolute widths summing to CONTENT_W."""
+    total = sum(fracs)
+    return [f / total * CONTENT_W for f in fracs]
+
+
+def _humanize_enum(value: Any) -> str:
+    """Turn 'withheld_pending_human_approval' into 'Withheld - pending human approval'."""
+    words = str(value or "").replace("_", " ").split()
+    if not words:
+        return ""
+    head = words[0].capitalize()
+    return head if len(words) == 1 else f"{head} - {' '.join(words[1:])}"
 
 
 class PDFReportBuilder:
@@ -100,7 +120,7 @@ class PDFReportBuilder:
                 fontSize=13,
                 leading=18,
                 textColor=_c(MUTED),
-                spaceAfter=14 * mm,
+                spaceAfter=8 * mm,
             ),
             "h1": ParagraphStyle(
                 "H1",
@@ -109,7 +129,7 @@ class PDFReportBuilder:
                 fontSize=20,
                 leading=24,
                 textColor=_c(INK),
-                spaceBefore=4 * mm,
+                spaceBefore=7 * mm,
                 spaceAfter=4 * mm,
                 keepWithNext=True,
             ),
@@ -185,7 +205,17 @@ class PDFReportBuilder:
             creator="Traffic Radius Enterprise SEO Studio",
             lang="en-AU",
         )
-        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="body")
+        frame = Frame(
+            doc.leftMargin,
+            doc.bottomMargin,
+            doc.width,
+            doc.height,
+            id="body",
+            leftPadding=0,
+            rightPadding=0,
+            topPadding=0,
+            bottomPadding=0,
+        )
 
         def decorate(canvas: Any, document: BaseDocTemplate) -> None:
             canvas.saveState()
@@ -214,6 +244,7 @@ class PDFReportBuilder:
         as_of: str,
         run_id: str,
         status: str = "APPROVAL-READY",
+        wide: bool = False,
     ) -> list[Any]:
         meta = Table(
             [
@@ -222,7 +253,7 @@ class PDFReportBuilder:
                 ["RUN", run_id],
                 ["STATUS", status],
             ],
-            colWidths=[34 * mm, 106 * mm],
+            colWidths=_widths(34, 106),
         )
         meta.setStyle(
             TableStyle(
@@ -237,14 +268,19 @@ class PDFReportBuilder:
                 ]
             )
         )
+        deck_style = self.styles["cover_deck"]
+        if wide:
+            deck_style = ParagraphStyle(
+                "CoverDeckWide", parent=deck_style, spaceAfter=6 * mm
+            )
         return [
-            Spacer(1, 18 * mm),
+            Spacer(1, (5 if wide else 10) * mm),
             Paragraph("TRAFFIC RADIUS · ENTERPRISE SEO STUDIO", self.styles["cover_kicker"]),
             Paragraph(title, self.styles["cover_title"]),
-            Paragraph(subtitle, self.styles["cover_deck"]),
+            Paragraph(subtitle, deck_style),
             Spacer(1, 9 * mm),
             meta,
-            Spacer(1, 22 * mm),
+            Spacer(1, (4 if wide else 12) * mm),
             Paragraph(
                 "This report distinguishes verified evidence, derived analysis, professional judgment, and unavailable data. No client website or external platform was changed.",
                 self.styles["callout"],
@@ -255,7 +291,7 @@ class PDFReportBuilder:
     def _callout(self, text: str, label: str = "DECISION NOTE") -> Table:
         table = Table(
             [[Paragraph(label, self.styles["small"]), Paragraph(text, self.styles["callout"])]],
-            colWidths=[31 * mm, 109 * mm],
+            colWidths=_widths(31, 109),
         )
         table.setStyle(
             TableStyle(
@@ -293,8 +329,8 @@ class PDFReportBuilder:
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_c(WHITE), _c(PAPER)]),
                     ("GRID", (0, 0), (-1, -1), 0.35, _c(RULE)),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 5),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                     ("LEFTPADDING", (0, 0), (-1, -1), 5),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 5),
                 ]
@@ -336,7 +372,7 @@ class PDFReportBuilder:
                     )
                     for item in withheld
                 ],
-                [38 * mm, 30 * mm, 72 * mm],
+                _widths(38, 30, 72),
             ),
         ]
         return flowables
@@ -354,12 +390,12 @@ class PDFReportBuilder:
                 )
             )
             return drawing
-        drawing = Drawing(450, max(170, 28 * len(categories) + 50))
+        drawing = Drawing(481, max(130, 19 * len(categories) + 40))
         chart = HorizontalBarChart()
         chart.x = 118
         chart.y = 24
-        chart.height = max(105, 24 * len(categories))
-        chart.width = 292
+        chart.height = max(90, 15 * len(categories))
+        chart.width = 340
         chart.data = [[float(item["score"]) for item in categories]]
         chart.categoryAxis.categoryNames = [str(item["category"]) for item in categories]
         chart.categoryAxis.labels.fontName = self.body_font
@@ -409,7 +445,7 @@ class PDFReportBuilder:
                         )
                         for key, label in self._MARKET_ROWS
                     ],
-                    [48 * mm, 46 * mm, 46 * mm],
+                    _widths(48, 46, 46),
                 )
             )
         else:
@@ -424,7 +460,6 @@ class PDFReportBuilder:
                     self.styles["body"],
                 )
             )
-        flowables.append(Spacer(1, 5 * mm))
 
         flowables.append(Paragraph("Keyword evidence", self.styles["h2"]))
         if keywords:
@@ -450,7 +485,7 @@ class PDFReportBuilder:
                         ("Mapped to a crawled URL", len(mapped)),
                         ("Content gap (no mapped URL)", len(keywords) - len(mapped)),
                     ],
-                    [72 * mm, 68 * mm],
+                    _widths(72, 68),
                 )
             )
             if top:
@@ -467,7 +502,7 @@ class PDFReportBuilder:
                             )
                             for row in top
                         ],
-                        [46 * mm, 18 * mm, 18 * mm, 58 * mm],
+                        _widths(46, 18, 18, 58),
                     ),
                 ])
         else:
@@ -478,7 +513,6 @@ class PDFReportBuilder:
                     self.styles["body"],
                 )
             )
-        flowables.append(Spacer(1, 5 * mm))
 
         flowables.append(Paragraph("Competitor landscape", self.styles["h2"]))
         if competitors:
@@ -494,7 +528,7 @@ class PDFReportBuilder:
                         )
                         for row in competitors[:10]
                     ],
-                    [50 * mm, 30 * mm, 30 * mm, 30 * mm],
+                    _widths(50, 30, 30, 30),
                 )
             )
         else:
@@ -520,10 +554,10 @@ class PDFReportBuilder:
                         )
                         for row in metrics
                     ],
-                    [56 * mm, 28 * mm, 32 * mm, 24 * mm],
+                    _widths(56, 28, 32, 24),
                 ),
             ])
-        flowables.extend([Spacer(1, 5 * mm), PageBreak()])
+        flowables.append(Spacer(1, 6 * mm))
         return flowables
 
     def executive_report(self, data: dict[str, Any], output: Path) -> Path:
@@ -543,7 +577,6 @@ class PDFReportBuilder:
             [
                 Paragraph("The decision in one page", self.styles["h1"]),
                 self._callout(data["executive_summary"]),
-                Spacer(1, 6 * mm),
                 Paragraph("Evidence posture", self.styles["h2"]),
                 self._table(
                     ["Signal", "Status", "Interpretation"],
@@ -561,15 +594,14 @@ class PDFReportBuilder:
                         ("Approved domain", data["client"]["domain"], "Domain boundary enforced"),
                         ("External changes", "None", "Recommendations remain proposals"),
                     ],
-                    [37 * mm, 31 * mm, 72 * mm],
+                    _widths(37, 31, 72),
                 ),
-                Spacer(1, 6 * mm),
                 Paragraph("Where evidence points first", self.styles["h2"]),
                 self._score_chart(data.get("categories", [])),
                 *self._withheld_flowables(
                     self._split_scores(data.get("categories", []))[1]
                 ),
-                PageBreak(),
+                CondPageBreak(70 * mm),
                 *self._market_flowables(data),
                 Paragraph("Priority findings", self.styles["h1"]),
                 self._table(
@@ -584,9 +616,8 @@ class PDFReportBuilder:
                         )
                         for finding in findings[:10]
                     ],
-                    [15 * mm, 35 * mm, 47 * mm, 19 * mm, 24 * mm],
+                    _widths(15, 35, 47, 19, 24),
                 ),
-                Spacer(1, 7 * mm),
                 Paragraph("First 30 days", self.styles["h1"]),
                 self._table(
                     ["Week", "Action", "Owner", "Approval", "KPI"],
@@ -601,14 +632,14 @@ class PDFReportBuilder:
                         for item in actions
                         if int(item["week_end"]) <= 4
                     ],
-                    [14 * mm, 54 * mm, 23 * mm, 25 * mm, 24 * mm],
+                    _widths(14, 54, 23, 25, 24),
                 ),
                 Spacer(1, 6 * mm),
                 self._callout(
                     "Approve Gate 1 only after the evidence register and strategic direction are accepted. Risky deployment assets remain separately approval-gated.",
                     "NEXT CONTROL",
                 ),
-                PageBreak(),
+                CondPageBreak(50 * mm),
                 Paragraph("Limitations and unavailable evidence", self.styles["h1"]),
             ]
         )
@@ -629,7 +660,7 @@ class PDFReportBuilder:
                         )
                         for source in data.get("sources", [])
                     ],
-                    [19 * mm, 45 * mm, 25 * mm, 32 * mm, 19 * mm],
+                    _widths(19, 45, 25, 32, 19),
                 ),
             ]
         )
@@ -655,7 +686,7 @@ class PDFReportBuilder:
                 story.append(Spacer(1, 4 * mm))
         story.extend(
             [
-                PageBreak(),
+                CondPageBreak(70 * mm),
                 Paragraph("Canonical opportunity map", self.styles["h1"]),
                 self._table(
                     ["Cluster", "Intent", "Target URL", "Decision", "Evidence"],
@@ -669,9 +700,8 @@ class PDFReportBuilder:
                         )
                         for item in data.get("opportunities", [])
                     ],
-                    [31 * mm, 23 * mm, 42 * mm, 26 * mm, 18 * mm],
+                    _widths(31, 23, 42, 26, 18),
                 ),
-                Spacer(1, 6 * mm),
                 Paragraph("Measurement contract", self.styles["h1"]),
                 self._table(
                     ["KPI", "Baseline", "Cadence", "Source", "Decision use"],
@@ -685,7 +715,7 @@ class PDFReportBuilder:
                         )
                         for item in data.get("measurement_plan", [])
                     ],
-                    [28 * mm, 26 * mm, 22 * mm, 29 * mm, 35 * mm],
+                    _widths(28, 26, 22, 29, 35),
                 ),
             ]
         )
@@ -742,9 +772,8 @@ class PDFReportBuilder:
                         for cluster in clusters[:30]
                     ]
                     or [("No clusters were derived from the available evidence.", "", "", "", "")],
-                    [38 * mm, 18 * mm, 18 * mm, 22 * mm, 44 * mm],
+                    _widths(38, 18, 18, 22, 44),
                 ),
-                Spacer(1, 5 * mm),
                 Paragraph("Priority keywords", self.styles["h1"]),
                 self._table(
                     ["Keyword", "Position", "Volume", "CPC", "Landing URL"],
@@ -759,9 +788,9 @@ class PDFReportBuilder:
                         for item in keywords[:30]
                     ]
                     or [("No provider keyword data was available for this run.", "", "", "", "")],
-                    [46 * mm, 18 * mm, 18 * mm, 16 * mm, 42 * mm],
+                    _widths(46, 18, 18, 16, 42),
                 ),
-                PageBreak(),
+                CondPageBreak(60 * mm),
                 Paragraph("Publishing priorities", self.styles["h1"]),
                 self._table(
                     ["Asset", "Intent", "Target URL", "Approval"],
@@ -770,12 +799,12 @@ class PDFReportBuilder:
                             asset.get("title", ""),
                             asset.get("intent", ""),
                             asset.get("target_url", ""),
-                            asset.get("approval_state", ""),
+                            _humanize_enum(asset.get("approval_state", "")),
                         )
                         for asset in assets
                     ]
                     or [("No content assets passed the evidence gates for this run.", "", "", "")],
-                    [52 * mm, 26 * mm, 44 * mm, 18 * mm],
+                    _widths(58, 29, 49, 32),
                 ),
             ]
         )
@@ -791,6 +820,7 @@ class PDFReportBuilder:
             client=data["client"]["name"],
             as_of=run["evidence_as_of"],
             run_id=run["id"],
+            wide=True,
         )
         story.extend(
             [
@@ -852,9 +882,8 @@ class PDFReportBuilder:
                         )
                         for gate in qa.get("gates", [])
                     ],
-                    [39 * mm, 23 * mm, 18 * mm, 18 * mm, 42 * mm],
+                    _widths(39, 23, 18, 18, 42),
                 ),
-                Spacer(1, 6 * mm),
                 Paragraph("Reconciled counts", self.styles["h1"]),
                 self._table(
                     ["Measure", "Canonical", "Package", "Result"],
@@ -862,9 +891,8 @@ class PDFReportBuilder:
                         (item["measure"], item["canonical"], item["package"], item["result"])
                         for item in qa.get("reconciliation", [])
                     ],
-                    [48 * mm, 27 * mm, 27 * mm, 38 * mm],
+                    _widths(48, 27, 27, 38),
                 ),
-                Spacer(1, 6 * mm),
                 Paragraph("Known limitations", self.styles["h1"]),
             ]
         )
@@ -893,9 +921,8 @@ class PDFReportBuilder:
                 self._table(
                     ["Package", "Score / 100", "Verdict"],
                     [(item["version"], item["total"], item["verdict"]) for item in packages],
-                    [35 * mm, 22 * mm, 83 * mm],
+                    _widths(35, 22, 83),
                 ),
-                Spacer(1, 6 * mm),
             ])
             if categories and all(len(item.get("scores", [])) == len(categories) for item in packages):
                 story.extend([
@@ -906,16 +933,15 @@ class PDFReportBuilder:
                             (category["name"], category["weight"], *[item["scores"][index] for item in packages])
                             for index, category in enumerate(categories)
                         ],
-                        [48 * mm, 18 * mm, 24 * mm, 24 * mm, 26 * mm],
+                        _widths(48, 18, 24, 24, 26),
                     ),
-                    Spacer(1, 7 * mm),
                 ])
         story.extend([
             Paragraph("Regression outcomes", self.styles["h1"]),
             self._table(
                 ["Failure mode", "v18 observation", "v19 control", "v19 result"],
                 [(item["failure_mode"], item["v18_observation"], item["v19_control"], item["v19_result"]) for item in data.get("comparison", [])],
-                [31 * mm, 35 * mm, 45 * mm, 29 * mm],
+                _widths(31, 35, 45, 29),
             ),
             Spacer(1, 7 * mm),
             self._callout(

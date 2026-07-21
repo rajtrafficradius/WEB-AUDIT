@@ -454,6 +454,10 @@ MARKET_DATA_ENABLED = env_bool("MARKET_DATA_ENABLED", True)
 # product can be demonstrated end to end. Snapshots are flagged "simulated".
 # Turn OFF (MARKET_DATA_DEMO_MODE=false) before any client-facing delivery.
 MARKET_DATA_DEMO_MODE = env_bool("MARKET_DATA_DEMO_MODE", not _RUNNING_TESTS)
+# In demo mode, a real collection returning fewer keyword rows than this
+# floor is replaced by the full simulated set — a domain with 11 indexed
+# keywords produces reports too thin to demonstrate the product.
+DEMO_MIN_KEYWORD_ROWS = int(os.getenv("DEMO_MIN_KEYWORD_ROWS", "25"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],

@@ -238,3 +238,53 @@ class DemoRefdomainTopUpTests(DemoMarketBase):
         first = top_up_demo_refdomains(self.run)
         assert first > 0
         assert top_up_demo_refdomains(self.run) == 0  # already populated
+
+
+class DemoEmptySuccessTests(DemoMarketBase):
+    """A working key with a hollow result must still fill the report."""
+
+    @override_settings(MARKET_DATA_DEMO_MODE=True, SEMRUSH_API_KEY="real-but-hollow")  # noqa: S106
+    def test_empty_success_falls_back_to_full_demo(self) -> None:
+        from unittest import mock
+
+        from integrations.market_data import MarketDataResult
+
+        hollow = MarketDataResult(status="available", tier="lite", database="au")
+
+        class HollowService:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def collect(self):
+                return hollow
+
+        # Patch only the task's entry point: the demo fallback inside
+        # collect_demo_market_data must keep using the real service.
+        with mock.patch("integrations.tasks.MarketDataService", HollowService):
+            outcome = collect_market_data.apply(args=[str(self.run.pk)]).get()
+
+        assert outcome["status"] == "available"
+        assert outcome["keywords"] > 0
+        assert Keyword.objects.filter(run=self.run).exists()
+        snapshots = SourceSnapshot.objects.filter(run=self.run, source_type="semrush")
+        assert snapshots.count() == 1
+        assert snapshots.get().metadata.get("simulated") is True
+
+    def test_competitor_top_up_fills_missing_family(self) -> None:
+        from integrations.demo_market import top_up_demo_competitors
+
+        SourceSnapshot.objects.create(
+            run=self.run,
+            source_type="semrush",
+            availability=AvailabilityStatus.AVAILABLE,
+            scope="SEMrush au database; lite plan",
+        )
+        created = top_up_demo_competitors(self.run)
+
+        assert created > 0
+        observation = MetricObservation.objects.get(
+            run=self.run, metric_key="semrush.competitors"
+        )
+        assert len(observation.json_value) == created
+        assert all(row.get("authority_score") for row in observation.json_value)
+        assert top_up_demo_competitors(self.run) == 0  # idempotent

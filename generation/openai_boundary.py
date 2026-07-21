@@ -203,7 +203,10 @@ class OpenAIBoundary:
             return None
         self.client = cast(
             ResponsesClient,
-            OpenAI(api_key=self.api_key, timeout=30.0, max_retries=0),
+            # 30s timed out on real package-size prompts in production
+            # (generation ledger: "OpenAI did not respond before the
+            # timeout"), leaving proposals on the deterministic fallback.
+            OpenAI(api_key=self.api_key, timeout=90.0, max_retries=1),
         )
         return self.client
 

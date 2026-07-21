@@ -184,12 +184,25 @@ def _iso(value: datetime | None) -> str | None:
 
 
 def _page_type(url: str) -> str:
-    path = urlsplit(url).path.casefold()
+    parts = urlsplit(url)
+    path = parts.path.casefold()
+    query = parts.query.casefold()
     if path in {"", "/"}:
         return "Homepage"
     if "/product/" in path or "/products/" in path:
         return "Product"
-    if "/collection/" in path or "/collections/" in path or "/category/" in path:
+    # Catalogue listings come in many shapes: path segments AND
+    # query-filtered range/shop pages (e.g. /range?category=dark).
+    if (
+        "/collection/" in path
+        or "/collections/" in path
+        or "/category/" in path
+        or "/range" in path
+        or "/shop" in path
+        or "/store" in path
+        or "category=" in query
+        or "collection=" in query
+    ):
         return "Collection"
     if "/blog" in path or "/news" in path or "/article" in path:
         return "Editorial"
@@ -2286,10 +2299,26 @@ def _proposal_pages(pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _keyword_for_page(
-    page: dict[str, Any], keywords: list[dict[str, Any]], clusters: list[dict[str, Any]]
+    page: dict[str, Any],
+    keywords: list[dict[str, Any]],
+    clusters: list[dict[str, Any]],
+    used: set[str] | None = None,
 ) -> dict[str, Any] | None:
+    """Best keyword for a page, preferring phrases not already assigned.
+
+    Without the ``used`` rotation, a brand token present in every page title
+    matches the same site-level phrase for all 25 proposals — one keyword
+    stamped across the whole optimisation workbook.
+    """
+
     matched = _asset_keywords(page, keywords, clusters)
-    return matched[0] if matched else None
+    if not matched:
+        return None
+    if used is None:
+        return matched[0]
+    choice = next((k for k in matched if k["phrase"] not in used), matched[0])
+    used.add(choice["phrase"])
+    return choice
 
 
 def _proposal_fact_pack(
@@ -2472,8 +2501,11 @@ def _compile_onpage_proposals(
     """Grounded title/meta/H1 proposals with a deterministic fallback per page."""
     client_name = client["name"]
     selected = _proposal_pages(pages)
+    assigned: set[str] = set()
     proposals = [
-        _deterministic_proposal(page, client_name, _keyword_for_page(page, keywords, clusters))
+        _deterministic_proposal(
+            page, client_name, _keyword_for_page(page, keywords, clusters, assigned)
+        )
         for page in selected
     ]
     if not proposals:
@@ -3504,7 +3536,7 @@ def _compile_deck(data: dict[str, Any]) -> list[dict[str, Any]]:
         {
             "kind": "generic",
             "eyebrow": "DECISION",
-            "title": "Approve the evidence boundary - or request a revision.",
+            "title": "Approve the evidence boundary — or request a revision.",
             "body": (
                 "Gate 1 accepts evidence and direction. Gate 2 accepts the plan and "
                 "review-ready assets. Production stays blocked until both decisions and "

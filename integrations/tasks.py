@@ -117,17 +117,32 @@ def collect_market_data(self, run_id: str) -> dict[str, Any]:
         _stage(run, StageStatus.SKIPPED, message="Market data could not be collected")
         return {"run_id": str(run.pk), "status": "unavailable", "reason": "collector_error"}
 
-    if result.status == "available" and not result.referring_domains_persisted:
-        from .demo_market import demo_mode_enabled, top_up_demo_refdomains
+    if result.status == "available":
+        from .demo_market import (
+            collect_demo_market_data,
+            demo_mode_enabled,
+            top_up_demo_competitors,
+            top_up_demo_refdomains,
+        )
 
         if demo_mode_enabled():
-            # A working key on the lite plan skips the costly refdomains
-            # report; in demo mode simulate just that report so backlink
-            # deliverables are never emptier than the demo they replace.
+            # A key can WORK yet return a hollow result: a domain with no
+            # footprint in the provider's database parses to zero keyword
+            # rows ("empty success"), and the credit-lean lite plan never
+            # requests the refdomains report at all. In demo mode, top up
+            # whichever families came back empty so the package is never
+            # emptier than the demo it replaces. Zero units spent.
+            floor = int(getattr(settings, "DEMO_MIN_KEYWORD_ROWS", 25))
             try:
-                result.referring_domains_persisted = top_up_demo_refdomains(run)
-            except Exception:  # noqa: BLE001 - top-up must never fail the run
-                logger.exception("Demo refdomain top-up raised", extra={"run": str(run.pk)})
+                if result.keywords_persisted < floor:
+                    result = collect_demo_market_data(run)
+                else:
+                    if not result.competitors_persisted:
+                        result.competitors_persisted = top_up_demo_competitors(run)
+                    if not result.referring_domains_persisted:
+                        result.referring_domains_persisted = top_up_demo_refdomains(run)
+            except Exception:  # noqa: BLE001 - top-ups must never fail the run
+                logger.exception("Demo top-up raised", extra={"run": str(run.pk)})
 
     _stage(
         run,
