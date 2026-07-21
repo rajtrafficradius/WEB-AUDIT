@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from app.domain.audit import record_event
@@ -418,15 +419,56 @@ def _dispatch_market_data(run):
     return True
 
 
+def _advance_run(run, **fields) -> bool:
+    """Persist run fields ONLY if the run was not cancelled in the meantime.
+
+    The crawl can take minutes; a user cancel during that window must win.
+    Returns False (and leaves the row untouched) when the run is CANCELLED.
+    """
+
+    fields["updated_at"] = timezone.now()
+    updated = (
+        AuditRun.objects.filter(pk=run.pk)
+        .exclude(state=RunState.CANCELLED)
+        .update(**fields)
+    )
+    if updated:
+        for key, value in fields.items():
+            setattr(run, key, value)
+    return bool(updated)
+
+
+def _clear_prior_attempt(run) -> None:
+    """Remove a failed attempt's partial evidence before a retry re-collects.
+
+    PageSnapshot is unique per (run, normalized_url), so a rerun over
+    leftovers would abort on the first duplicate insert.
+    """
+
+    run.findings.all().delete()
+    run.pages.all().delete()
+    run.evidence.all().delete()
+    run.source_snapshots.filter(source_type="crawl").delete()
+
+
 @shared_task(bind=True, name="audit_engine.tasks.run_website_audit", queue="analysis",
              acks_late=True, reject_on_worker_lost=True)
 def run_website_audit(self, run_id):
-    run = AuditRun.objects.select_related("project").get(pk=run_id)
-    if run.state not in {RunState.DRAFT, RunState.FAILED}:
-        return {"run_id": run_id, "state": run.state, "idempotent": True}
-    try:
+    # Claim the run atomically: with two worker replicas, duplicate or
+    # redelivered messages must not start a second concurrent audit.
+    with transaction.atomic():
+        run = (
+            AuditRun.objects.select_for_update()
+            .select_related("project")
+            .get(pk=run_id)
+        )
+        if run.state not in {RunState.DRAFT, RunState.FAILED}:
+            return {"run_id": run_id, "state": run.state, "idempotent": True}
+        if run.state == RunState.FAILED:
+            _clear_prior_attempt(run)
         run.state, run.error_code, run.error_summary = RunState.COLLECTING, "", ""
         run.save(update_fields=["state", "error_code", "error_summary", "updated_at"])
+    try:
         _stage(run, "collecting", StageStatus.RUNNING, message="Discovering pages")
         result = BoundedCrawler(CrawlConfig(
             allowed_domains=tuple(run.project.approved_domains),
@@ -447,8 +489,8 @@ def run_website_audit(self, run_id):
             run, "collecting", StageStatus.SUCCEEDED, output_count=len(pages),
             crawl_integrity=integrity,
         )
-        run.state, run.source_cutoff_at = RunState.AUDITING, captured
-        run.save(update_fields=["state", "source_cutoff_at", "updated_at"])
+        if not _advance_run(run, state=RunState.AUDITING, source_cutoff_at=captured):
+            return {"run_id": run_id, "state": RunState.CANCELLED, "cancelled": True}
         _stage(run, "auditing", StageStatus.RUNNING, message="Applying evidence rules")
         engine_findings = _create_findings(run, pages, evidence, integrity)
         profile = _business_profile(run.project.business_type)
@@ -460,8 +502,15 @@ def run_website_audit(self, run_id):
             if card.overall_score is not None and card.weighted_coverage >= 0.70
             else None
         )
-        run.state, run.version = RunState.GATE_1_REVIEW, run.version + 1
-        run.save(update_fields=["evidence_coverage", "confidence", "health_score", "state", "version", "updated_at"])
+        if not _advance_run(
+            run,
+            evidence_coverage=run.evidence_coverage,
+            confidence=run.confidence,
+            health_score=run.health_score,
+            state=RunState.GATE_1_REVIEW,
+            version=run.version + 1,
+        ):
+            return {"run_id": run_id, "state": RunState.CANCELLED, "cancelled": True}
         weights = CATEGORY_WEIGHTS[profile]
         _stage(
             run, "auditing", StageStatus.SUCCEEDED, output_count=run.findings.count(),
@@ -496,8 +545,12 @@ def run_website_audit(self, run_id):
             active.status, active.error_code, active.error_summary = StageStatus.FAILED, "audit_execution_failed", str(exc)[:1000]
             active.finished_at, active.heartbeat_at = timezone.now(), timezone.now()
             active.save()
-        run.state, run.error_code, run.error_summary = RunState.FAILED, "audit_execution_failed", str(exc)[:1000]
-        run.version += 1
-        run.save(update_fields=["state", "error_code", "error_summary", "version", "updated_at"])
-        record_event(event_type="audit.failed", run=run, object_instance=run)
+        if _advance_run(
+            run,
+            state=RunState.FAILED,
+            error_code="audit_execution_failed",
+            error_summary=str(exc)[:1000],
+            version=run.version + 1,
+        ):
+            record_event(event_type="audit.failed", run=run, object_instance=run)
         raise

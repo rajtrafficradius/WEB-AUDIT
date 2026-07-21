@@ -201,3 +201,40 @@ class DemoCompletenessTests(DemoMarketBase):
         assert (
             SourceSnapshot.objects.filter(run=self.run, source_type="gsc").count() == 1
         )
+
+
+class DemoRefdomainTopUpTests(DemoMarketBase):
+    def test_top_up_fills_backlinks_when_lite_plan_skipped_them(self) -> None:
+        from app.domain.models import Backlink
+        from integrations.demo_market import top_up_demo_refdomains
+
+        snapshot = SourceSnapshot.objects.create(
+            run=self.run,
+            source_type="semrush",
+            availability=AvailabilityStatus.AVAILABLE,
+            scope="SEMrush au database; lite plan",
+        )
+        created = top_up_demo_refdomains(self.run)
+
+        assert created > 0
+        assert Backlink.objects.filter(run=self.run).count() == created
+        snapshot.refresh_from_db()
+        assert snapshot.metadata.get("refdomains_simulated") is True
+        assert MetricObservation.objects.filter(
+            run=self.run, metric_key="semrush.referring_domain_list"
+        ).exists()
+
+    def test_top_up_is_a_noop_when_backlinks_exist_or_no_snapshot(self) -> None:
+        from integrations.demo_market import top_up_demo_refdomains
+
+        assert top_up_demo_refdomains(self.run) == 0  # no semrush snapshot
+
+        SourceSnapshot.objects.create(
+            run=self.run,
+            source_type="semrush",
+            availability=AvailabilityStatus.AVAILABLE,
+            scope="SEMrush au database; lite plan",
+        )
+        first = top_up_demo_refdomains(self.run)
+        assert first > 0
+        assert top_up_demo_refdomains(self.run) == 0  # already populated

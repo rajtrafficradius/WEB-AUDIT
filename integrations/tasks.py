@@ -117,6 +117,18 @@ def collect_market_data(self, run_id: str) -> dict[str, Any]:
         _stage(run, StageStatus.SKIPPED, message="Market data could not be collected")
         return {"run_id": str(run.pk), "status": "unavailable", "reason": "collector_error"}
 
+    if result.status == "available" and not result.referring_domains_persisted:
+        from .demo_market import demo_mode_enabled, top_up_demo_refdomains
+
+        if demo_mode_enabled():
+            # A working key on the lite plan skips the costly refdomains
+            # report; in demo mode simulate just that report so backlink
+            # deliverables are never emptier than the demo they replace.
+            try:
+                result.referring_domains_persisted = top_up_demo_refdomains(run)
+            except Exception:  # noqa: BLE001 - top-up must never fail the run
+                logger.exception("Demo refdomain top-up raised", extra={"run": str(run.pk)})
+
     _stage(
         run,
         StageStatus.SUCCEEDED if result.status == "available" else StageStatus.SKIPPED,

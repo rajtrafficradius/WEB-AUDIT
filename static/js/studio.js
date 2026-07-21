@@ -46,9 +46,15 @@
     });
   });
 
-  document.querySelectorAll("[data-confirm-message]").forEach(function (form) {
+  document.querySelectorAll("[data-confirm-message]").forEach(function (element) {
+    // The attribute may sit on the form itself or on a button inside it —
+    // submit events only fire on the FORM, so always bind there. Without
+    // this, destructive actions (e.g. removing a stored API key) run
+    // without any confirmation.
+    var form = element.tagName === "FORM" ? element : element.closest("form");
+    if (!form) return;
     form.addEventListener("submit", function (event) {
-      var message = form.getAttribute("data-confirm-message");
+      var message = element.getAttribute("data-confirm-message");
       if (message && !window.confirm(message)) event.preventDefault();
     });
   });

@@ -465,6 +465,56 @@ def collect_demo_market_data(run) -> Any:
     return result
 
 
+def top_up_demo_refdomains(run) -> int:
+    """Fill the refdomain hole a WORKING key on the lite plan leaves behind.
+
+    The credit-lean lite plan never requests ``backlinks_refdomains`` (it
+    would cost ~400 of the 700-unit budget), so a successful real collection
+    ships empty backlink sheets — emptier than demo mode. In demo mode, top
+    up just that report with simulated rows against the existing snapshot,
+    flagged ``refdomains_simulated`` for later cleanup. Costs zero units.
+    """
+
+    from django.utils import timezone
+
+    from app.domain.constants import AvailabilityStatus
+    from app.domain.models import SourceSnapshot
+    from integrations.market_data import MarketDataService
+
+    if run.backlinks.exists():
+        return 0
+    snapshot = (
+        SourceSnapshot.objects.filter(
+            run=run, source_type="semrush", availability=AvailabilityStatus.AVAILABLE
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if snapshot is None:
+        return 0
+
+    from integrations.semrush_reports import map_rows, parse_response
+
+    transport = DemoSemrushTransport(run)
+    body = transport.fetch_text(
+        "https://api.semrush.com/?type=backlinks_refdomains&display_limit=8"
+    )
+    rows = map_rows(parse_response("backlinks_refdomains", body))
+    if not rows:
+        return 0
+    service = MarketDataService(
+        run, transport=transport, api_key="demo-simulated-provider", enabled=True
+    )
+    captured = timezone.now()
+    service._metric(  # noqa: SLF001 - same package; reuses the real persistence path
+        snapshot, "semrush.referring_domain_list", captured, json_value=rows
+    )
+    created = service._persist_backlinks(snapshot, rows, captured)  # noqa: SLF001
+    snapshot.metadata = {**(snapshot.metadata or {}), "refdomains_simulated": True}
+    snapshot.save(update_fields=["metadata", "updated_at"])
+    return created
+
+
 def _augment_demo_competitors(run) -> None:
     """Add the authority/backlink columns the organic-competitor report lacks.
 

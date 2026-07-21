@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 from types import SimpleNamespace
@@ -922,8 +922,11 @@ def dashboard_view(request):
     backfills_dispatched = 0
     # Backfills wait their turn: while any audit is genuinely running, the
     # worker belongs to it — old-package rebuilds resume on a later visit.
+    # Only RECENT activity counts: a zombie run stuck in DRAFT/COLLECTING
+    # (lost message, dead worker) must not freeze package self-heal forever.
     live_audit_running = AuditRun.objects.filter(
-        state__in=(RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING)
+        state__in=(RunState.DRAFT, RunState.COLLECTING, RunState.AUDITING),
+        updated_at__gte=timezone.now() - timedelta(hours=2),
     ).exists()
     for project in projects:
         latest = project.audit_runs.first()
@@ -1465,7 +1468,10 @@ def _kick_stalled_queued_run(run) -> None:
     age = (timezone.now() - (run.updated_at or run.created_at)).total_seconds()
     if age < QUEUED_KICK_AFTER_SECONDS:
         return
-    if not cache.add(f"audit:queued-kick:{run.pk}", "1", QUEUED_KICK_AFTER_SECONDS):
+    # Lock for far longer than the age threshold: a starved-but-healthy
+    # message would otherwise gain one duplicate per window from an open
+    # progress poll. Duplicates are idempotent but not free.
+    if not cache.add(f"audit:queued-kick:{run.pk}", "1", QUEUED_KICK_AFTER_SECONDS * 5):
         return
     try:
         from audit_engine.tasks import run_website_audit
@@ -2578,6 +2584,31 @@ def run_resume_view(request, run_id):
         (value for value in (RunState.PLANNING, RunState.GENERATING, RunState.FINAL_QA, RunState.COLLECTING, RunState.AUDITING) if value in candidates),
         None,
     )
+    if run.state == RunState.FAILED and target in {RunState.COLLECTING, RunState.AUDITING}:
+        # Worker-driven stages cannot be resumed by a bare state change —
+        # nothing consumes a COLLECTING run. Re-dispatch the audit task
+        # instead: it accepts FAILED runs, clears the partial attempt, and
+        # restarts the crawl from scratch.
+        try:
+            from audit_engine.tasks import run_website_audit
+
+            run_website_audit.delay(str(run.pk))
+        except Exception:  # noqa: BLE001 - broker down; keep the run resumable
+            record_event(event_type="audit.requeue_failed", run=run, object_instance=run)
+            messages.error(request, "The audit queue is unavailable. Try again shortly.")
+            return redirect("run-detail", run_id=run.pk)
+        record_event(
+            event_type="audit.requeued_from_resume",
+            actor=request.user,
+            request=request,
+            run=run,
+            object_instance=run,
+        )
+        messages.success(
+            request,
+            "Audit re-queued from the start; evidence will be recollected.",
+        )
+        return redirect("run-detail", run_id=run.pk)
     if target is None:
         messages.error(request, "This run state cannot be resumed.")
         return redirect("run-detail", run_id=run.pk)

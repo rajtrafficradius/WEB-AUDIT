@@ -797,3 +797,133 @@ def test_worker_drains_analysis_before_render():
 
     entrypoint = (REPO_ROOT / "deployment" / "entrypoint.sh").read_text(encoding="utf-8")
     assert "--queues=analysis,render" in entrypoint
+
+
+# ---------------------------------------------------------------------------
+# Audit-task hardening: cancel wins, FAILED retry cleans up, resume re-queues
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_failed_retry_clears_prior_attempt_and_reruns(monkeypatch):
+    run = _seed_run(slug="retry-clean")
+    _run_real_audit(run, monkeypatch)
+    run.refresh_from_db()
+    assert run.state == RunState.GATE_1_REVIEW
+    first_pages = run.pages.count()
+    assert first_pages > 0
+
+    AuditRun.objects.filter(pk=run.pk).update(
+        state=RunState.FAILED, error_code="audit_execution_failed"
+    )
+    run.refresh_from_db()
+    outcome = run_website_audit.run(str(run.pk))
+
+    assert outcome.get("idempotent") is not True
+    run.refresh_from_db()
+    assert run.state == RunState.GATE_1_REVIEW
+    assert run.pages.count() == first_pages  # replaced, not duplicated
+
+
+@pytest.mark.django_db
+def test_cancel_during_crawl_is_never_overwritten(monkeypatch):
+    from audit_engine import tasks as audit_tasks
+
+    run = _seed_run(slug="cancel-wins")
+
+    class CancellingCrawler:
+        def __init__(self, config):
+            self.config = config
+
+        def crawl(self, seeds):
+            AuditRun.objects.filter(pk=run.pk).update(state=RunState.CANCELLED)
+            return CrawlResult(
+                pages=(
+                    CrawledPage(
+                        requested_url="https://example.com.au/",
+                        final_url="https://example.com.au/",
+                        status_code=200, content_type="text/html",
+                        body_sha256="c" * 64, title="Home", meta_description=None,
+                        h1=("Welcome",), canonical_url=None, robots_directives=(),
+                        links=(), redirect_chain=("https://example.com.au/",),
+                    ),
+                ),
+                failures=(), discovered_count=1, stopped_reason="queue_exhausted",
+            )
+
+    monkeypatch.setattr(audit_tasks, "BoundedCrawler", CancellingCrawler)
+    outcome = run_website_audit.run(str(run.pk))
+
+    assert outcome.get("cancelled") is True
+    run.refresh_from_db()
+    assert run.state == RunState.CANCELLED
+
+
+@pytest.mark.django_db
+def test_resume_requeues_a_failed_crawl(monkeypatch, client):
+    from audit_engine import tasks as audit_tasks
+
+    run = _seed_run(slug="resume-requeue")
+    run.state = RunState.FAILED
+    run.error_code = "audit_execution_failed"
+    run.save(update_fields=["state", "error_code", "updated_at"])
+    RunStage.objects.create(
+        run=run, name="collecting", sequence=10, status=StageStatus.FAILED
+    )
+
+    kicked: list[str] = []
+    monkeypatch.setattr(
+        audit_tasks.run_website_audit, "delay", lambda run_id: kicked.append(run_id)
+    )
+
+    assert client.login(username="resume-requeue-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    response = client.post(f"/runs/{run.pk}/resume/", secure=True)
+
+    assert response.status_code == 302
+    assert kicked == [str(run.pk)]
+    run.refresh_from_db()
+    assert run.state == RunState.FAILED  # the task flips state when it starts
+
+
+@pytest.mark.django_db
+def test_zombie_run_does_not_freeze_backfills(monkeypatch, client, settings):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    import exporters.tasks as exporter_tasks
+
+    settings.AUTO_BUILD_PACKAGE = True
+    run = _seed_run(slug="zombie-gate")
+    run.state = RunState.GATE_1_REVIEW
+    run.save(update_fields=["state", "updated_at"])
+
+    zombie_project = Project.objects.create(
+        client=run.project.client,
+        name="Zombie",
+        slug="zombie-gate-stuck",
+        primary_domain="stuck.example.com.au",
+        approved_domains=["stuck.example.com.au"],
+        business_type=Project.BusinessType.SERVICE,
+    )
+    zombie = AuditRun.objects.create(
+        project=zombie_project,
+        profile="quick",
+        idempotency_key="zombie-gate-run",
+        rule_version="1.0.0",
+        state=RunState.COLLECTING,
+    )
+    AuditRun.objects.filter(pk=zombie.pk).update(
+        updated_at=timezone.now() - timedelta(hours=3)
+    )
+
+    queued: list[dict] = []
+    monkeypatch.setattr(
+        exporter_tasks.build_audit_package,
+        "apply_async",
+        lambda args=None, **kwargs: queued.append(kwargs),
+    )
+
+    assert client.login(username="zombie-gate-admin", password="Package-test-password-9911!")  # noqa: S106 - test credential
+    assert client.get("/", secure=True).status_code == 200
+    assert queued == [{"queue": "render"}]
