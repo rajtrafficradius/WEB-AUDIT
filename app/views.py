@@ -908,12 +908,17 @@ def credential_remove_view(request, credential_id):
 
 @require_GET
 def dashboard_view(request):
-    projects = list(accessible_projects(request.user).filter(status=Project.Status.ACTIVE))
+    projects = list(
+        accessible_projects(request.user)
+        .filter(status=Project.Status.ACTIVE)
+        .order_by("-created_at")
+    )
     coverages = []
     for project in projects:
         latest = project.audit_runs.first()
         project.evidence_coverage = latest.evidence_coverage if latest else None
         project.profile = project.default_profile
+        project.can_download = _latest_downloadable_artifact(request.user, project) is not None
         if latest:
             coverages.append(latest.evidence_coverage)
     project_ids = [project.pk for project in projects]
