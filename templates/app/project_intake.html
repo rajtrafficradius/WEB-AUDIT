@@ -13,7 +13,14 @@
       <h1>{% if is_create %}Start with the essentials.{% else %}Refine the project brief.{% endif %}</h1>
       <p class="lede">{% if is_create %}The AI engine turns these inputs into an evidence-bounded audit brief. Everything else can be added later.{% else %}Update targeting, evidence and brand rules when verified information becomes available.{% endif %} Nothing you enter here is published anywhere; it only shapes what the audit looks at and what the studio is allowed to claim.</p>
     </div>
-    <div class="page-heading__actions"><a class="button button--quiet" href="{{ project_url|default:dashboard_url }}">Cancel</a></div>
+    <div class="page-heading__actions">
+      {% url 'semrush-status' as semrush_status_url %}
+      <span class="semrush-status" data-semrush-status data-status-url="{{ semrush_status_url }}" data-state="checking" role="status" aria-live="polite" title="Live SEMrush data status">
+        <span class="semrush-status__dot" data-status-dot data-state="checking" aria-hidden="true"></span>
+        <span data-status-text>Checking SEMrush…</span>
+      </span>
+      <a class="button button--quiet" href="{{ project_url|default:dashboard_url }}">Cancel</a>
+    </div>
   </header>
   {% if form.errors %}
   <section class="error-summary surface reveal" style="--reveal-index: 1" role="alert" aria-labelledby="form-errors" tabindex="-1"><h2 id="form-errors">Check the highlighted fields</h2><p>Your information is still here. Correct the highlighted fields and save again.</p></section>

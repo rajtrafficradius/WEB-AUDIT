@@ -47,7 +47,7 @@ from .domain.constants import (
     StageStatus,
     UserRole,
 )
-from .domain.crypto import encrypt_credentials
+from .domain.crypto import decrypt_credentials, encrypt_credentials
 from .domain.models import (
     ActionItem,
     Approval,
@@ -778,6 +778,21 @@ def _managed_credential_rows():
     return rows
 
 
+def _credentials_context(form) -> dict:
+    from integrations.market_data import studio_units_spent
+    from integrations.semrush_status import check_status
+
+    status = check_status()
+    return {
+        "form": form,
+        "credentials": _managed_credential_rows(),
+        "semrush_status": status,
+        "units_used": studio_units_spent(),
+        "units_remaining": status.get("units_remaining"),
+        "status_url": reverse("semrush-status"),
+    }
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def credentials_view(request):
@@ -788,12 +803,7 @@ def credentials_view(request):
     if request.method == "POST":
         if not form.is_valid():
             messages.error(request, "The key was not saved. Correct the highlighted fields.")
-            return render(
-                request,
-                "app/credentials.html",
-                {"form": form, "credentials": _managed_credential_rows()},
-                status=400,
-            )
+            return render(request, "app/credentials.html", _credentials_context(form), status=400)
         api_key = form.cleaned_data["api_key"]
         provider = form.cleaned_data["provider"]
         try:
@@ -804,12 +814,7 @@ def credentials_view(request):
                 "Credential encryption is not configured on this deployment, so the key was not "
                 "stored. Set CREDENTIAL_ENCRYPTION_KEYS and CREDENTIAL_ENCRYPTION_ACTIVE_KEY.",
             )
-            return render(
-                request,
-                "app/credentials.html",
-                {"form": form, "credentials": _managed_credential_rows()},
-                status=503,
-            )
+            return render(request, "app/credentials.html", _credentials_context(form), status=503)
         ManagedCredential.objects.update_or_create(
             provider=provider,
             defaults={
@@ -820,6 +825,10 @@ def credentials_view(request):
                 "updated_by": request.user,
             },
         )
+        if provider == "semrush":
+            from integrations.semrush_status import invalidate_status_cache
+
+            invalidate_status_cache(api_key)
         record_event(
             event_type="managed_credential.stored",
             actor=request.user,
@@ -835,9 +844,46 @@ def credentials_view(request):
     return render(
         request,
         "app/credentials.html",
-        {"form": ManagedCredentialForm(initial={"provider": "semrush"}),
-         "credentials": _managed_credential_rows()},
+        _credentials_context(ManagedCredentialForm(initial={"provider": "semrush"})),
     )
+
+
+@login_required
+@require_POST
+def credential_reveal_view(request, credential_id):
+    """Return a stored key so an admin can verify what was pasted.
+
+    Deliberately admin-only and audit-logged: revealing a secret is a
+    privileged action, not a passive page render.
+    """
+
+    _require_agency_admin(request.user)
+    credential = get_object_or_404(ManagedCredential, pk=credential_id)
+    if not credential.encrypted_credentials:
+        return JsonResponse({"error": "No key is stored."}, status=404)
+    try:
+        secret = decrypt_credentials(
+            credential.encrypted_credentials, credential.encryption_key_id
+        ).get("api_key", "")
+    except (ImproperlyConfigured, ValueError):
+        return JsonResponse({"error": "The stored key could not be decrypted."}, status=503)
+    record_event(
+        event_type="managed_credential.revealed",
+        actor=request.user,
+        request=request,
+        payload={"provider": credential.provider},
+    )
+    return JsonResponse({"api_key": secret})
+
+
+@login_required
+@require_GET
+def semrush_status_view(request):
+    """Live SEMrush status + unit balance for the status indicator and admin page."""
+
+    from integrations.semrush_status import check_status
+
+    return JsonResponse(check_status())
 
 
 @login_required

@@ -16,6 +16,12 @@ urlpatterns = [
     path("projects/", views.dashboard_view, name="project-list"),
     path("projects/new/", views.project_create_view, name="project-create"),
     path("settings/credentials/", views.credentials_view, name="credentials"),
+    path("settings/semrush/status/", views.semrush_status_view, name="semrush-status"),
+    path(
+        "settings/credentials/<uuid:credential_id>/reveal/",
+        views.credential_reveal_view,
+        name="credential-reveal",
+    ),
     path(
         "settings/credentials/<uuid:credential_id>/remove/",
         views.credential_remove_view,

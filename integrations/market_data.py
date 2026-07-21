@@ -45,6 +45,45 @@ logger = logging.getLogger(__name__)
 SOURCE_TYPE = "semrush"
 CACHE_NAMESPACE = "semrush:v1"
 MAX_CACHE_DAYS = 30
+
+
+def _decrypt_managed_or_env() -> str:
+    managed = (
+        ManagedCredential.objects.filter(provider="semrush", is_active=True)
+        .exclude(encrypted_credentials="")
+        .first()
+    )
+    if managed is not None:
+        try:
+            credentials = decrypt_credentials(
+                managed.encrypted_credentials, managed.encryption_key_id
+            )
+        except (ImproperlyConfigured, ValueError):
+            logger.warning("Organisation SEMrush credential could not be decrypted.")
+        else:
+            stored = str(credentials.get("api_key") or "").strip()
+            if stored:
+                return stored
+    return str(getattr(settings, "SEMRUSH_API_KEY", "") or "").strip()
+
+
+def resolve_org_api_key() -> str:
+    """The SEMrush key that applies to every project: organisation, then env."""
+
+    return _decrypt_managed_or_env()
+
+
+def studio_units_spent() -> int:
+    """Total SEMrush units this studio has recorded spending across all runs."""
+
+    total = 0
+    for snapshot in SourceSnapshot.objects.filter(source_type=SOURCE_TYPE).only("metadata"):
+        metadata = snapshot.metadata if isinstance(snapshot.metadata, dict) else {}
+        try:
+            total += int(metadata.get("units_spent", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    return total
 KEYWORD_PERSIST_CAP = 500
 REFDOMAIN_PERSIST_CAP = 500
 
@@ -252,22 +291,7 @@ class MarketDataService:
             )
             if key:
                 return key
-
-        managed = (
-            ManagedCredential.objects.filter(provider="semrush", is_active=True)
-            .exclude(encrypted_credentials="")
-            .first()
-        )
-        if managed is not None:
-            key = cls._decrypt_key(
-                managed.encrypted_credentials,
-                managed.encryption_key_id,
-                context="organisation credential",
-            )
-            if key:
-                return key
-
-        return str(getattr(settings, "SEMRUSH_API_KEY", "") or "")
+        return resolve_org_api_key()
 
     @classmethod
     def is_configured(cls, run: AuditRun) -> bool:

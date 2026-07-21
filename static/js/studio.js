@@ -53,6 +53,66 @@
     });
   });
 
+  function csrfToken() {
+    var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  document.querySelectorAll("[data-semrush-status]").forEach(function (chip) {
+    var url = chip.getAttribute("data-status-url");
+    if (!url) return;
+    var dot = chip.querySelector("[data-status-dot]");
+    var text = chip.querySelector("[data-status-text]");
+    function apply(state, label, title) {
+      chip.setAttribute("data-state", state);
+      if (title) chip.title = title;
+      if (dot) dot.setAttribute("data-state", state);
+      if (text) text.textContent = label;
+    }
+    apply("checking", "Checking SEMrush…", "");
+    window.fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+      .then(function (data) {
+        apply(data.status || "unavailable", data.label || "SEMrush", data.message || "");
+      })
+      .catch(function () { apply("unavailable", "SEMrush status unknown", ""); });
+  });
+
+  document.querySelectorAll("[data-reveal-toggle]").forEach(function (button) {
+    var targetId = button.getAttribute("aria-controls");
+    var target = targetId ? document.getElementById(targetId) : null;
+    var url = button.getAttribute("data-reveal-url");
+    if (!target || !url) return;
+    var revealed = false;
+    var masked = target.textContent;
+    button.addEventListener("click", function () {
+      if (revealed) {
+        target.textContent = masked;
+        revealed = false;
+        button.setAttribute("aria-pressed", "false");
+        button.setAttribute("aria-label", "Reveal key");
+        return;
+      }
+      button.disabled = true;
+      window.fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrfToken(), Accept: "application/json" },
+      })
+        .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+        .then(function (data) {
+          if (data.api_key) {
+            target.textContent = data.api_key;
+            revealed = true;
+            button.setAttribute("aria-pressed", "true");
+            button.setAttribute("aria-label", "Hide key");
+          }
+        })
+        .catch(function () { target.textContent = "Could not reveal the key."; })
+        .finally(function () { button.disabled = false; });
+    });
+  });
+
   document.querySelectorAll("[data-audit-progress]").forEach(function (card) {
     if (card.getAttribute("data-active") !== "true") return;
     var url = card.getAttribute("data-progress-url");
