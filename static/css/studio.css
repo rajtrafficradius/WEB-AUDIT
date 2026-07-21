@@ -106,21 +106,30 @@
   /* --- Radius scale --- */
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
+  --radius-card: 0.75rem;
   --radius-lg: 0.875rem;
   --radius-xl: 1.125rem;
   --radius-pill: 999px;
 
-  /* --- Layered shadows from charcoal at low alpha --- */
-  --shadow-xs: 0 1px 1px color-mix(in oklch, var(--ink-deep) 5%, transparent);
+  /* --- Layered shadows from charcoal at low alpha: soft, multi-stop elevation --- */
+  --shadow-xs:
+    0 1px 1px color-mix(in oklch, var(--ink-deep) 4%, transparent),
+    0 1px 2px color-mix(in oklch, var(--ink-deep) 3%, transparent);
   --shadow-sm:
-    0 1px 2px color-mix(in oklch, var(--ink-deep) 5%, transparent),
-    0 2px 6px color-mix(in oklch, var(--ink-deep) 4%, transparent);
+    0 1px 1.5px color-mix(in oklch, var(--ink-deep) 4%, transparent),
+    0 2px 4px color-mix(in oklch, var(--ink-deep) 4%, transparent),
+    0 5px 12px color-mix(in oklch, var(--ink-deep) 4%, transparent);
   --shadow-md:
-    0 1px 2px color-mix(in oklch, var(--ink-deep) 5%, transparent),
-    0 6px 16px color-mix(in oklch, var(--ink-deep) 6%, transparent);
+    0 1px 2px color-mix(in oklch, var(--ink-deep) 4%, transparent),
+    0 4px 8px color-mix(in oklch, var(--ink-deep) 5%, transparent),
+    0 12px 26px color-mix(in oklch, var(--ink-deep) 6%, transparent);
   --shadow-float:
-    0 2px 4px color-mix(in oklch, var(--ink-deep) 5%, transparent),
-    0 16px 40px color-mix(in oklch, var(--ink-deep) 10%, transparent);
+    0 2px 4px color-mix(in oklch, var(--ink-deep) 4%, transparent),
+    0 8px 18px color-mix(in oklch, var(--ink-deep) 7%, transparent),
+    0 24px 50px color-mix(in oklch, var(--ink-deep) 11%, transparent);
+
+  /* --- Premium sheen: a barely-there inner top highlight for elevated surfaces --- */
+  --sheen: inset 0 1px 0 color-mix(in oklch, white 55%, transparent);
 
   /* --- Motion --- */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -302,13 +311,15 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--surface);
+  background: color-mix(in oklch, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--rule);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
 }
 .masthead__inner {
   width: min(100% - 2.5rem, var(--container));
-  min-height: 4.25rem;
+  min-height: 4.5rem;
   margin-inline: auto;
   display: flex;
   align-items: center;
@@ -644,9 +655,9 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
 .editorial-panel {
   padding: clamp(1.25rem, 1rem + 1vw, 1.75rem);
   border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--sheen);
 }
 .surface--flush { padding: 0; overflow: hidden; }
 .surface--sunken { background: var(--surface-sunken); box-shadow: none; }
@@ -718,7 +729,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs), inset 0 1px 0 color-mix(in oklch, white 20%, transparent);
   transition:
     background-color var(--speed) var(--ease),
     border-color var(--speed) var(--ease),
@@ -730,7 +741,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   color: var(--surface);
   background: var(--blue-dark);
   border-color: var(--blue-dark);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), inset 0 1px 0 color-mix(in oklch, white 24%, transparent);
   transform: translateY(-1px);
 }
 .button:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
@@ -878,12 +889,21 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   gap: var(--space-2xs);
   padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: var(--shadow-xs);
-  transition: box-shadow var(--speed) var(--ease), border-color var(--speed) var(--ease);
+  box-shadow: var(--shadow-xs), var(--sheen);
+  transition:
+    box-shadow var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    transform var(--speed-fast) var(--ease);
 }
-.stat:hover { border-color: var(--rule-strong); box-shadow: var(--shadow-sm); }
+.stat:hover {
+  border-color: var(--rule-strong);
+  box-shadow:
+    inset 0.18rem 0 0 color-mix(in oklch, var(--blue) 55%, transparent),
+    var(--shadow-sm), var(--sheen);
+  transform: translateY(-2px);
+}
 .stat__label {
   color: var(--ink-soft);
   font-size: 0.7rem;
@@ -1184,7 +1204,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
 }
 .data-table th,
 .data-table td {
-  padding: 0.8rem var(--space-lg);
+  padding: 0.85rem var(--space-lg);
   border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
@@ -1196,6 +1216,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   color: var(--ink-soft);
   background: var(--surface-sunken);
   border-bottom: 1px solid var(--rule-strong);
+  box-shadow: 0 1px 0 var(--rule), 0 6px 10px -8px color-mix(in oklch, var(--ink-deep) 22%, transparent);
   font-size: 0.665rem;
   font-weight: 750;
   letter-spacing: 0.11em;
@@ -1205,7 +1226,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
 .data-table tbody th[scope="row"] { color: var(--ink-deep); font-weight: 650; }
 .data-table tbody tr:last-child td { border-bottom: 0; }
 .data-table tbody tr { transition: background-color var(--speed-fast) var(--ease); }
-.data-table tbody tr:hover { background: var(--blue-tint); }
+.data-table tbody tr:hover { background: color-mix(in oklch, var(--blue) 6%, var(--surface)); }
 .data-table td strong { color: var(--ink-deep); font-weight: 650; }
 .data-table td[data-label="URL"] { max-width: 26rem; overflow-wrap: anywhere; }
 .data-table .num,
@@ -1503,6 +1524,58 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
 .qa-row__copy { display: grid; gap: var(--space-3xs); }
 .qa-row__copy small { color: var(--ink-faint); }
 
+/* --- Report downloads: a stack of retrievable artifact cards --- */
+.download-list {
+  display: grid;
+  gap: var(--space-sm);
+}
+.download-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm), var(--sheen);
+  transition:
+    border-color var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease),
+    transform var(--speed-fast) var(--ease);
+}
+.download-card:hover {
+  border-color: var(--rule-strong);
+  box-shadow: var(--shadow-md), var(--sheen);
+  transform: translateY(-2px);
+}
+.download-card__body {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.download-card__body h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.download-card__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  color: var(--blue-deep);
+  background: color-mix(in oklch, var(--blue) 12%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--blue) 22%, transparent);
+}
+.download-card__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
 /* ==========================================================================
    15  EMPTY STATES & ERROR PAGES
    ========================================================================== */
@@ -1530,7 +1603,7 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   color: var(--blue-deep);
   background: var(--surface);
   font-size: 1.25rem;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs), var(--sheen);
 }
 .empty-state__number {
   color: var(--blue-deep);
@@ -1736,6 +1809,15 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
   .message-region { inset: auto var(--space-xs) var(--space-xs); width: auto; }
 }
 
+@media (max-width: 40rem) {
+  .download-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+  .download-card .button { width: 100%; }
+}
+
 /* ==========================================================================
    18  FORCED COLORS, REDUCED MOTION, PRINT
    ========================================================================== */
@@ -1764,7 +1846,9 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
     animation-iteration-count: 1 !important;
   }
   .reveal { animation: none; opacity: 1; transform: none; }
-  .button:hover { transform: none; }
+  .button:hover,
+  .stat:hover,
+  .download-card:hover { transform: none; }
 }
 
 @media print {

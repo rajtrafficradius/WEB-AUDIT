@@ -35,6 +35,11 @@ urlpatterns = [
         name="project-package-build",
     ),
     path(
+        "projects/<uuid:project_id>/packages/<uuid:artifact_id>/download/",
+        views.package_download_view,
+        name="package-download",
+    ),
+    path(
         "projects/<uuid:project_id>/intake/",
         views.project_intake_view,
         name="project-intake",

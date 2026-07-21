@@ -77,6 +77,25 @@ def test_balance_parses_the_plain_integer_body():
     ) == 49330
 
 
+def test_balance_parses_the_modern_json_body():
+    # The live endpoint now answers in JSON; a valid account must still read.
+    transport = FakeTransport(body=b'{"units": 50000}')
+    assert semrush_status.fetch_unit_balance(
+        API_KEY, transport=transport, guard=FakeGuard()
+    ) == 50000
+
+
+def test_balance_returns_none_on_json_error_body():
+    transport = FakeTransport(
+        status_code=400, body=b'{"errors":[{"field":"key","message":"invalid api key"}]}'
+    )
+    balance, reason = semrush_status.probe_balance(
+        API_KEY, transport=transport, guard=FakeGuard()
+    )
+    assert balance is None
+    assert reason == "rejected"
+
+
 def test_balance_returns_none_on_error_body():
     transport = FakeTransport(body=b"ERROR :: WRONG KEY")
     assert semrush_status.fetch_unit_balance(

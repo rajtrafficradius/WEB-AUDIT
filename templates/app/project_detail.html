@@ -164,7 +164,39 @@
     </dl>
   </section>
 
-  <section class="section reveal" style="--reveal-index: 7" aria-labelledby="workflow-heading">
+  <section class="section reveal" style="--reveal-index: 7" aria-labelledby="downloads-heading">
+    <div class="section-heading">
+      <div class="section-heading__copy">
+        <span class="section-index">Deliverables</span>
+        <h2 id="downloads-heading">Report downloads</h2>
+        <p class="fine-print">Every completed audit is saved as a downloadable package. Older reports stay here so you can re-download any run's results at any time.</p>
+      </div>
+    </div>
+    {% if past_packages %}
+    <div class="download-list">
+      {% for pkg in past_packages %}
+      <article class="download-card surface">
+        <div class="download-card__body">
+          <span class="download-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h11l5 5v13H4Z"/><path d="M15 3v5h5"/><path d="M12 12v5"/><path d="m9.5 14.5 2.5 2.5 2.5-2.5"/></svg></span>
+          <div>
+            <h3>{{ pkg.package_name }}</h3>
+            <span class="fine-print">{{ pkg.created_at|date:"j M Y, H:i" }} · run {{ pkg.run_reference }}{% if pkg.file_count %} · {{ pkg.file_count }} files{% endif %}{% if pkg.size_mb %} · {{ pkg.size_mb }} MB{% endif %}</span>
+          </div>
+        </div>
+        <a class="button button--secondary" href="{% url 'package-download' project.pk pkg.id %}">Download</a>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state surface">
+      <span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h11l5 5v13H4Z"/><path d="M15 3v5h5"/><path d="M12 11v6"/><path d="m9.5 14.5 2.5 2.5 2.5-2.5"/></svg></span>
+      <h3 class="empty-state__title">No report packages yet</h3>
+      <p class="empty-state__body">When an audit finishes, its full deliverable package is saved here and every finished run stays available to download.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="section reveal" style="--reveal-index: 8" aria-labelledby="workflow-heading">
     <div class="section-heading__copy"><span class="section-index">Governed workflow</span><h2 id="workflow-heading">Project progression</h2><p class="fine-print">Each stage must finish before the next begins, so a package can never be built from partial or unapproved work.</p></div>
     {% if workflow_stages %}<ol class="stage-rail">{% for stage in workflow_stages %}<li class="stage{% if stage.complete %} stage--complete{% endif %}{% if stage.current %} stage--current{% endif %}"{% if stage.current %} aria-current="step"{% endif %}><strong class="num">{{ stage.number|default:forloop.counter|stringformat:"02d" }}</strong>{{ stage.label }}</li>{% endfor %}</ol>{% else %}<div class="empty-state surface"><span class="empty-state__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><h3 class="empty-state__title">The audit run is being prepared</h3><p class="empty-state__body">Workflow stages appear once the run has been queued and a worker has picked it up.</p></div>{% endif %}
   </section>

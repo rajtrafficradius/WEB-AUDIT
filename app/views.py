@@ -883,7 +883,8 @@ def semrush_status_view(request):
 
     from integrations.semrush_status import check_status
 
-    return JsonResponse(check_status())
+    refresh = request.GET.get("fresh") == "1"
+    return JsonResponse(check_status(refresh=refresh))
 
 
 @login_required
@@ -1440,6 +1441,7 @@ def project_detail_view(request, project_id):
         and packaging_stage is not None
         and packaging_stage.status == StageStatus.FAILED
     )
+    context["past_packages"] = project_packages(request.user, project)
     return render(request, "app/project_detail.html", context)
 
 
@@ -2688,6 +2690,76 @@ def audit_results_download_view(request, project_id):
         stream,
         as_attachment=True,
         filename=filename,
+        content_type=artifact.media_type or "application/octet-stream",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def project_packages(user, project: Project) -> list[SimpleNamespace]:
+    """Every downloadable deliverable package for a project, newest first.
+
+    Packages persist as content-addressed Artifact rows, so this is the full
+    history of results the user is allowed to download and re-download.
+    """
+
+    artifacts = (
+        Artifact.objects.select_related("run")
+        .filter(run__project=project, artifact_type__in=("package", "final_package"))
+        .order_by("-created_at")
+    )
+    rows: list[SimpleNamespace] = []
+    for artifact in artifacts:
+        if not can_download_artifact(user, artifact) or not artifact_bytes_available(artifact):
+            continue
+        meta = artifact.metadata if isinstance(artifact.metadata, dict) else {}
+        rows.append(
+            SimpleNamespace(
+                id=artifact.pk,
+                title=artifact.title,
+                package_name=meta.get("package_name") or artifact.title,
+                created_at=artifact.created_at,
+                size_mb=round((artifact.size_bytes or 0) / (1024 * 1024), 1),
+                file_count=meta.get("file_count"),
+                run_reference=str(artifact.run_id)[:8],
+            )
+        )
+    return rows
+
+
+@login_required
+@require_GET
+def package_download_view(request, project_id, artifact_id):
+    """Download any past deliverable package for a project, integrity-verified."""
+
+    project = _project_for_user(request, project_id)
+    artifact = get_object_or_404(
+        Artifact.objects.select_related("run"),
+        pk=artifact_id,
+        run__project=project,
+        artifact_type__in=("package", "final_package"),
+    )
+    if not can_download_artifact(request.user, artifact):
+        raise PermissionDenied("This package is not available for download.")
+    try:
+        stream = open_verified_artifact(artifact)
+    except ArtifactIntegrityError:
+        messages.error(request, "Artifact integrity verification failed; download was blocked.")
+        return redirect("project-detail", project_id=project.pk)
+    record_event(
+        event_type="audit.package_downloaded",
+        actor=request.user,
+        request=request,
+        run=artifact.run,
+        object_instance=artifact,
+        payload={"artifact_id": str(artifact.pk)},
+    )
+    meta = artifact.metadata if isinstance(artifact.metadata, dict) else {}
+    stem = slugify(meta.get("package_name") or artifact.title) or f"{project.slug}-audit-package"
+    response = FileResponse(
+        stream,
+        as_attachment=True,
+        filename=f"{stem}.{(artifact.format or 'zip').casefold()}",
         content_type=artifact.media_type or "application/octet-stream",
     )
     response["X-Content-Type-Options"] = "nosniff"
