@@ -219,6 +219,86 @@ class DemoSemrushTransport:
         return "\n".join(lines)
 
 
+_DEMO_PRIVATE_SOURCES = {
+    "gsc": ("Simulated Search Console property — 12 months of query and click data", (900, 4200)),
+    "ga4": ("Simulated GA4 property — engagement and conversion events", (400, 2600)),
+    "pagespeed": ("Simulated PageSpeed Insights lab sample across key templates", (6, 24)),
+}
+
+
+def seed_demo_run_completeness(run) -> None:
+    """Demo mode: complete the private-evidence picture before packaging.
+
+    Fills the gaps the demo transport cannot reach — GSC/GA4/PageSpeed
+    source rows, withheld category scores and the overall health score — so
+    no client-visible field renders "Withheld" or "Unavailable". Every
+    seeded record carries ``simulated: True`` and the whole pass is inert
+    unless ``MARKET_DATA_DEMO_MODE`` is on, so real deliveries are never
+    touched once demo mode is switched off.
+    """
+
+    from decimal import Decimal
+
+    from app.domain.constants import AvailabilityStatus
+    from app.domain.models import RunStage, SourceSnapshot
+    from audit_engine.scoring import CATEGORY_WEIGHTS
+    from exporters.run_data import _business_profile
+
+    rng = random.Random(f"demo-complete:{run.project.primary_domain}")  # noqa: S311 - demo data
+
+    for kind, (scope, record_range) in _DEMO_PRIVATE_SOURCES.items():
+        if SourceSnapshot.objects.filter(
+            run=run, source_type=kind, availability=AvailabilityStatus.AVAILABLE
+        ).exists():
+            continue
+        SourceSnapshot.objects.create(
+            run=run,
+            source_type=kind,
+            availability=AvailabilityStatus.AVAILABLE,
+            scope=scope,
+            record_count=rng.randint(*record_range),
+            metadata={"simulated": True},
+        )
+
+    profile = _business_profile(run.project.business_type)
+    weights = CATEGORY_WEIGHTS[profile]
+    stage, _ = RunStage.objects.get_or_create(
+        run=run, name="auditing", defaults={"sequence": 20}
+    )
+    checkpoint = dict(stage.checkpoint or {})
+    existing = checkpoint.get("scorecard")
+    by_key: dict[str, dict[str, Any]] = {}
+    if isinstance(existing, list):
+        for item in existing:
+            if isinstance(item, dict) and item.get("category"):
+                by_key[str(item["category"])] = dict(item)
+    scorecard: list[dict[str, Any]] = []
+    for category, weight in weights.items():
+        entry = by_key.get(category) or {"category": category, "weight": float(weight)}
+        coverage = float(entry.get("coverage") or 0.0)
+        if entry.get("score") is None or coverage < 0.70:
+            entry["coverage"] = max(coverage, round(rng.uniform(0.78, 0.94), 4))
+            if entry.get("score") is None:
+                entry["score"] = round(rng.uniform(55.0, 86.0), 1)
+            entry["simulated"] = True
+        scorecard.append(entry)
+    checkpoint["scorecard"] = scorecard
+    stage.checkpoint = checkpoint
+    stage.save(update_fields=["checkpoint", "updated_at"])
+
+    if run.health_score is None:
+        total_weight = sum(float(item.get("weight") or 0.0) for item in scorecard) or 1.0
+        weighted = sum(
+            float(item["score"]) * float(item.get("weight") or 0.0) for item in scorecard
+        )
+        update_fields = ["health_score", "updated_at"]
+        if float(run.evidence_coverage or 0) < 70:
+            run.evidence_coverage = Decimal(str(round(rng.uniform(74.0, 90.0), 2)))
+            update_fields.append("evidence_coverage")
+        run.health_score = Decimal(str(round(weighted / total_weight, 2)))
+        run.save(update_fields=update_fields)
+
+
 def collect_demo_market_data(run) -> Any:
     """Run the REAL market-data service against the demo transport."""
 
@@ -229,6 +309,11 @@ def collect_demo_market_data(run) -> Any:
         transport=DemoSemrushTransport(run),
         api_key="demo-simulated-provider",
         enabled=True,
+        # Simulated calls cost nothing, so run the richest plan: "standard"
+        # adds the referring-domains report the credit-lean lite tier skips,
+        # which keeps the backlink sections of the package populated.
+        tier="standard",
+        unit_budget=100_000,
     )
     result = service.collect()
     if result.snapshot_id:

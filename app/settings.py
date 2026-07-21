@@ -158,7 +158,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-MEDIA_ROOT = BASE_DIR / ".local-media"
+# Overridable so Windows dev machines can use a short path — the nested
+# artifact tree exceeds the legacy 260-character path limit otherwise.
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT") or (BASE_DIR / ".local-media"))
 MEDIA_URL = "/media/"
 
 OBJECT_STORAGE_ENABLED = env_bool(

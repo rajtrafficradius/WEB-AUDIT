@@ -73,7 +73,9 @@
     window.fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } })
       .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
       .then(function (data) {
-        apply(data.status || "unavailable", data.label || "SEMrush", data.message || "");
+        var state = data.status || "unavailable";
+        if (state === "working" && data.demo) state = "demo";
+        apply(state, data.label || "SEMrush", data.message || "");
       })
       .catch(function () { apply("unavailable", "SEMrush status unknown", ""); });
   });

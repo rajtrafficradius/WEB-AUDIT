@@ -8,6 +8,7 @@ then persists one immutable ZIP artifact plus its manifest and QA records.
 from __future__ import annotations
 
 import csv
+import logging
 import re
 import shutil
 import tempfile
@@ -40,6 +41,8 @@ from .manifest import (
 from .package_builder import _csv as write_csv
 from .package_builder import _json as write_json
 from .pdf_reports import PDFReportBuilder, write_qa_json
+
+logger = logging.getLogger(__name__)
 
 ProgressHook = Callable[[str], None] | None
 
@@ -588,6 +591,16 @@ def build_package_for_run(
 ) -> tuple[Artifact, PackageManifestModel]:
     """Render, verify, and persist the full deliverable package for one run."""
     from exporters.run_data import compile_run_data
+
+    try:
+        from integrations.demo_market import demo_mode_enabled, seed_demo_run_completeness
+
+        if demo_mode_enabled():
+            # Demo presentations must never show "Withheld"/"Unavailable":
+            # simulate the private sources (flagged) before compiling.
+            seed_demo_run_completeness(run)
+    except Exception:  # noqa: BLE001 - demo seeding must never block a build
+        logger.exception("Demo completeness seeding failed", extra={"run": str(run.pk)})
 
     _notify(progress, "Compiling canonical run data")
     data = compile_run_data(run)

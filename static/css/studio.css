@@ -461,12 +461,15 @@ h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 650; letter
 
 /* --- SEMrush live status chip --- */
 .semrush-status { display:inline-flex; align-items:center; gap:0.5rem; padding:0.4rem 0.75rem; border:1px solid var(--rule); border-radius:var(--radius-pill); background:var(--surface-sunken); color:var(--ink-soft); font-size:0.8rem; font-weight:600; white-space:nowrap; }
-.semrush-status__dot { width:0.6rem; height:0.6rem; flex:none; border-radius:var(--radius-pill); background:var(--ink-faint); }
-.semrush-status__dot[data-state="working"] { background:var(--amber); animation:semrush-glow 1.6s ease-in-out infinite; }
-.semrush-status__dot[data-state="checking"] { background:var(--blue); animation:semrush-glow 1.2s ease-in-out infinite; }
+/* Green = live SEMrush data verified against the provider.
+   Amber = demo simulation standing in while no key works. */
+.semrush-status__dot { --glow: var(--amber); width:0.6rem; height:0.6rem; flex:none; border-radius:var(--radius-pill); background:var(--ink-faint); }
+.semrush-status__dot[data-state="working"] { --glow: var(--green); background:var(--green); animation:semrush-glow 1.6s ease-in-out infinite; }
+.semrush-status__dot[data-state="demo"] { --glow: var(--amber); background:var(--amber); animation:semrush-glow 1.6s ease-in-out infinite; }
+.semrush-status__dot[data-state="checking"] { --glow: var(--blue); background:var(--blue); animation:semrush-glow 1.2s ease-in-out infinite; }
 .semrush-status__dot[data-state="unavailable"] { background:var(--red); }
 .semrush-status__dot[data-state="no_key"] { background:var(--ink-faint); }
-@keyframes semrush-glow { 0%,100% { box-shadow:0 0 0 0.12rem color-mix(in oklch, var(--amber) 42%, transparent); } 50% { box-shadow:0 0 0 0.42rem color-mix(in oklch, var(--amber) 8%, transparent); } }
+@keyframes semrush-glow { 0%,100% { box-shadow:0 0 0 0.12rem color-mix(in oklch, var(--glow) 42%, transparent); } 50% { box-shadow:0 0 0 0.42rem color-mix(in oklch, var(--glow) 8%, transparent); } }
 
 /* --- Credential reveal control --- */
 .key-reveal { display:inline-flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }

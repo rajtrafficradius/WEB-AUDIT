@@ -162,3 +162,42 @@ class DemoStatusTests(TestCase):
     def test_status_stays_honest_with_demo_mode_off(self) -> None:
         payload = check_status(api_key="")
         assert payload["status"] == "no_key"
+
+
+class DemoCompletenessTests(DemoMarketBase):
+    def test_seed_fills_every_withheld_surface(self) -> None:
+        from exporters.run_data import compile_run_data
+        from integrations.demo_market import seed_demo_run_completeness
+
+        collect_demo_market_data(self.run)
+        seed_demo_run_completeness(self.run)
+        data = compile_run_data(self.run, enrich=False)
+
+        assert data["run"]["overall_score"] is not None
+        assert all(row["score"] is not None for row in data["categories"])
+        assert all(row["status"] == "available" for row in data["categories"])
+        assert data["market"]["status"] == "available"
+        assert data["keywords"]
+        assert data["competitors"]
+        assert data["backlinks"]["status"] == "available"
+        assert all(
+            row["baseline"] != "Unavailable" for row in data["measurement_plan"]
+        )
+        for kind in ("gsc", "ga4", "pagespeed"):
+            snapshot = SourceSnapshot.objects.get(
+                run=self.run, source_type=kind, availability=AvailabilityStatus.AVAILABLE
+            )
+            assert snapshot.metadata.get("simulated") is True
+
+    def test_seed_is_idempotent_and_respects_real_scores(self) -> None:
+        from integrations.demo_market import seed_demo_run_completeness
+
+        seed_demo_run_completeness(self.run)
+        first_score = self.run.health_score
+        seed_demo_run_completeness(self.run)
+        self.run.refresh_from_db()
+
+        assert self.run.health_score == first_score
+        assert (
+            SourceSnapshot.objects.filter(run=self.run, source_type="gsc").count() == 1
+        )
