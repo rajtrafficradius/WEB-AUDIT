@@ -177,7 +177,15 @@ def _write_csvs(data: dict[str, Any], root: Path) -> None:
     write_csv(
         tree.package_path(root, tree.AVAILABILITY_MATRIX_CSV),
         ["id", "label", "kind", "status", "captured_at", "scope", "coverage", "unavailable_reason"],
-        data.get("sources", []),
+        [
+            # An available source has no unavailable_reason; spell that out so
+            # the CSV layer's None→"Unavailable" fallback cannot make a healthy
+            # source row read as missing data.
+            {**row, "unavailable_reason": row.get("unavailable_reason") or "Not applicable"}
+            if str(row.get("status")) == "available"
+            else row
+            for row in data.get("sources", [])
+        ],
     )
     write_csv(
         tree.package_path(root, tree.GENERATION_LEDGER_CSV),
