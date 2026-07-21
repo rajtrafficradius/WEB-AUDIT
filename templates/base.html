@@ -44,6 +44,10 @@
       <nav class="primary-nav" id="primary-navigation" aria-label="Primary navigation" data-primary-nav>
         <a href="{{ dashboard_url|default:'/' }}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Portfolio</a>
         <a href="{{ project_list_url|default:dashboard_url|default:'/' }}" {% if request.resolver_match.url_name == 'project-list' %}aria-current="page"{% endif %}>Projects</a>
+        {% if request.user.is_authenticated and request.user.is_agency_admin %}
+        {% url 'credentials' as credentials_url %}
+        <a href="{{ credentials_url|default:'/' }}" {% if request.resolver_match.url_name == 'credentials' %}aria-current="page"{% endif %}>Credentials</a>
+        {% endif %}
         {% if request.user.is_authenticated %}
           <span class="account-label" title="Signed in user">
             <span class="account-label__initial" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|default:'Studio user'|slice:':1'|upper }}</span>

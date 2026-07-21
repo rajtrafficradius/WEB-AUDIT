@@ -58,6 +58,7 @@ from .domain.models import (
     Connection,
     ContentDraft,
     Finding,
+    ManagedCredential,
     PackageManifest,
     Project,
     QAResult,
@@ -724,6 +725,137 @@ def _generate_ai_intake_brief(*, project: Project, actor=None, request=None) -> 
             },
         )
         return "unavailable"
+
+def _require_agency_admin(user) -> None:
+    if not (user.is_superuser or user.role == UserRole.AGENCY_ADMIN):
+        raise PermissionDenied("Agency administrator permission is required.")
+
+
+class ManagedCredentialForm(forms.Form):
+    """Set the organisation-wide API key that every project uses by default."""
+
+    provider = forms.ChoiceField(choices=Connection.Provider.choices, initial="semrush")
+    api_key = forms.CharField(
+        max_length=512,
+        strip=True,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "aria-describedby": "managed-key-help",
+            },
+        ),
+    )
+
+    def clean_api_key(self) -> str:
+        value = str(self.cleaned_data.get("api_key") or "").strip()
+        if len(value) < 8 or any(char.isspace() for char in value):
+            raise forms.ValidationError(
+                "That does not look like an API key. Paste it exactly as the provider issued it."
+            )
+        return value
+
+
+def _managed_credential_rows():
+    rows = []
+    for credential in ManagedCredential.objects.all():
+        rows.append(
+            SimpleNamespace(
+                pk=credential.pk,
+                provider=credential.provider,
+                provider_display=credential.get_provider_display(),
+                hint=credential.credential_hint,
+                is_active=credential.is_active,
+                updated_at=credential.updated_at,
+                updated_by=(
+                    credential.updated_by.get_full_name() or credential.updated_by.username
+                    if credential.updated_by
+                    else "System"
+                ),
+            )
+        )
+    return rows
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def credentials_view(request):
+    """Organisation-wide provider credentials, applied to every project by default."""
+
+    _require_agency_admin(request.user)
+    form = ManagedCredentialForm(request.POST or None)
+    if request.method == "POST":
+        if not form.is_valid():
+            messages.error(request, "The key was not saved. Correct the highlighted fields.")
+            return render(
+                request,
+                "app/credentials.html",
+                {"form": form, "credentials": _managed_credential_rows()},
+                status=400,
+            )
+        api_key = form.cleaned_data["api_key"]
+        provider = form.cleaned_data["provider"]
+        try:
+            token, key_id = encrypt_credentials({"api_key": api_key})
+        except ImproperlyConfigured:
+            messages.error(
+                request,
+                "Credential encryption is not configured on this deployment, so the key was not "
+                "stored. Set CREDENTIAL_ENCRYPTION_KEYS and CREDENTIAL_ENCRYPTION_ACTIVE_KEY.",
+            )
+            return render(
+                request,
+                "app/credentials.html",
+                {"form": form, "credentials": _managed_credential_rows()},
+                status=503,
+            )
+        ManagedCredential.objects.update_or_create(
+            provider=provider,
+            defaults={
+                "encrypted_credentials": token,
+                "encryption_key_id": key_id,
+                "credential_hint": f"····{api_key[-4:]}",
+                "is_active": True,
+                "updated_by": request.user,
+            },
+        )
+        record_event(
+            event_type="managed_credential.stored",
+            actor=request.user,
+            request=request,
+            payload={"provider": provider, "encryption_key_id": key_id},
+        )
+        messages.success(
+            request,
+            f"{dict(Connection.Provider.choices).get(provider, provider)} key saved. It is "
+            "encrypted at rest and now applies to every project that has no key of its own.",
+        )
+        return redirect("credentials")
+    return render(
+        request,
+        "app/credentials.html",
+        {"form": ManagedCredentialForm(initial={"provider": "semrush"}),
+         "credentials": _managed_credential_rows()},
+    )
+
+
+@login_required
+@require_POST
+def credential_remove_view(request, credential_id):
+    _require_agency_admin(request.user)
+    credential = get_object_or_404(ManagedCredential, pk=credential_id)
+    provider = credential.provider
+    credential.delete()
+    record_event(
+        event_type="managed_credential.removed",
+        actor=request.user,
+        request=request,
+        payload={"provider": provider},
+    )
+    messages.success(request, "The organisation credential was removed.")
+    return redirect("credentials")
+
 
 @login_required
 

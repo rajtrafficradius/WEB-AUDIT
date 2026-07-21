@@ -237,6 +237,32 @@ class Connection(UUIDTimeStampedModel, AvailabilityMixin):
         indexes = [models.Index(fields=("project", "provider", "availability"))]
 
 
+class ManagedCredential(UUIDTimeStampedModel):
+    """An organisation-wide API credential applied to every project by default.
+
+    One row per provider. The secret is encrypted at rest with the same
+    envelope as per-project Connections; only a short masked hint and the
+    encryption key id are ever readable. This is the deployment-wide default,
+    overridden by a per-project Connection when one carries its own key.
+    """
+
+    provider = models.CharField(max_length=40, choices=Connection.Provider.choices, unique=True)
+    encrypted_credentials = models.TextField(blank=True)
+    encryption_key_id = models.CharField(max_length=80, blank=True)
+    credential_hint = models.CharField(max_length=64, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    updated_by = models.ForeignKey(
+        "domain.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="managed_credentials",
+    )
+
+    class Meta:
+        ordering = ("provider",)
+
+    def __str__(self) -> str:  # pragma: no cover - admin display only
+        return f"{self.get_provider_display()} organisation credential"
+
+
 class SourceImport(UUIDTimeStampedModel, AvailabilityMixin):
     class Status(models.TextChoices):
         QUARANTINED = "quarantined", "Quarantined"

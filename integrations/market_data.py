@@ -21,7 +21,14 @@ from django.utils import timezone
 
 from app.domain.constants import AvailabilityStatus
 from app.domain.crypto import decrypt_credentials
-from app.domain.models import AuditRun, Backlink, Keyword, MetricObservation, SourceSnapshot
+from app.domain.models import (
+    AuditRun,
+    Backlink,
+    Keyword,
+    ManagedCredential,
+    MetricObservation,
+    SourceSnapshot,
+)
 from audit_engine.urls import canonical_host
 
 from . import semrush_reports as reports
@@ -204,13 +211,31 @@ class MarketDataService:
 
     # -- configuration -------------------------------------------------
 
-    @staticmethod
-    def _project_api_key(run: AuditRun) -> str:
-        """Prefer the key an administrator stored against this project.
+    @classmethod
+    def _project_api_key(cls, run: AuditRun) -> str:
+        return cls.resolve_api_key(run)
 
-        A per-project credential lets one deployment serve clients on separate
-        SEMrush subscriptions; the deployment-wide environment key remains the
-        fallback so existing installs keep working.
+    @staticmethod
+    def _decrypt_key(token: str, key_id: str, *, context: str) -> str:
+        try:
+            credentials = decrypt_credentials(token, key_id)
+        except (ImproperlyConfigured, ValueError):
+            logger.warning(
+                "Stored SEMrush credential (%s) could not be decrypted; trying the next source.",
+                context,
+            )
+            return ""
+        return str(credentials.get("api_key") or "").strip()
+
+    @classmethod
+    def resolve_api_key(cls, run: AuditRun) -> str:
+        """Resolve the SEMrush key for a run in precedence order.
+
+        1. A per-project Connection credential (lets one deployment serve
+           clients on separate subscriptions).
+        2. The organisation-wide ManagedCredential set once in the admin
+           Credentials page — applied to every project by default.
+        3. The SEMRUSH_API_KEY environment variable (legacy fallback).
         """
 
         connection = (
@@ -220,21 +245,35 @@ class MarketDataService:
             .first()
         )
         if connection is not None:
-            try:
-                credentials = decrypt_credentials(
-                    connection.encrypted_credentials, connection.encryption_key_id
-                )
-            except (ImproperlyConfigured, ValueError):
-                logger.warning(
-                    "Stored SEMrush credential for project %s could not be decrypted; "
-                    "falling back to the environment key.",
-                    run.project_id,
-                )
-            else:
-                stored = str(credentials.get("api_key") or "").strip()
-                if stored:
-                    return stored
+            key = cls._decrypt_key(
+                connection.encrypted_credentials,
+                connection.encryption_key_id,
+                context=f"project {run.project_id}",
+            )
+            if key:
+                return key
+
+        managed = (
+            ManagedCredential.objects.filter(provider="semrush", is_active=True)
+            .exclude(encrypted_credentials="")
+            .first()
+        )
+        if managed is not None:
+            key = cls._decrypt_key(
+                managed.encrypted_credentials,
+                managed.encryption_key_id,
+                context="organisation credential",
+            )
+            if key:
+                return key
+
         return str(getattr(settings, "SEMRUSH_API_KEY", "") or "")
+
+    @classmethod
+    def is_configured(cls, run: AuditRun) -> bool:
+        """True when any usable SEMrush key resolves for this run."""
+
+        return bool(cls.resolve_api_key(run))
 
     def _resolve_database(self, database: str | None) -> str:
         candidate = (database or "").strip().casefold()

@@ -283,6 +283,8 @@ def test_market_data_dispatch_is_optional_and_never_fails_the_audit(db, monkeypa
         stopped_reason="queue_exhausted",
     ))
     settings.MARKET_DATA_ENABLED = True
+    # A key must resolve for the dispatch to fire; the env fallback is enough.
+    settings.SEMRUSH_API_KEY = "dispatch-test-env-key"
     sent = []
 
     class ExplodingApp:
@@ -308,5 +310,19 @@ def test_market_data_dispatch_is_skipped_when_disabled(db, monkeypatch, settings
         stopped_reason="queue_exhausted",
     ))
     settings.MARKET_DATA_ENABLED = False
+    run_website_audit.run(str(run.pk))
+    assert not run.stages.filter(name="enriching").exists()
+
+
+def test_market_data_dispatch_is_skipped_when_no_key_is_configured(db, monkeypatch, settings):
+    """Enabled with no key anywhere is a no-op, never a queued no-op task."""
+
+    run = _make_run("market-unconfigured")
+    _install_crawler(monkeypatch, CrawlResult(
+        pages=(_page("https://example.com.au/"),), failures=(), discovered_count=1,
+        stopped_reason="queue_exhausted",
+    ))
+    settings.MARKET_DATA_ENABLED = True
+    settings.SEMRUSH_API_KEY = ""
     run_website_audit.run(str(run.pk))
     assert not run.stages.filter(name="enriching").exists()

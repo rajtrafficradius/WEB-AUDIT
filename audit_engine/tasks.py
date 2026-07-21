@@ -395,9 +395,16 @@ def _dispatch_market_data(run):
     broker or a provider outage must leave the completed audit untouched.
     """
 
-    if not getattr(settings, "MARKET_DATA_ENABLED", False):
+    # MARKET_DATA_ENABLED is an explicit kill switch (default on); enrichment
+    # only actually runs when a key resolves (per-project, organisation-wide,
+    # or the environment fallback), so we skip the dispatch when none exists.
+    if not getattr(settings, "MARKET_DATA_ENABLED", True):
         return False
     try:
+        from integrations.market_data import MarketDataService
+
+        if not MarketDataService.is_configured(run):
+            return False
         from celery import current_app
 
         RunStage.objects.get_or_create(

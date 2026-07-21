@@ -439,7 +439,10 @@ SEMRUSH_UNIT_BUDGET = max(0, int(os.getenv("SEMRUSH_UNIT_BUDGET", "700")))
 SEMRUSH_DATABASE = os.getenv("SEMRUSH_DATABASE", "au").strip().casefold() or "au"
 # The SEMrush contract caps local caching of API responses at 30 days.
 SEMRUSH_CACHE_DAYS = max(0, min(30, int(os.getenv("SEMRUSH_CACHE_DAYS", "30"))))
-MARKET_DATA_ENABLED = env_bool("MARKET_DATA_ENABLED", bool(SEMRUSH_API_KEY))
+# Kill switch, default on. Enrichment still only runs when a key resolves
+# (organisation credential, per-project connection, or the env var above), so
+# leaving this on with no key configured is a no-op, not wasted work.
+MARKET_DATA_ENABLED = env_bool("MARKET_DATA_ENABLED", True)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],

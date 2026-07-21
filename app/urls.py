@@ -15,6 +15,12 @@ urlpatterns = [
     path("", views.dashboard_view, name="dashboard"),
     path("projects/", views.dashboard_view, name="project-list"),
     path("projects/new/", views.project_create_view, name="project-create"),
+    path("settings/credentials/", views.credentials_view, name="credentials"),
+    path(
+        "settings/credentials/<uuid:credential_id>/remove/",
+        views.credential_remove_view,
+        name="credential-remove",
+    ),
     path("projects/<uuid:project_id>/", views.project_detail_view, name="project-detail"),
     path("projects/<uuid:project_id>/progress/", views.project_progress_view, name="project-progress"),
     path(
