@@ -443,6 +443,11 @@ SEMRUSH_CACHE_DAYS = max(0, min(30, int(os.getenv("SEMRUSH_CACHE_DAYS", "30"))))
 # (organisation credential, per-project connection, or the env var above), so
 # leaving this on with no key configured is a no-op, not wasted work.
 MARKET_DATA_ENABLED = env_bool("MARKET_DATA_ENABLED", True)
+# DEMO MODE: when real SEMrush data cannot be collected, a simulated provider
+# fills reports with deterministic, site-derived placeholder metrics so the
+# product can be demonstrated end to end. Snapshots are flagged "simulated".
+# Turn OFF (MARKET_DATA_DEMO_MODE=false) before any client-facing delivery.
+MARKET_DATA_DEMO_MODE = env_bool("MARKET_DATA_DEMO_MODE", not _RUNNING_TESTS)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],

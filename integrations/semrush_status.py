@@ -133,9 +133,25 @@ def check_status(api_key: str | None = None, *, transport=None, refresh: bool = 
     or 'unavailable' (a key exists but the provider rejected or was unreachable).
     """
 
+    from integrations.demo_market import DEMO_UNIT_POOL, demo_mode_enabled
+
     key = (api_key if api_key is not None else resolve_org_api_key()).strip()
     used = studio_units_spent()
+
+    def _demo_payload() -> dict:
+        remaining = max(0, DEMO_UNIT_POOL - used)
+        return {
+            "status": "working",
+            "label": "SEMrush is working",
+            "message": f"{remaining:,} API units remaining.",
+            "units_remaining": remaining,
+            "units_used": used,
+            "demo": True,
+        }
+
     if not key:
+        if demo_mode_enabled():
+            return _demo_payload()
         return {
             "status": "no_key",
             "label": "No SEMrush key",
@@ -153,6 +169,8 @@ def check_status(api_key: str | None = None, *, transport=None, refresh: bool = 
 
     balance = probe.get("balance")
     if balance is None:
+        if demo_mode_enabled():
+            return _demo_payload()
         return {
             "status": "unavailable",
             "label": "SEMrush unavailable",

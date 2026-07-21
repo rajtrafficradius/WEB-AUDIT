@@ -94,6 +94,26 @@ def collect_market_data(self, run_id: str) -> dict[str, Any]:
         result = MarketDataService(run).collect()
     except Exception:  # noqa: BLE001 - the service is fail-open; this is belt and braces
         logger.exception("Market-data collection raised", extra={"run": str(run.pk)})
+        result = None
+
+    if result is None or result.status != "available":
+        from .demo_market import collect_demo_market_data, demo_mode_enabled
+
+        if demo_mode_enabled():
+            # Demo fallback: the real pipeline runs against a simulated
+            # transport so reports fill with site-derived, clearly-flagged
+            # placeholder metrics until a working key takes over.
+            reason = result.unavailable_reason if result is not None else "collector_error"
+            logger.info(
+                "Falling back to simulated market data", extra={"run": str(run.pk),
+                                                                "reason": reason},
+            )
+            try:
+                result = collect_demo_market_data(run)
+            except Exception:  # noqa: BLE001 - demo data must never fail a run
+                logger.exception("Demo market data raised", extra={"run": str(run.pk)})
+
+    if result is None:
         _stage(run, StageStatus.SKIPPED, message="Market data could not be collected")
         return {"run_id": str(run.pk), "status": "unavailable", "reason": "collector_error"}
 

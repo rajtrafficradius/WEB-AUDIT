@@ -118,6 +118,37 @@
     var url = card.getAttribute("data-progress-url");
     var track = card.querySelector('[role="progressbar"]');
     var priorState = "";
+    // The server reports stage milestones (2/25/72/80/90/100). Between polls
+    // the bar creeps smoothly toward — but never past — the next milestone,
+    // so long stages read as steady motion instead of a stuck bar.
+    var MILESTONES = [2, 25, 72, 80, 90, 100];
+    var serverPercent = 0;
+    var shownPercent = 0;
+    var creepTimer = null;
+    function creepCeiling(value) {
+      for (var i = 0; i < MILESTONES.length; i += 1) {
+        if (MILESTONES[i] > value + 0.5) return MILESTONES[i] - 1;
+      }
+      return 99;
+    }
+    function renderPercent(value) {
+      var rounded = Math.round(value);
+      setText("[data-progress-percent]", rounded + "%");
+      if (track) {
+        track.style.setProperty("--progress", value.toFixed(1) + "%");
+        track.setAttribute("aria-valuenow", String(rounded));
+      }
+    }
+    function startCreep() {
+      if (creepTimer) return;
+      creepTimer = window.setInterval(function () {
+        var ceiling = creepCeiling(serverPercent);
+        if (shownPercent < ceiling) {
+          shownPercent = Math.min(ceiling, shownPercent + Math.max(0.12, (ceiling - shownPercent) * 0.035));
+          renderPercent(shownPercent);
+        }
+      }, 900);
+    }
     function setText(selector, value) {
       var node = card.querySelector(selector);
       if (node) node.textContent = value;
@@ -131,14 +162,14 @@
         .then(function (data) {
           setText("[data-progress-label]", data.label);
           setText("[data-progress-message]", data.message || "The audit uses approved-domain evidence only.");
-          setText("[data-progress-percent]", data.percent + "%");
           setText("[data-progress-pages]", data.pages);
           setText("[data-progress-findings]", data.findings);
           setText("[data-progress-recommendations]", data.recommendations);
-          if (track) {
-            track.style.setProperty("--progress", data.percent + "%");
-            track.setAttribute("aria-valuenow", String(data.percent));
-          }
+          serverPercent = Number(data.percent) || 0;
+          shownPercent = Math.max(shownPercent, serverPercent);
+          renderPercent(shownPercent);
+          if (data.active) startCreep();
+          else if (creepTimer) { window.clearInterval(creepTimer); creepTimer = null; }
           var autoDownloaded = false;
           if (data.package_ready && data.package_url && data.package_artifact_id) {
             var downloadKey = "tr-auto-download:" + data.package_artifact_id;

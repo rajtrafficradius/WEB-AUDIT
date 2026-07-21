@@ -73,10 +73,10 @@
               <a href="{{ project_url|default:'#' }}">{{ project.name|default:"Untitled project" }}</a>
               <span class="muted">{{ project.client.name|default:"Unassigned client" }} · {{ project.primary_domain|default:"Domain pending" }}</span>
             </div>
-            <div class="project-row__metric"><span>Current stage</span><strong>{{ project.get_status_display|default:project.status|default:"Draft" }}</strong></div>
+            <div class="project-row__metric"><span>Current stage</span><strong>{{ project.state_label|default:"Setup" }}</strong></div>
             <div class="project-row__metric"><span>Coverage</span><strong class="num">{{ project.evidence_coverage|default:"—" }}{% if project.evidence_coverage != None %}%{% endif %}</strong></div>
             {% if project.can_download %}<a class="button button--secondary" href="{% url 'audit-results-download' project.pk %}">Download results</a>{% endif %}
-            <span class="status status--{{ project.status|default:'review'|slugify }}">{{ project.get_status_display|default:project.status|default:"Draft" }}</span>
+            <span class="status status--{{ project.state_slug|default:'pending' }}">{{ project.state_label|default:"Setup" }}</span>
           </article>
         {% endfor %}
       </div>

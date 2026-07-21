@@ -916,11 +916,37 @@ def dashboard_view(request):
         .order_by("-created_at")
     )
     coverages = []
+    backfills_dispatched = 0
     for project in projects:
         latest = project.audit_runs.first()
         project.evidence_coverage = latest.evidence_coverage if latest else None
         project.profile = project.default_profile
         project.can_download = _latest_downloadable_artifact(request.user, project) is not None
+
+        # A finished project whose package bytes were lost (e.g. a redeploy
+        # wiped local storage before database archiving existed) self-heals
+        # from the portfolio itself: queue a rebuild, capped per page load.
+        if (
+            latest is not None
+            and not project.can_download
+            and latest.state in PACKAGEABLE_STATES
+            and getattr(settings, "AUTO_BUILD_PACKAGE", False)
+            and backfills_dispatched < 6
+        ) and _dispatch_package_build(latest, actor=request.user):
+            backfills_dispatched += 1
+
+        # Row status reflects the RUN, not the project record: only genuinely
+        # running audits read as Active; finished ones read as Complete.
+        if latest is None:
+            project.state_label, project.state_slug = "Setup", "pending"
+        else:
+            payload = _audit_progress_payload(latest)
+            if payload["failed"]:
+                project.state_label, project.state_slug = "Needs attention", "failed"
+            elif payload["active"]:
+                project.state_label, project.state_slug = "Active", "active"
+            else:
+                project.state_label, project.state_slug = "Complete", "complete"
         if latest:
             coverages.append(latest.evidence_coverage)
     project_ids = [project.pk for project in projects]

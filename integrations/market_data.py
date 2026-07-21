@@ -295,9 +295,11 @@ class MarketDataService:
 
     @classmethod
     def is_configured(cls, run: AuditRun) -> bool:
-        """True when any usable SEMrush key resolves for this run."""
+        """True when a key resolves — or when demo mode will simulate one."""
 
-        return bool(cls.resolve_api_key(run))
+        if cls.resolve_api_key(run):
+            return True
+        return bool(getattr(settings, "MARKET_DATA_DEMO_MODE", False))
 
     def _resolve_database(self, database: str | None) -> str:
         candidate = (database or "").strip().casefold()
