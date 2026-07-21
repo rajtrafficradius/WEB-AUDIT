@@ -89,6 +89,31 @@ def test_download_is_scoped_to_the_owning_project(client, seeded):
 
 
 @pytest.mark.django_db
+def test_download_falls_back_to_the_database_when_storage_is_wiped(client, seeded, monkeypatch):
+    from app.domain.models import PackageArchive
+
+    user, project = seeded
+    payload = b"database-package-bytes-survive-redeploy"
+    artifact = _package_artifact(project, version=1, payload=b"original-storage-bytes")
+    PackageArchive.objects.create(
+        run=artifact.run, artifact=artifact, filename="pkg.zip",
+        sha256=hashlib.sha256(payload).hexdigest(), size_bytes=len(payload), data=payload,
+    )
+    # Simulate a redeploy: the container's local storage is gone.
+    monkeypatch.setattr("app.views.artifact_bytes_available", lambda artifact: False)
+
+    assert client.login(username="dl-admin", password=PASSWORD)
+    detail = client.get(reverse("project-detail", args=(project.pk,)), secure=True)
+    assert "Report downloads" in detail.content.decode("utf-8")
+
+    response = client.get(
+        reverse("package-download", args=(project.pk, artifact.pk)), secure=True
+    )
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content) == payload
+
+
+@pytest.mark.django_db
 def test_missing_bytes_are_not_offered(client, seeded, monkeypatch):
     user, project = seeded
     _package_artifact(project, version=1, payload=b"present")

@@ -245,7 +245,13 @@ def build_audit_package(
         .order_by("-created_at")
         .first()
     )
-    if existing and artifact_bytes_available(existing):
+    from app.domain.models import PackageArchive
+
+    already_built = existing is not None and (
+        artifact_bytes_available(existing)
+        or PackageArchive.objects.filter(artifact=existing).exists()
+    )
+    if already_built:
         return {
             "run_id": str(run.pk),
             "artifact_id": str(existing.pk),

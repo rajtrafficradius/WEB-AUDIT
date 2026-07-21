@@ -691,6 +691,21 @@ def build_package_for_run(
             "manifest_sha256": manifest_sha256,
         },
     )
+    # Persist the ZIP bytes in the database too: container-local storage is
+    # wiped on redeploy, so this keeps every finished audit downloadable.
+    from app.domain.models import PackageArchive
+
+    PackageArchive.objects.update_or_create(
+        artifact=artifact,
+        defaults={
+            "run": run,
+            "filename": f"{package_name}.zip",
+            "media_type": "application/zip",
+            "sha256": artifact.sha256,
+            "size_bytes": len(zip_bytes),
+            "data": zip_bytes,
+        },
+    )
     manifest_row, _row_created = PackageManifestModel.objects.get_or_create(
         run=run,
         version=run.version,

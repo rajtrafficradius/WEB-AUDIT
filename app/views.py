@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
+from io import BytesIO
 from types import SimpleNamespace
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -1223,6 +1225,34 @@ def _project_short_summary(project: Project, latest: AuditRun | None) -> str:
     ).strip()
 
 
+def _package_stream(artifact):
+    """Return an open, integrity-verified stream for the package ZIP.
+
+    Prefers content-addressed storage; falls back to the database archive
+    when container-local storage has been wiped by a redeploy.
+    """
+
+    from app.domain.models import PackageArchive
+
+    if artifact_bytes_available(artifact):
+        return open_verified_artifact(artifact)
+    archive = PackageArchive.objects.filter(artifact=artifact).first()
+    if archive is None:
+        raise ArtifactIntegrityError("The package bytes are unavailable.")
+    payload = bytes(archive.data)
+    if hashlib.sha256(payload).hexdigest() != archive.sha256:
+        raise ArtifactIntegrityError("The stored package failed its integrity check.")
+    return BytesIO(payload)
+
+
+def _artifact_downloadable(artifact) -> bool:
+    from app.domain.models import PackageArchive
+
+    return artifact_bytes_available(artifact) or PackageArchive.objects.filter(
+        artifact=artifact
+    ).exists()
+
+
 def _latest_downloadable_artifact(user, project: Project) -> Artifact | None:
     artifacts = (
         Artifact.objects.select_related("run__project__client")
@@ -1230,11 +1260,9 @@ def _latest_downloadable_artifact(user, project: Project) -> Artifact | None:
         .order_by("-created_at")
     )
     # Only the finished deliverable package is a downloadable audit result.
-    # Serving intermediate formats (HTML summaries) here confused users into
-    # thinking the HTML *was* the deliverable.
     for artifact_type in ("package", "final_package"):
         for artifact in artifacts.filter(artifact_type=artifact_type):
-            if can_download_artifact(user, artifact) and artifact_bytes_available(artifact):
+            if can_download_artifact(user, artifact) and _artifact_downloadable(artifact):
                 return artifact
     return None
 
@@ -1325,7 +1353,7 @@ def _package_artifact_exists(run) -> bool:
         .order_by("-created_at")
         .first()
     )
-    return artifact is not None and artifact_bytes_available(artifact)
+    return artifact is not None and _artifact_downloadable(artifact)
 
 
 def _dispatch_package_build(run, *, actor=None, force: bool = False) -> bool:
@@ -2630,7 +2658,7 @@ def export_download_view(request, project_id, package_id):
     if not can_download_artifact(request.user, artifact):
         raise PermissionDenied("This artifact is not approved for download.")
     try:
-        stream = open_verified_artifact(artifact)
+        stream = _package_stream(artifact)
     except ArtifactIntegrityError:
         messages.error(request, "Artifact integrity verification failed; download was blocked.")
         return redirect("export-qa", project_id=project.pk)
@@ -2677,7 +2705,7 @@ def audit_results_download_view(request, project_id):
         )
         return redirect("project-detail", project_id=project.pk)
     try:
-        stream = open_verified_artifact(artifact)
+        stream = _package_stream(artifact)
     except ArtifactIntegrityError:
         messages.error(request, "Artifact integrity verification failed; download was blocked.")
         return redirect("project-detail", project_id=project.pk)
@@ -2715,7 +2743,7 @@ def project_packages(user, project: Project) -> list[SimpleNamespace]:
     )
     rows: list[SimpleNamespace] = []
     for artifact in artifacts:
-        if not can_download_artifact(user, artifact) or not artifact_bytes_available(artifact):
+        if not can_download_artifact(user, artifact) or not _artifact_downloadable(artifact):
             continue
         meta = artifact.metadata if isinstance(artifact.metadata, dict) else {}
         rows.append(
@@ -2747,7 +2775,7 @@ def package_download_view(request, project_id, artifact_id):
     if not can_download_artifact(request.user, artifact):
         raise PermissionDenied("This package is not available for download.")
     try:
-        stream = open_verified_artifact(artifact)
+        stream = _package_stream(artifact)
     except ArtifactIntegrityError:
         messages.error(request, "Artifact integrity verification failed; download was blocked.")
         return redirect("project-detail", project_id=project.pk)

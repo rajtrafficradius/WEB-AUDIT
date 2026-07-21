@@ -858,6 +858,28 @@ class QAResult(UUIDTimeStampedModel):
         indexes = [models.Index(fields=("run", "status", "severity"))]
 
 
+class PackageArchive(UUIDTimeStampedModel):
+    """The finished deliverable ZIP stored in the database itself.
+
+    Container-local storage is wiped on every redeploy, so the archive bytes
+    are also persisted here. This guarantees a completed audit stays
+    downloadable across deploys without an external object store.
+    """
+
+    run = models.ForeignKey(AuditRun, on_delete=models.CASCADE, related_name="package_archives")
+    artifact = models.OneToOneField(
+        Artifact, on_delete=models.CASCADE, related_name="db_archive", null=True, blank=True
+    )
+    filename = models.CharField(max_length=255)
+    media_type = models.CharField(max_length=120, default="application/zip")
+    sha256 = models.CharField(max_length=64, db_index=True)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    data = models.BinaryField()
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
 class PackageManifest(UUIDTimeStampedModel):
     run = models.ForeignKey(AuditRun, on_delete=models.CASCADE, related_name="package_manifests")
     package_artifact = models.OneToOneField(
