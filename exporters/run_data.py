@@ -997,16 +997,25 @@ def _compile_market(run: Any, metrics: list[Any], locale: str) -> dict[str, Any]
 
 
 def _keyword_extras(metrics: list[Any]) -> dict[str, dict[str, Any]]:
-    """Per-phrase provider detail that has no dedicated Keyword column."""
+    """Per-phrase provider detail that has no dedicated Keyword column.
+
+    The provider layer persists one observation whose ``json_value`` is the
+    LIST of keyword rows (``semrush.keywords``); accept both that shape and
+    legacy per-row dict observations, or every list-shaped detail column
+    (trend, competition, traffic share, landing URL) silently reads as
+    unavailable.
+    """
     extras: dict[str, dict[str, Any]] = {}
     for row in metrics:
         payload = row.json_value
-        if not isinstance(payload, dict):
-            continue
-        phrase = payload.get("phrase") or payload.get("keyword")
-        if not isinstance(phrase, str) or not phrase.strip():
-            continue
-        extras.setdefault(_normalize_phrase(phrase), {}).update(payload)
+        items = payload if isinstance(payload, list) else [payload]
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            phrase = item.get("phrase") or item.get("keyword")
+            if not isinstance(phrase, str) or not phrase.strip():
+                continue
+            extras.setdefault(_normalize_phrase(phrase), {}).update(item)
     return extras
 
 
@@ -1221,6 +1230,9 @@ def _compile_competitors(metrics: list[Any], reason: str) -> list[dict[str, Any]
                 "organic_cost": _as_float(payload.get("organic_cost")),
                 "adwords_keywords": _as_int(payload.get("adwords_keywords")),
                 "gap_keywords": _as_int(payload.get("gap_keywords")),
+                "authority_score": _as_float(payload.get("authority_score")),
+                "backlinks_total": _as_int(payload.get("backlinks_total")),
+                "referring_domains": _as_int(payload.get("referring_domains")),
                 "evidence_ids": [f"EV-CMP-{index}"],
                 "unavailable_reason": None,
             }

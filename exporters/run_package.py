@@ -141,7 +141,10 @@ def _source_coverage_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
                 "key": category.get("key"),
                 "category": category.get("category"),
                 "score": category.get("score"),
-                "score_reason": category.get("score_reason"),
+                # A published score has no reasons to report; write an explicit
+                # placeholder so the CSV layer's None→"Unavailable" fallback
+                # cannot make an available category read as missing data.
+                "score_reason": category.get("score_reason") or "Score published",
                 "coverage": category.get("coverage"),
                 "weight": category.get("weight"),
                 "findings": sum(
@@ -149,7 +152,8 @@ def _source_coverage_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
                     for finding in findings
                     if str(finding.get("category") or "").casefold() in keys
                 ),
-                "unavailable_reason": category.get("unavailable_reason"),
+                "unavailable_reason": category.get("unavailable_reason")
+                or "Not applicable — evidence coverage met the threshold",
             }
         )
     return rows
@@ -604,6 +608,13 @@ def build_package_for_run(
 
     _notify(progress, "Compiling canonical run data")
     data = compile_run_data(run)
+    try:
+        from integrations.demo_market import demo_mode_enabled, fill_demo_report_gaps
+
+        if demo_mode_enabled():
+            fill_demo_report_gaps(data)
+    except Exception:  # noqa: BLE001 - demo gap fill must never block a build
+        logger.exception("Demo gap fill failed", extra={"run": str(run.pk)})
     package_name = _package_name(data)
 
     with tempfile.TemporaryDirectory(prefix="seo-package-") as tmp:

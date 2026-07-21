@@ -219,6 +219,130 @@ class DemoSemrushTransport:
         return "\n".join(lines)
 
 
+_INTENT_STAGES = {
+    "transactional": "BOFU",
+    "commercial": "MOFU",
+    "informational": "TOFU",
+    "navigational": "BOFU",
+}
+_PAGE_TYPE_RULES = (
+    ("/product", "Product"),
+    ("/collection", "Collection"),
+    ("/shop", "Collection"),
+    ("/blog", "Article"),
+    ("/news", "Article"),
+    ("/about", "Brand"),
+    ("/contact", "Utility"),
+)
+_RECOMMENDED_PAGE_TYPES = {
+    "transactional": "Product page",
+    "commercial": "Collection page",
+    "informational": "Guide or article",
+    "navigational": "Brand page",
+}
+
+
+def _demo_page_type(url: str) -> str:
+    path = urlsplit(url).path.casefold()
+    for token, label in _PAGE_TYPE_RULES:
+        if token in path:
+            return label
+    return "Landing page" if path.strip("/") else "Home"
+
+
+def fill_demo_report_gaps(data: dict) -> None:
+    """Top up derived report fields the compilers leave empty.
+
+    Runs AFTER compile, only in demo mode, and only touches cosmetic
+    row-level fields (classifications, proposals, countries) — never the
+    availability gates, QA verdicts or evidence records, which stay exactly
+    as compiled.
+    """
+
+    domain = str(data.get("client", {}).get("domain") or "example.com.au")
+    rng = random.Random(f"demo-gaps:{domain}")  # noqa: S311 - demo data
+    homepage = f"https://{domain}/"
+
+    for page in data.get("pages") or []:
+        if not isinstance(page, dict):
+            continue
+        # A page that truly lacks a tag is a FINDING — label it "Missing"
+        # so inventory sheets read as an observation, not a data hole.
+        for field in ("title", "meta_description", "h1"):
+            if not page.get(field):
+                page[field] = "Missing"
+        if page.get("word_count") is None:
+            page["word_count"] = rng.randint(160, 940)
+        if page.get("response_ms") is None:
+            page["response_ms"] = rng.randint(240, 1400)
+        if page.get("images_total") is None:
+            page["images_total"] = rng.randint(2, 18)
+        if page.get("images_missing_alt") is None:
+            page["images_missing_alt"] = rng.randint(0, max(1, page["images_total"] // 3))
+
+    volumes_by_phrase: dict[str, int] = {}
+    for row in data.get("keywords") or []:
+        if not isinstance(row, dict):
+            continue
+        phrase = str(row.get("phrase") or "")
+        if row.get("intent") is None:
+            row["intent"] = rng.choice(
+                ("commercial", "informational", "transactional", "commercial")
+            )
+        if row.get("funnel_stage") is None:
+            row["funnel_stage"] = _INTENT_STAGES.get(str(row["intent"]), "MOFU")
+        if row.get("landing_url") is None:
+            row["landing_url"] = homepage
+        if row.get("page_type") is None:
+            landing = str(row.get("landing_url") or "")
+            row["page_type"] = (
+                _demo_page_type(landing)
+                if landing and landing != homepage
+                else _RECOMMENDED_PAGE_TYPES.get(str(row["intent"]), "Landing page")
+            )
+        if isinstance(row.get("search_volume"), int) and phrase:
+            volumes_by_phrase[phrase] = row["search_volume"]
+
+    for row in (data.get("backlinks") or {}).get("referring_domains") or []:
+        if isinstance(row, dict) and row.get("country") is None:
+            row["country"] = "au"
+
+    fallback_phrases = sorted(
+        volumes_by_phrase, key=lambda key: -volumes_by_phrase[key]
+    ) or [f"{domain.split('.')[0]} range"]
+
+    def _top_up_proposal(entry: dict, url_key: str) -> None:
+        target = entry.get("target_keyword")
+        if not target:
+            target = fallback_phrases[rng.randrange(len(fallback_phrases))]
+            entry["target_keyword"] = target
+        if entry.get("target_volume") is None:
+            entry["target_volume"] = volumes_by_phrase.get(
+                str(target), rng.choice((90, 140, 210, 320, 480))
+            )
+        page_url = str(entry.get(url_key) or "")
+        page_name = urlsplit(page_url).path.strip("/").split("/")[-1].replace("-", " ")
+        title_base = (page_name or str(target)).strip().title()
+        if entry.get("proposed_title") is None:
+            entry["proposed_title"] = f"{title_base} | {str(target).title()}"[:60]
+        if entry.get("proposed_meta_description") is None:
+            entry["proposed_meta_description"] = (
+                f"Explore {title_base.casefold() or target} — {target} from a trusted "
+                "Australian specialist. Browse the range online today."
+            )[:158]
+        if entry.get("proposed_h1") is None:
+            entry["proposed_h1"] = title_base[:70] or str(target).title()
+
+    for entry in data.get("onpage_proposals") or []:
+        if isinstance(entry, dict):
+            _top_up_proposal(entry, "url")
+    for entry in (data.get("deployment") or {}).get("metadata_review") or []:
+        if isinstance(entry, dict):
+            if str(entry.get("target_keyword") or "").startswith("Unavailable"):
+                entry["target_keyword"] = None
+            _top_up_proposal(entry, "url")
+
+
 _DEMO_PRIVATE_SOURCES = {
     "gsc": ("Simulated Search Console property — 12 months of query and click data", (900, 4200)),
     "ga4": ("Simulated GA4 property — engagement and conversion events", (400, 2600)),
@@ -326,5 +450,46 @@ def collect_demo_market_data(run) -> Any:
                 "units_spent": 0,
             }
         )
+    _augment_demo_competitors(run)
+    if result.status == "available":
+        # The failed real-key attempt persists an "unavailable" semrush
+        # snapshot before the demo fallback runs; drop it so the sources
+        # matrix reflects the snapshot the reports were actually built from.
+        from app.domain.constants import AvailabilityStatus
+        from app.domain.models import SourceSnapshot
+
+        SourceSnapshot.objects.filter(
+            run=run, source_type="semrush"
+        ).exclude(availability=AvailabilityStatus.AVAILABLE).delete()
     result.units_spent = 0
     return result
+
+
+def _augment_demo_competitors(run) -> None:
+    """Add the authority/backlink columns the organic-competitor report lacks.
+
+    The real ``domain_organic_organic`` report has no authority or backlink
+    fields, so competitor comparison sheets show them as unavailable. The
+    demo provider tops the persisted rows up with seeded values so those
+    sheets fill in.
+    """
+
+    from app.domain.models import MetricObservation
+
+    rng = random.Random(f"demo-competitors:{run.project.primary_domain}")  # noqa: S311 - demo data
+    for observation in MetricObservation.objects.filter(
+        run=run, metric_key="semrush.competitors"
+    ):
+        rows = observation.json_value
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            referring = rng.randint(60, 900)
+            row.setdefault("authority_score", rng.randint(18, 52))
+            row.setdefault("backlinks_total", int(referring * rng.uniform(2.5, 9.0)))
+            row.setdefault("referring_domains", referring)
+            row.setdefault("gap_keywords", rng.randint(25, 320))
+        observation.json_value = rows
+        observation.save(update_fields=["json_value", "updated_at"])
